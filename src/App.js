@@ -10,6 +10,8 @@ import Metas from './Metas';
 import ResumenJefe from './ResumenJefe';
 import GestionModelos from './GestionModelos';
 import ImportarModelos from './ImportarModelos';
+import Inventario2 from './Inventario2';
+import Pedidos from './Pedidos';
 
 const CLAVES = { jefe: '1234', monitor: '5678', operativo: 'oper1234', administrativo: 'admin1234' };
 const HABITACIONES = Array.from({ length: 16 }, (_, i) => i + 1);
@@ -194,12 +196,14 @@ function AppJefe({ onLogout, temaOscuro, toggleTema }) {
         <NavBtn label="Metas" icon="target" activo={vista === 'metas'} onClick={() => setVista('metas')} />
         <NavBtn label="Nomina" icon="report-money" activo={vista === 'resumen'} onClick={() => setVista('resumen')} />
           <NavBtn label="Modelos" icon="user-plus" activo={vista === 'modelos'} onClick={() => setVista('modelos')} />
+            <NavBtn label="Inventario" icon="package" activo={vista === 'inventario'} onClick={() => setVista('inventario')} />
+              <NavBtn label="Pedidos" icon="shopping-bag" activo={vista === 'pedidos'} onClick={() => setVista('pedidos')} />
       </div>
       <div className="nm-section-label">
         {vista === 'mapa' ? 'Mapa de habitaciones — en vivo' :
          vista === 'novedades' ? 'Novedades del turno' :
          vista === 'cierre' ? 'Cierres de turno' :
-         vista === 'metas' ? 'Metas por modelo' : vista === 'resumen' ? 'Resumen quincenal' : 'Gestion de modelos'}
+         vista === 'metas' ? 'Metas por modelo' : vista === 'resumen' ? 'Resumen quincenal' : vista === 'modelos' ? 'Gestion de modelos' : 'Inventario'}
       </div>
       {vista === 'mapa' && <MapaHabitaciones rol="jefe" />}
       {vista === 'novedades' && <Novedades rol="jefe" />}
@@ -208,6 +212,8 @@ function AppJefe({ onLogout, temaOscuro, toggleTema }) {
       {vista === 'resumen' && <ResumenJefe />}
       {vista === 'modelos' && <GestionModelos />}
 {vista === 'modelos' && <ImportarModelos />}
+{vista === 'inventario' && <Inventario2 rol="jefe" />}
+{vista === 'pedidos' && <Pedidos rol="jefe" />}
     </div>
   );
 }
@@ -233,6 +239,7 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema }) {
         <NavBtn label="Asistencia" icon="users" activo={vista === 'asistencia'} onClick={() => setVista('asistencia')} />
         <NavBtn label="Novedades" icon="alert-circle" activo={vista === 'novedades'} onClick={() => setVista('novedades')} />
         <NavBtn label="Cierre" icon="clipboard-check" activo={vista === 'cierre'} onClick={() => setVista('cierre')} />
+          <NavBtn label="Pedidos" icon="shopping-bag" activo={vista === 'pedidos'} onClick={() => setVista('pedidos')} />
       </div>
       <div className="nm-section-label">
         {vista === 'mapa' ? 'Mapa de habitaciones' :
@@ -243,6 +250,7 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema }) {
       {vista === 'asistencia' && <Asistencia rol="monitor" />}
       {vista === 'novedades' && <Novedades rol="monitor" />}
       {vista === 'cierre' && <CierreTurno rol="monitor" />}
+      {vista === 'pedidos' && <Pedidos rol="monitor" />}
     </div>
   );
 }
@@ -268,6 +276,7 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
         <NavBtn label="Habitaciones" icon="layout-grid" activo={vista === 'mapa'} onClick={() => setVista('mapa')} />
         <NavBtn label="Mi quincena" icon="coin" activo={vista === 'nomina'} onClick={() => setVista('nomina')} />
         <NavBtn label="Mi meta" icon="target" activo={vista === 'metas'} onClick={() => setVista('metas')} />
+          <NavBtn label="Tienda" icon="shopping-cart" activo={vista === 'tienda'} onClick={() => setVista('tienda')} />
       </div>
       <div className="nm-section-label">
         {vista === 'mapa' ? 'Habitaciones disponibles' :
@@ -276,6 +285,7 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
       {vista === 'mapa' && <MapaHabitaciones rol="modelo" />}
       {vista === 'nomina' && <Nomina nombreModelo={nombreModelo} />}
       {vista === 'metas' && <Metas rol="modelo" nombreModelo={nombreModelo} />}
+      {vista === 'tienda' && <Inventario2 rol="tienda" nombreModelo={nombreModelo} />}
     </div>
   );
 }

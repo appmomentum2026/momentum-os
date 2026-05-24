@@ -1,0 +1,212 @@
+import React, { useState, useEffect } from 'react';
+import { db } from './firebase';
+import { collection, doc, setDoc, onSnapshot, addDoc } from 'firebase/firestore';
+
+const CATEGORIAS = ['Lubricantes', 'Juguetes', 'Limpiadores', 'Otros'];
+const STOCK_MINIMO = 5;
+
+const s = {
+  wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
+  alertaCard: { background: '#d85a3022', borderRadius: 14, padding: 16, border: '1px solid #d85a30', marginBottom: 8 },
+  alertaTitulo: { color: '#d85a30', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 },
+  alertaItem: { color: '#d85a30', fontSize: 13, padding: '4px 0' },
+  card: { background: 'var(--bg)', borderRadius: 14, padding: 16, boxShadow: 'var(--shadow-out)', marginBottom: 8 },
+  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  cardNombre: { color: 'var(--gold)', fontSize: 13, fontWeight: 500 },
+  cardCategoria: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
+  fila: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border)' },
+  filaLabel: { color: 'var(--text-sub)', fontSize: 12 },
+  filaValor: { color: 'var(--text)', fontSize: 12 },
+  stockBajo: { color: '#d85a30', fontSize: 12, fontWeight: 500 },
+  stockOk: { color: '#1d9e75', fontSize: 12, fontWeight: 500 },
+  btnRow: { display: 'flex', gap: 8, marginTop: 10 },
+  btnMas: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#1d9e75', padding: '6px 14px', fontSize: 13, cursor: 'pointer' },
+  btnMenos: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '6px 14px', fontSize: 13, cursor: 'pointer' },
+  btnNuevo: { background: 'var(--bg)', border: 'none', borderRadius: 12, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '12px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginBottom: 8 },
+  btnPedir: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '8px 16px', fontSize: 12, letterSpacing: 1, cursor: 'pointer' },
+  form: { background: 'var(--bg)', borderRadius: 14, padding: 20, boxShadow: 'var(--shadow-out)', marginBottom: 8 },
+  label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
+  input: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14 },
+  select: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14 },
+  btnGuardar: { flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '10px', fontSize: 13, letterSpacing: 1, cursor: 'pointer' },
+  btnCancelar: { background: 'transparent', border: 'none', color: 'var(--text-sub)', padding: '10px', fontSize: 13, cursor: 'pointer' },
+  vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 },
+  exito: { background: '#1d9e7522', borderRadius: 14, padding: 16, border: '1px solid #1d9e75', color: '#1d9e75', fontSize: 13 },
+  cuotaBox: { background: 'var(--bg)', borderRadius: 10, padding: 12, boxShadow: 'var(--shadow-in)', marginTop: 8 },
+  cuotaTexto: { color: 'var(--text-sub)', fontSize: 12, marginBottom: 10 },
+  cuotaBtns: { display: 'flex', gap: 8 },
+  cuotaBtn: { flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '8px', fontSize: 12, cursor: 'pointer' }
+};
+
+export default function Inventario2({ rol, nombreModelo }) {
+  const [productos, setProductos] = useState([]);
+  const [modo, setModo] = useState(null);
+  const [form, setForm] = useState({ nombre: '', categoria: '', precio: '', stock: '' });
+  const [pedidoEnviado, setPedidoEnviado] = useState(null);
+  const [seleccionando, setSeleccionando] = useState(null);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'inventario'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      data.sort((a, b) => a.nombre.localeCompare(b.nombre));
+      setProductos(data);
+    });
+    return unsub;
+  }, []);
+
+  const guardar = async () => {
+    if (!form.nombre || !form.categoria || !form.precio || !form.stock) return;
+    const id = form.nombre.replace(/\s+/g, '_').toLowerCase() + '_' + Date.now();
+    await setDoc(doc(db, 'inventario', id), {
+      nombre: form.nombre,
+      categoria: form.categoria,
+      precio: Number(form.precio),
+      stock: Number(form.stock),
+      stockMinimo: STOCK_MINIMO
+    });
+    setModo(null);
+    setForm({ nombre: '', categoria: '', precio: '', stock: '' });
+  };
+
+  const ajustarStock = async (producto, cantidad) => {
+    const nuevoStock = Math.max(0, producto.stock + cantidad);
+    await setDoc(doc(db, 'inventario', producto.id), { ...producto, stock: nuevoStock });
+  };
+
+  const hacerPedido = async (producto, cuotas) => {
+    await addDoc(collection(db, 'pedidos'), {
+      producto: producto.nombre,
+      precio: producto.precio,
+      cuotas: cuotas,
+      modelo: nombreModelo,
+      estado: 'pendiente',
+      fecha: new Date().toISOString(),
+      hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+    });
+    await setDoc(doc(db, 'inventario', producto.id), { ...producto, stock: producto.stock - 1 });
+    setPedidoEnviado(producto.nombre);
+    setSeleccionando(null);
+    setTimeout(() => setPedidoEnviado(null), 3000);
+  };
+
+  const alertas = productos.filter(p => p.stock <= STOCK_MINIMO);
+
+  if (rol === 'tienda') {
+    return (
+      <div style={s.wrap}>
+        {pedidoEnviado && (
+          <div style={s.exito}>Pedido enviado — {pedidoEnviado}</div>
+        )}
+        {productos.filter(p => p.stock > 0).length === 0 && (
+          <p style={s.vacio}>No hay productos disponibles</p>
+        )}
+        {CATEGORIAS.map(cat => {
+          const prods = productos.filter(p => p.categoria === cat && p.stock > 0);
+          if (prods.length === 0) return null;
+          return (
+            <div key={cat}>
+              <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, marginTop: 8 }}>{cat}</div>
+              {prods.map(p => (
+                <div key={p.id} style={s.card}>
+                  <div style={s.cardHeader}>
+                    <div style={s.cardNombre}>{p.nombre}</div>
+                    <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 500 }}>${p.precio.toLocaleString()}</div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>Disponibles: {p.stock}</div>
+                    <button style={s.btnPedir} onClick={() => setSeleccionando(seleccionando === p.id ? null : p.id)}>
+                      Pedir
+                    </button>
+                  </div>
+                  {seleccionando === p.id && (
+                    <div style={s.cuotaBox}>
+                      {p.precio > 100000 ? (
+                        <>
+                          <div style={s.cuotaTexto}>Este producto vale ${p.precio.toLocaleString()} — elige como pagarlo:</div>
+                          <div style={s.cuotaBtns}>
+                            <button style={s.cuotaBtn} onClick={() => hacerPedido(p, 1)}>Pago completo</button>
+                            <button style={s.cuotaBtn} onClick={() => hacerPedido(p, 2)}>2 cuotas de ${Math.ceil(p.precio / 2).toLocaleString()}</button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={s.cuotaTexto}>Confirmar pedido de {p.nombre} por ${p.precio.toLocaleString()}</div>
+                          <div style={s.cuotaBtns}>
+                            <button style={s.cuotaBtn} onClick={() => hacerPedido(p, 1)}>Confirmar</button>
+                            <button style={{ ...s.cuotaBtn, color: 'var(--text-sub)' }} onClick={() => setSeleccionando(null)}>Cancelar</button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div style={s.wrap}>
+      {alertas.length > 0 && (
+        <div style={s.alertaCard}>
+          <div style={s.alertaTitulo}>Stock bajo — necesitas comprar</div>
+          {alertas.map(p => (
+            <div key={p.id} style={s.alertaItem}>{p.nombre} — {p.stock} unidades</div>
+          ))}
+        </div>
+      )}
+
+      {modo === null && (
+        <button style={s.btnNuevo} onClick={() => setModo('nuevo')}>+ Agregar producto</button>
+      )}
+
+      {modo === 'nuevo' && (
+        <div style={s.form}>
+          <label style={s.label}>Nombre del producto</label>
+          <input style={s.input} placeholder="Ej: Lubricante X" value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} />
+          <label style={s.label}>Categoria</label>
+          <select style={s.select} value={form.categoria} onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))}>
+            <option value="">Seleccionar</option>
+            {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <label style={s.label}>Precio (pesos)</label>
+          <input style={s.input} type="number" placeholder="Ej: 25000" value={form.precio} onChange={e => setForm(p => ({ ...p, precio: e.target.value }))} />
+          <label style={s.label}>Stock inicial</label>
+          <input style={s.input} type="number" placeholder="Ej: 10" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value }))} />
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button style={s.btnGuardar} onClick={guardar}>Guardar</button>
+            <button style={s.btnCancelar} onClick={() => setModo(null)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {productos.length === 0 && modo === null && <p style={s.vacio}>No hay productos en inventario</p>}
+
+      {productos.map(p => (
+        <div key={p.id} style={s.card}>
+          <div style={s.cardHeader}>
+            <div>
+              <div style={s.cardNombre}>{p.nombre}</div>
+              <div style={s.cardCategoria}>{p.categoria}</div>
+            </div>
+            <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 500 }}>${p.precio.toLocaleString()}</div>
+          </div>
+          <div style={s.fila}>
+            <div style={s.filaLabel}>Stock actual</div>
+            <div style={p.stock <= STOCK_MINIMO ? s.stockBajo : s.stockOk}>{p.stock} unidades {p.stock <= STOCK_MINIMO ? '⚠️' : '✓'}</div>
+          </div>
+          <div style={s.btnRow}>
+            <button style={s.btnMas} onClick={() => ajustarStock(p, 1)}>+ 1</button>
+            <button style={s.btnMas} onClick={() => ajustarStock(p, 5)}>+ 5</button>
+            <button style={s.btnMas} onClick={() => ajustarStock(p, 10)}>+ 10</button>
+            <button style={s.btnMenos} onClick={() => ajustarStock(p, -1)}>- 1</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

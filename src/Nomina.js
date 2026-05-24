@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 const nm = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 14 },
@@ -184,6 +184,54 @@ export default function Nomina({ nombreModelo }) {
           </div>
         </div>
       )}
+    <ModelaPedidos nombreModelo={nombreModelo} />
+    </div>
+  );
+}
+
+function ModelaPedidos({ nombreModelo }) {
+  const [pedidos, setPedidos] = useState([]);
+
+  useEffect(() => {
+    const q = query(collection(db, 'pedidos'), orderBy('fecha', 'desc'));
+    const unsub = onSnapshot(q, snap => {
+      const data = [];
+      snap.forEach(d => {
+        const p = { id: d.id, ...d.data() };
+        if (p.modelo === nombreModelo) data.push(p);
+      });
+      setPedidos(data);
+    });
+    return unsub;
+  }, [nombreModelo]);
+
+  if (pedidos.length === 0) return null;
+
+  const total = pedidos.filter(p => p.estado !== 'cancelado').reduce((acc, p) => acc + (p.precio || 0), 0);
+
+  return (
+    <div style={{ background: 'var(--bg)', borderRadius: 14, padding: 20, boxShadow: '4px 4px 8px var(--shadow1), -4px -4px 8px var(--shadow2)', marginTop: 4 }}>
+      <div style={{ color: '#C9A84C', fontSize: 14, fontWeight: 500, letterSpacing: 1, marginBottom: 16 }}>Mis pedidos esta quincena</div>
+      {pedidos.map(p => (
+        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
+          <div>
+            <div style={{ color: 'var(--text)', fontSize: 13 }}>{p.producto}</div>
+            <div style={{ color: 'var(--text-sub)', fontSize: 11 }}>{p.cuotas > 1 ? '2 cuotas' : 'Pago completo'} · {p.hora}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ color: p.estado === 'cancelado' ? 'var(--text-dim)' : '#d85a30', fontSize: 13, fontWeight: 500 }}>
+              {p.estado === 'cancelado' ? 'Cancelado' : '-$' + p.precio?.toLocaleString()}
+            </div>
+            {p.cuotas > 1 && p.estado !== 'cancelado' && (
+              <div style={{ color: 'var(--text-sub)', fontSize: 11 }}>Esta quincena: -${Math.ceil(p.precio / 2).toLocaleString()}</div>
+            )}
+          </div>
+        </div>
+      ))}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, paddingTop: 8 }}>
+        <div style={{ color: 'var(--text-sub)', fontSize: 13 }}>Total descuentos</div>
+        <div style={{ color: '#d85a30', fontSize: 14, fontWeight: 500 }}>-${total.toLocaleString()}</div>
+      </div>
     </div>
   );
 }
