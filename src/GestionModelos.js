@@ -13,8 +13,8 @@ const MONITORES_LISTA = [
 
 export default function GestionModelos() {
   const [modelos, setModelos] = useState([]);
-  const [modo, setModo] = useState(null); // 'nuevo' o id para editar
-  const [form, setForm] = useState({ nombreReal: '', nombreModelo: '', monitor: '', turno: '' });
+  const [modo, setModo] = useState(null);
+  const [form, setForm] = useState({ nombreReal: '', nombreModelo: '', monitor: '', turno: '', clave: '' });
   const [confirmEliminar, setConfirmEliminar] = useState(null);
   const [expandida, setExpandida] = useState(null);
 
@@ -36,15 +36,16 @@ export default function GestionModelos() {
       nombreModelo: form.nombreModelo,
       monitor: form.monitor,
       turno: form.turno,
+      clave: form.clave || '',
       activa: true
     });
     setModo(null);
-    setForm({ nombreReal: '', nombreModelo: '', monitor: '', turno: '' });
+    setForm({ nombreReal: '', nombreModelo: '', monitor: '', turno: '', clave: '' });
   };
 
   const editar = (modelo) => {
     setModo(modelo.id);
-    setForm({ nombreReal: modelo.nombreReal, nombreModelo: modelo.nombreModelo || '', monitor: modelo.monitor, turno: modelo.turno });
+    setForm({ nombreReal: modelo.nombreReal, nombreModelo: modelo.nombreModelo || '', monitor: modelo.monitor, turno: modelo.turno, clave: modelo.clave || '' });
   };
 
   const eliminar = async (id) => {
@@ -67,7 +68,7 @@ export default function GestionModelos() {
     btnRow: { display: 'flex', gap: 10 },
     btnGuardar: { flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '10px', fontSize: 13, letterSpacing: 1, cursor: 'pointer' },
     btnCancelar: { background: 'transparent', border: 'none', color: 'var(--text-sub)', padding: '10px', fontSize: 13, cursor: 'pointer' },
-    card: { background: 'var(--bg)', borderRadius: 14, padding: 16, boxShadow: 'var(--shadow-out)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+    card: { background: 'var(--bg)', borderRadius: 14, padding: 16, boxShadow: 'var(--shadow-out)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' },
     cardInfo: { flex: 1 },
     cardNombre: { color: 'var(--gold)', fontSize: 13, fontWeight: 500, marginBottom: 4 },
     cardSub: { color: 'var(--text-sub)', fontSize: 12 },
@@ -76,13 +77,17 @@ export default function GestionModelos() {
     btnEliminar: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '6px 12px', fontSize: 12, cursor: 'pointer' },
     confirmBox: { background: 'var(--bg)', borderRadius: 14, padding: 16, boxShadow: 'var(--shadow-in)', marginTop: 8 },
     confirmText: { color: 'var(--text-sub)', fontSize: 13, marginBottom: 12 },
-    vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 }
+    vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 },
+    detalle: { background: 'var(--bg)', borderRadius: '0 0 14px 14px', padding: '12px 16px', boxShadow: 'var(--shadow-in)', marginTop: -4 },
+    detalleRow: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' },
+    detalleLabel: { color: 'var(--text-sub)', fontSize: 12 },
+    detalleValor: { color: 'var(--text)', fontSize: 12 }
   };
 
   return (
     <div style={s.wrap}>
       {modo === null && (
-        <button style={s.btnNuevo} onClick={() => { setModo('nuevo'); setForm({ nombreReal: '', nombreModelo: '', monitor: '', turno: '' }); }}>
+        <button style={s.btnNuevo} onClick={() => { setModo('nuevo'); setForm({ nombreReal: '', nombreModelo: '', monitor: '', turno: '', clave: '' }); }}>
           + Agregar modelo
         </button>
       )}
@@ -100,14 +105,14 @@ export default function GestionModelos() {
           </select>
           <label style={s.label}>Turno</label>
           <input style={{ ...s.input, color: 'var(--text-sub)' }} value={form.turno} readOnly placeholder="Se asigna con el monitor" />
+          <label style={s.label}>Clave de acceso</label>
+          <input style={s.input} placeholder="Clave para la modelo" value={form.clave || ''} onChange={e => setForm(prev => ({ ...prev, clave: e.target.value }))} />
           <div style={s.btnRow}>
             <button style={s.btnGuardar} onClick={guardar}>Guardar</button>
             <button style={s.btnCancelar} onClick={() => setModo(null)}>Cancelar</button>
           </div>
         </div>
       )}
-
-      {modelos.length === 0 && modo === null && <p style={s.vacio}>No hay modelos registradas</p>}
 
       {modelos.length === 0 && modo === null && <p style={s.vacio}>No hay modelos registradas</p>}
 
@@ -124,24 +129,22 @@ export default function GestionModelos() {
             </div>
           </div>
           {expandida === m.id && (
-            <div style={{ background: 'var(--bg)', borderRadius: '0 0 14px 14px', padding: '12px 16px', boxShadow: 'var(--shadow-in)', marginTop: -4 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>Nombre real</span>
-                  <span style={{ color: 'var(--text)', fontSize: 12 }}>{m.nombreReal}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>Nombre modelo</span>
-                  <span style={{ color: 'var(--text)', fontSize: 12 }}>{m.nombreModelo || 'Sin definir'}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>Monitor</span>
-                  <span style={{ color: 'var(--text)', fontSize: 12 }}>{m.monitor}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>Turno</span>
-                  <span style={{ color: 'var(--text)', fontSize: 12 }}>{m.turno}</span>
-                </div>
+            <div style={s.detalle}>
+              <div style={s.detalleRow}>
+                <span style={s.detalleLabel}>Nombre real</span>
+                <span style={s.detalleValor}>{m.nombreReal}</span>
+              </div>
+              <div style={s.detalleRow}>
+                <span style={s.detalleLabel}>Nombre modelo</span>
+                <span style={s.detalleValor}>{m.nombreModelo || 'Sin definir'}</span>
+              </div>
+              <div style={s.detalleRow}>
+                <span style={s.detalleLabel}>Monitor</span>
+                <span style={s.detalleValor}>{m.monitor}</span>
+              </div>
+              <div style={{ ...s.detalleRow, borderBottom: 'none' }}>
+                <span style={s.detalleLabel}>Turno</span>
+                <span style={s.detalleValor}>{m.turno}</span>
               </div>
             </div>
           )}

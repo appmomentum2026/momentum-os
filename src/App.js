@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import { db } from './firebase';
-import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, getDocs } from 'firebase/firestore';
 import Asistencia from './Asistencia';
 import Novedades from './Novedades';
 import CierreTurno from './CierreTurno';
@@ -11,7 +11,7 @@ import ResumenJefe from './ResumenJefe';
 import GestionModelos from './GestionModelos';
 import ImportarModelos from './ImportarModelos';
 
-const CLAVES = { jefe: '1234', monitor: '5678', modelo: '9012' };
+const CLAVES = { jefe: '1234', monitor: '5678', operativo: 'oper1234', administrativo: 'admin1234' };
 const HABITACIONES = Array.from({ length: 16 }, (_, i) => i + 1);
 const ESTADOS = {
   libre: { color: '#1d9e75', label: 'Libre' },
@@ -90,10 +90,22 @@ function Login({ onLogin, temaOscuro, toggleTema }) {
   const [rol, setRol] = useState(null);
   const [clave, setClave] = useState('');
   const [error, setError] = useState('');
+  const [mostrarJefes, setMostrarJefes] = useState(false);
 
-  const handleLogin = () => {
-    if (clave === CLAVES[rol]) onLogin(rol);
-    else setError('Clave incorrecta');
+  const handleLogin = async () => {
+    if (rol === 'modelo') {
+      const snap = await getDocs(collection(db, 'modelos'));
+      let encontrada = null;
+      snap.forEach(d => {
+        if (d.data().clave === clave) encontrada = { id: d.id, ...d.data() };
+      });
+      if (encontrada) onLogin('modelo', encontrada);
+      else setError('Clave incorrecta');
+    } else if (CLAVES[rol] && clave === CLAVES[rol]) {
+      onLogin(rol);
+    } else {
+      setError('Clave incorrecta');
+    }
   };
 
   return (
@@ -105,12 +117,39 @@ function Login({ onLogin, temaOscuro, toggleTema }) {
       <div className="nm-sub">Studio OS</div>
       {!rol ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%', maxWidth: 260 }}>
-          {[['jefe', 'crown', 'Jefe'], ['monitor', 'device-desktop', 'Monitor'], ['modelo', 'star', 'Modelo']].map(([r, icon, label]) => (
-            <button key={r} className="nm-role-btn" onClick={() => setRol(r)}>
-              <div className="nm-role-icon"><i className={`ti ti-${icon}`} aria-hidden="true"></i></div>
-              {label}
-            </button>
-          ))}
+          {!mostrarJefes ? (
+            <>
+              <button className="nm-role-btn" onClick={() => setMostrarJefes(true)}>
+                <div className="nm-role-icon"><i className="ti ti-crown" aria-hidden="true"></i></div>
+                Jefe
+              </button>
+              <button className="nm-role-btn" onClick={() => setRol('monitor')}>
+                <div className="nm-role-icon"><i className="ti ti-device-desktop" aria-hidden="true"></i></div>
+                Monitor
+              </button>
+              <button className="nm-role-btn" onClick={() => setRol('modelo')}>
+                <div className="nm-role-icon"><i className="ti ti-star" aria-hidden="true"></i></div>
+                Modelo
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Selecciona tu acceso</div>
+              <button className="nm-role-btn" onClick={() => setRol('jefe')}>
+                <div className="nm-role-icon"><i className="ti ti-crown" aria-hidden="true"></i></div>
+                Jefe General
+              </button>
+              <button className="nm-role-btn" onClick={() => setRol('operativo')}>
+                <div className="nm-role-icon"><i className="ti ti-shield" aria-hidden="true"></i></div>
+                Jefe Operativo
+              </button>
+              <button className="nm-role-btn" onClick={() => setRol('administrativo')}>
+                <div className="nm-role-icon"><i className="ti ti-calculator" aria-hidden="true"></i></div>
+                Jefe Administrativo
+              </button>
+              <button className="nm-btn-volver" onClick={() => setMostrarJefes(false)}>← Volver</button>
+            </>
+          )}
           <button className="nm-tema-btn" onClick={toggleTema}>
             {temaOscuro ? '☀️ Modo claro' : '🌙 Modo oscuro'}
           </button>
@@ -208,15 +247,15 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema }) {
   );
 }
 
-function AppModelo({ onLogout, temaOscuro, toggleTema }) {
+function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
   const [vista, setVista] = useState('mapa');
-  const nombreModelo = 'Ashly Naibel Burgos Machado';
+  const nombreModelo = modelaData?.nombreReal || '';
   return (
     <div className="nm-wrap">
       <div className="nm-header">
         <div>
           <div className="nm-header-title">Mi panel</div>
-          <div className="nm-header-sub">Momentum Studio</div>
+          <div className="nm-header-sub">{modelaData?.nombreReal || 'Momentum Studio'}</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button className="nm-tema-btn" onClick={toggleTema}>{temaOscuro ? '☀️' : '🌙'}</button>
@@ -243,6 +282,7 @@ function AppModelo({ onLogout, temaOscuro, toggleTema }) {
 
 export default function App() {
   const [usuario, setUsuario] = useState(null);
+  const [modelaData, setModelaData] = useState(null);
   const [temaOscuro, setTemaOscuro] = useState(true);
 
   useEffect(() => {
@@ -255,8 +295,11 @@ export default function App() {
 
   const toggleTema = () => setTemaOscuro(prev => !prev);
 
-  if (!usuario) return <Login onLogin={setUsuario} temaOscuro={temaOscuro} toggleTema={toggleTema} />;
+  if (!usuario) return <Login onLogin={(rol, data) => { setUsuario(rol); if (data) setModelaData(data); }} temaOscuro={temaOscuro} toggleTema={toggleTema} />;
   if (usuario === 'jefe') return <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} />;
+  if (usuario === 'operativo') return <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} soloLectura={true} />;
+  if (usuario === 'administrativo') return <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} soloAdmin={true} />;
   if (usuario === 'monitor') return <AppMonitor onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} />;
-  if (usuario === 'modelo') return <AppModelo onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} />;
+  if (usuario === 'modelo') return <AppModelo onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} modelaData={modelaData} />;
 }
+  
