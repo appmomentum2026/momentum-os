@@ -7,6 +7,7 @@ import Novedades from './Novedades';
 import CierreTurno from './CierreTurno';
 import Nomina from './Nomina';
 import Metas from './Metas';
+import ResumenJefe from './ResumenJefe';
 const CLAVES = { jefe: '1234', monitor: '5678', modelo: '9012' };
 const HABITACIONES = Array.from({ length: 16 }, (_, i) => i + 1);
 const ESTADOS = {
@@ -183,19 +184,23 @@ function AppJefe({ onLogout }) {
         <NavBtn label="Novedades" icon="alert-circle" activo={vista === 'novedades'} onClick={() => setVista('novedades')} />
         <NavBtn label="Cierres" icon="clipboard-check" activo={vista === 'cierre'} onClick={() => setVista('cierre')} />
         <NavBtn label="Metas" icon="target" activo={vista === 'metas'} onClick={() => setVista('metas')} />
+        <NavBtn label="Nomina" icon="report-money" activo={vista === 'resumen'} onClick={() => setVista('resumen')} />
       </div>
       <div style={nm.sectionLabel}>
-        {vista === 'mapa' ? 'Mapa de habitaciones — en vivo' : 
-         vista === 'novedades' ? 'Novedades del turno' : 
-         vista === 'cierre' ? 'Cierres de turno' : 'Metas por modelo'}
+        {vista === 'mapa' ? 'Mapa de habitaciones — en vivo' :
+         vista === 'novedades' ? 'Novedades del turno' :
+         vista === 'cierre' ? 'Cierres de turno' :
+         vista === 'metas' ? 'Metas por modelo' : 'Resumen quincenal'}
       </div>
       {vista === 'mapa' && <MapaHabitaciones rol="jefe" />}
       {vista === 'novedades' && <Novedades rol="jefe" />}
       {vista === 'cierre' && <CierreTurno rol="jefe" />}
       {vista === 'metas' && <Metas rol="jefe" />}
+      {vista === 'resumen' && <ResumenJefe />}
     </div>
   );
 }
+
 function AppMonitor({ onLogout }) {
   const [vista, setVista] = useState('mapa');
   return (
