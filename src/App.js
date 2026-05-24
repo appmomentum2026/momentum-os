@@ -6,6 +6,7 @@ import Asistencia from './Asistencia';
 import Novedades from './Novedades';
 import CierreTurno from './CierreTurno';
 import Nomina from './Nomina';
+import Metas from './Metas';
 const CLAVES = { jefe: '1234', monitor: '5678', modelo: '9012' };
 const HABITACIONES = Array.from({ length: 16 }, (_, i) => i + 1);
 const ESTADOS = {
@@ -174,22 +175,27 @@ function AppJefe({ onLogout }) {
           <div style={nm.headerSub}>Panel de control</div>
         </div>
         <button style={{...nm.exitBtn, width: 'auto', padding: '8px 16px', borderRadius: 12, gap: 8, display: 'flex', alignItems: 'center', fontSize: 12, letterSpacing: 1}} onClick={onLogout}>
-  <i className="ti ti-logout" aria-hidden="true"></i> Salir
-</button>
+          <i className="ti ti-logout" aria-hidden="true"></i> Salir
+        </button>
       </div>
       <div style={nm.nav}>
         <NavBtn label="Mapa" icon="layout-grid" activo={vista === 'mapa'} onClick={() => setVista('mapa')} />
         <NavBtn label="Novedades" icon="alert-circle" activo={vista === 'novedades'} onClick={() => setVista('novedades')} />
         <NavBtn label="Cierres" icon="clipboard-check" activo={vista === 'cierre'} onClick={() => setVista('cierre')} />
+        <NavBtn label="Metas" icon="target" activo={vista === 'metas'} onClick={() => setVista('metas')} />
       </div>
-      <div style={nm.sectionLabel}>{vista === 'mapa' ? 'Mapa de habitaciones — en vivo' : vista === 'novedades' ? 'Novedades del turno' : 'Cierres de turno'}</div>
+      <div style={nm.sectionLabel}>
+        {vista === 'mapa' ? 'Mapa de habitaciones — en vivo' : 
+         vista === 'novedades' ? 'Novedades del turno' : 
+         vista === 'cierre' ? 'Cierres de turno' : 'Metas por modelo'}
+      </div>
       {vista === 'mapa' && <MapaHabitaciones rol="jefe" />}
       {vista === 'novedades' && <Novedades rol="jefe" />}
       {vista === 'cierre' && <CierreTurno rol="jefe" />}
+      {vista === 'metas' && <Metas rol="jefe" />}
     </div>
   );
 }
-
 function AppMonitor({ onLogout }) {
   const [vista, setVista] = useState('mapa');
   return (
@@ -236,13 +242,19 @@ function AppModelo({ onLogout }) {
       <div style={nm.nav}>
         <NavBtn label="Habitaciones" icon="layout-grid" activo={vista === 'mapa'} onClick={() => setVista('mapa')} />
         <NavBtn label="Mi quincena" icon="coin" activo={vista === 'nomina'} onClick={() => setVista('nomina')} />
+        <NavBtn label="Mi meta" icon="target" activo={vista === 'metas'} onClick={() => setVista('metas')} />
       </div>
-      <div style={nm.sectionLabel}>{vista === 'mapa' ? 'Habitaciones disponibles' : 'Mi nomina en vivo'}</div>
+      <div style={nm.sectionLabel}>
+        {vista === 'mapa' ? 'Habitaciones disponibles' : 
+         vista === 'nomina' ? 'Mi nomina en vivo' : 'Mi meta quincenal'}
+      </div>
       {vista === 'mapa' && <MapaHabitaciones rol="modelo" />}
       {vista === 'nomina' && <Nomina nombreModelo={nombreModelo} />}
+      {vista === 'metas' && <Metas rol="modelo" nombreModelo={nombreModelo} />}
     </div>
   );
 }
+
 export default function App() {
   const [usuario, setUsuario] = useState(null);
   if (!usuario) return <Login onLogin={setUsuario} />;
