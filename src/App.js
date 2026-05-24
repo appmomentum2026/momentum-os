@@ -8,6 +8,8 @@ import CierreTurno from './CierreTurno';
 import Nomina from './Nomina';
 import Metas from './Metas';
 import ResumenJefe from './ResumenJefe';
+import GestionModelos from './GestionModelos';
+import ImportarModelos from './ImportarModelos';
 
 const CLAVES = { jefe: '1234', monitor: '5678', modelo: '9012' };
 const HABITACIONES = Array.from({ length: 16 }, (_, i) => i + 1);
@@ -152,18 +154,21 @@ function AppJefe({ onLogout, temaOscuro, toggleTema }) {
         <NavBtn label="Cierres" icon="clipboard-check" activo={vista === 'cierre'} onClick={() => setVista('cierre')} />
         <NavBtn label="Metas" icon="target" activo={vista === 'metas'} onClick={() => setVista('metas')} />
         <NavBtn label="Nomina" icon="report-money" activo={vista === 'resumen'} onClick={() => setVista('resumen')} />
+          <NavBtn label="Modelos" icon="user-plus" activo={vista === 'modelos'} onClick={() => setVista('modelos')} />
       </div>
       <div className="nm-section-label">
         {vista === 'mapa' ? 'Mapa de habitaciones — en vivo' :
          vista === 'novedades' ? 'Novedades del turno' :
          vista === 'cierre' ? 'Cierres de turno' :
-         vista === 'metas' ? 'Metas por modelo' : 'Resumen quincenal'}
+         vista === 'metas' ? 'Metas por modelo' : vista === 'resumen' ? 'Resumen quincenal' : 'Gestion de modelos'}
       </div>
       {vista === 'mapa' && <MapaHabitaciones rol="jefe" />}
       {vista === 'novedades' && <Novedades rol="jefe" />}
       {vista === 'cierre' && <CierreTurno rol="jefe" />}
       {vista === 'metas' && <Metas rol="jefe" />}
       {vista === 'resumen' && <ResumenJefe />}
+      {vista === 'modelos' && <GestionModelos />}
+{vista === 'modelos' && <ImportarModelos />}
     </div>
   );
 }
