@@ -5,7 +5,7 @@ import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 import Asistencia from './Asistencia';
 import Novedades from './Novedades';
 import CierreTurno from './CierreTurno';
-
+import Nomina from './Nomina';
 const CLAVES = { jefe: '1234', monitor: '5678', modelo: '9012' };
 const HABITACIONES = Array.from({ length: 16 }, (_, i) => i + 1);
 const ESTADOS = {
@@ -220,6 +220,8 @@ function AppMonitor({ onLogout }) {
 
 function AppModelo({ onLogout }) {
   const [vista, setVista] = useState('mapa');
+  const nombreModelo = 'Ashly Naibel Burgos Machado';
+
   return (
     <div style={nm.wrap}>
       <div style={nm.header}>
@@ -228,18 +230,19 @@ function AppModelo({ onLogout }) {
           <div style={nm.headerSub}>Momentum Studio</div>
         </div>
         <button style={{...nm.exitBtn, width: 'auto', padding: '8px 16px', borderRadius: 12, gap: 8, display: 'flex', alignItems: 'center', fontSize: 12, letterSpacing: 1}} onClick={onLogout}>
-  <i className="ti ti-logout" aria-hidden="true"></i> Salir
-</button>
+          <i className="ti ti-logout" aria-hidden="true"></i> Salir
+        </button>
       </div>
       <div style={nm.nav}>
         <NavBtn label="Habitaciones" icon="layout-grid" activo={vista === 'mapa'} onClick={() => setVista('mapa')} />
+        <NavBtn label="Mi quincena" icon="coin" activo={vista === 'nomina'} onClick={() => setVista('nomina')} />
       </div>
-      <div style={nm.sectionLabel}>Habitaciones disponibles</div>
+      <div style={nm.sectionLabel}>{vista === 'mapa' ? 'Habitaciones disponibles' : 'Mi nomina en vivo'}</div>
       {vista === 'mapa' && <MapaHabitaciones rol="modelo" />}
+      {vista === 'nomina' && <Nomina nombreModelo={nombreModelo} />}
     </div>
   );
 }
-
 export default function App() {
   const [usuario, setUsuario] = useState(null);
   if (!usuario) return <Login onLogin={setUsuario} />;
