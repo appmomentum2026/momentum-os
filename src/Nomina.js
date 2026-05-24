@@ -11,11 +11,8 @@ const nm = {
   fila: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #1f1f35' },
   filaLabel: { color: '#555577', fontSize: 13 },
   filaValor: { color: '#888899', fontSize: 13 },
-  badge: { padding: '6px 16px', borderRadius: 20, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 500 },
   porcentajeBadge: { background: '#C9A84C22', color: '#C9A84C', padding: '4px 12px', borderRadius: 20, fontSize: 12, letterSpacing: 1 },
-  divider: { height: 1, background: '#1f1f35', margin: '4px 0' },
   titulo: { color: '#C9A84C', fontSize: 14, fontWeight: 500, letterSpacing: 1, marginBottom: 16 },
-  vacia: { color: '#444466', textAlign: 'center', padding: 40, fontSize: 13 }
 };
 
 function getQuincena() {
@@ -50,6 +47,7 @@ function calcularPorcentaje(tokens, horasCumplidas, horasRequeridas) {
 export default function Nomina({ nombreModelo }) {
   const [cierres, setCierres] = useState([]);
   const [asistencia, setAsistencia] = useState({});
+  const [metas, setMetas] = useState({});
   const quincena = getQuincena();
 
   useEffect(() => {
@@ -63,7 +61,12 @@ export default function Nomina({ nombreModelo }) {
       snap.forEach(d => { data[d.id] = d.data(); });
       setAsistencia(data);
     });
-    return () => { unsub1(); unsub2(); };
+    const unsub3 = onSnapshot(collection(db, 'metas'), snap => {
+      const data = {};
+      snap.forEach(d => { data[d.id] = d.data(); });
+      setMetas(data);
+    });
+    return () => { unsub1(); unsub2(); unsub3(); };
   }, []);
 
   const calcularTotales = () => {
@@ -84,12 +87,9 @@ export default function Nomina({ nombreModelo }) {
       if (!cierre.modelos) return;
       const modelaData = cierre.modelos.find(m => m.nombre === nombreModelo);
       if (!modelaData) return;
-
-      const plataformas = ['Stripchat', 'Camsoda', 'Chaturbate', 'Streamate'];
-      plataformas.forEach(p => {
+      ['Stripchat', 'Camsoda', 'Chaturbate', 'Streamate'].forEach(p => {
         totalTokens += Number(modelaData[p + '_tokens'] || 0);
       });
-
       if (modelaData.inicio && modelaData.fin) {
         const [hi, mi] = modelaData.inicio.split(':').map(Number);
         const [hf, mf] = modelaData.fin.split(':').map(Number);
@@ -107,11 +107,22 @@ export default function Nomina({ nombreModelo }) {
     const porcentaje = calcularPorcentaje(totalTokens, horasTrabajadas, horasRequeridas);
     const usdBruto = totalTokens / 20;
     const usdNeto = usdBruto * (porcentaje / 100);
-
     return { totalTokens, diasTrabajados, horasTrabajadas: horasTrabajadas.toFixed(1), horasRequeridas: horasRequeridas.toFixed(1), porcentaje, usdBruto: usdBruto.toFixed(2), usdNeto: usdNeto.toFixed(2) };
   };
 
   const t = calcularTotales();
+  const meta = metas[nombreModelo]?.tokens || 0;
+
+  const calcularPredictor = () => {
+    const hoy = new Date();
+    const finQuincena = new Date(quincena.fin);
+    const diasRestantes = Math.max(1, Math.ceil((finQuincena - hoy) / (1000 * 60 * 60 * 24)));
+    const tokensNecesarios = Math.max(0, meta - t.totalTokens);
+    const porDia = diasRestantes > 0 ? Math.ceil(tokensNecesarios / diasRestantes) : 0;
+    return { diasRestantes, tokensNecesarios, porDia };
+  };
+
+  const p = calcularPredictor();
 
   return (
     <div style={nm.wrap}>
@@ -149,6 +160,30 @@ export default function Nomina({ nombreModelo }) {
         <div style={nm.valor}>${t.usdNeto} USD</div>
         <div style={nm.valorSub}>de ${t.usdBruto} USD brutos</div>
       </div>
+
+      {meta > 0 && (
+        <div style={nm.card}>
+          <div style={nm.titulo}>Predictor de meta</div>
+          <div style={nm.fila}>
+            <div style={nm.filaLabel}>Meta quincenal</div>
+            <div style={nm.filaValor}>{meta.toLocaleString()} tokens</div>
+          </div>
+          <div style={nm.fila}>
+            <div style={nm.filaLabel}>Tokens que llevas</div>
+            <div style={nm.filaValor}>{t.totalTokens.toLocaleString()} tokens</div>
+          </div>
+          <div style={nm.fila}>
+            <div style={nm.filaLabel}>Dias restantes</div>
+            <div style={nm.filaValor}>{p.diasRestantes} dias</div>
+          </div>
+          <div style={{ ...nm.fila, borderBottom: 'none' }}>
+            <div style={nm.filaLabel}>Necesitas por dia</div>
+            <div style={{ color: p.tokensNecesarios <= 0 ? '#1d9e75' : '#C9A84C', fontSize: 18, fontWeight: 500 }}>
+              {p.tokensNecesarios <= 0 ? 'Meta cumplida!' : p.porDia.toLocaleString() + ' tokens'}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
