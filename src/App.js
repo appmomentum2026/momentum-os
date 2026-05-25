@@ -12,7 +12,8 @@ import GestionModelos from './GestionModelos';
 import ImportarModelos from './ImportarModelos';
 import Inventario2 from './Inventario2';
 import Pedidos from './Pedidos';
-
+import { DiasLibresModelo, DiasLibresMonitor, DiasLibresJefe } from './DiasLibres';
+import ImportMonitores from './ImportMonitores';
 const CLAVES = { jefe: '1234', monitor: '5678', operativo: 'oper1234', administrativo: 'admin1234' };
 const HABITACIONES = Array.from({ length: 16 }, (_, i) => i + 1);
 const ESTADOS = {
@@ -102,6 +103,14 @@ function Login({ onLogin, temaOscuro, toggleTema }) {
         if (d.data().clave === clave) encontrada = { id: d.id, ...d.data() };
       });
       if (encontrada) onLogin('modelo', encontrada);
+      else setError('Clave incorrecta');
+    } else if (rol === 'monitor') {
+      const snap = await getDocs(collection(db, 'monitores'));
+      let encontrado = null;
+      snap.forEach(d => {
+        if (d.data().clave === clave) encontrado = { id: d.id, ...d.data() };
+      });
+      if (encontrado) onLogin('monitor', encontrado);
       else setError('Clave incorrecta');
     } else if (CLAVES[rol] && clave === CLAVES[rol]) {
       onLogin(rol);
@@ -195,15 +204,23 @@ function AppJefe({ onLogout, temaOscuro, toggleTema }) {
         <NavBtn label="Cierres" icon="clipboard-check" activo={vista === 'cierre'} onClick={() => setVista('cierre')} />
         <NavBtn label="Metas" icon="target" activo={vista === 'metas'} onClick={() => setVista('metas')} />
         <NavBtn label="Nomina" icon="report-money" activo={vista === 'resumen'} onClick={() => setVista('resumen')} />
-          <NavBtn label="Modelos" icon="user-plus" activo={vista === 'modelos'} onClick={() => setVista('modelos')} />
-            <NavBtn label="Inventario" icon="package" activo={vista === 'inventario'} onClick={() => setVista('inventario')} />
-              <NavBtn label="Pedidos" icon="shopping-bag" activo={vista === 'pedidos'} onClick={() => setVista('pedidos')} />
+        <NavBtn label="Modelos" icon="user-plus" activo={vista === 'modelos'} onClick={() => setVista('modelos')} />
+        <NavBtn label="Monitores" icon="users" activo={vista === 'monitores'} onClick={() => setVista('monitores')} />
+        <NavBtn label="Inventario" icon="package" activo={vista === 'inventario'} onClick={() => setVista('inventario')} />
+        <NavBtn label="Pedidos" icon="shopping-bag" activo={vista === 'pedidos'} onClick={() => setVista('pedidos')} />
+        <NavBtn label="Dias libres" icon="calendar" activo={vista === 'diaslibres'} onClick={() => setVista('diaslibres')} />
       </div>
       <div className="nm-section-label">
         {vista === 'mapa' ? 'Mapa de habitaciones — en vivo' :
          vista === 'novedades' ? 'Novedades del turno' :
          vista === 'cierre' ? 'Cierres de turno' :
-         vista === 'metas' ? 'Metas por modelo' : vista === 'resumen' ? 'Resumen quincenal' : vista === 'modelos' ? 'Gestion de modelos' : 'Inventario'}
+         vista === 'metas' ? 'Metas por modelo' :
+         vista === 'resumen' ? 'Resumen quincenal' :
+         vista === 'modelos' ? 'Gestion de modelos' :
+         vista === 'monitores' ? 'Gestion de monitores' :
+         vista === 'inventario' ? 'Inventario' :
+         vista === 'pedidos' ? 'Pedidos' :
+         vista === 'diaslibres' ? 'Dias libres' : ''}
       </div>
       {vista === 'mapa' && <MapaHabitaciones rol="jefe" />}
       {vista === 'novedades' && <Novedades rol="jefe" />}
@@ -212,20 +229,22 @@ function AppJefe({ onLogout, temaOscuro, toggleTema }) {
       {vista === 'resumen' && <ResumenJefe />}
       {vista === 'modelos' && <GestionModelos />}
 {vista === 'modelos' && <ImportarModelos />}
+{vista === 'monitores' && <ImportMonitores />}
 {vista === 'inventario' && <Inventario2 rol="jefe" />}
 {vista === 'pedidos' && <Pedidos rol="jefe" />}
+{vista === 'diaslibres' && <DiasLibresJefe />}
     </div>
   );
 }
 
-function AppMonitor({ onLogout, temaOscuro, toggleTema }) {
+function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
   const [vista, setVista] = useState('mapa');
   return (
     <div className="nm-wrap">
       <div className="nm-header">
         <div>
           <div className="nm-header-title">Monitor</div>
-          <div className="nm-header-sub">Gestion del turno</div>
+          <div className="nm-header-sub">{monitorData?.nombre || 'Monitor'} — {monitorData?.turno || ''}</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button className="nm-tema-btn" onClick={toggleTema}>{temaOscuro ? '☀️' : '🌙'}</button>
@@ -240,6 +259,7 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema }) {
         <NavBtn label="Novedades" icon="alert-circle" activo={vista === 'novedades'} onClick={() => setVista('novedades')} />
         <NavBtn label="Cierre" icon="clipboard-check" activo={vista === 'cierre'} onClick={() => setVista('cierre')} />
           <NavBtn label="Pedidos" icon="shopping-bag" activo={vista === 'pedidos'} onClick={() => setVista('pedidos')} />
+            <NavBtn label="Dias libres" icon="calendar" activo={vista === 'diaslibres'} onClick={() => setVista('diaslibres')} />
       </div>
       <div className="nm-section-label">
         {vista === 'mapa' ? 'Mapa de habitaciones' :
@@ -251,6 +271,7 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema }) {
       {vista === 'novedades' && <Novedades rol="monitor" />}
       {vista === 'cierre' && <CierreTurno rol="monitor" />}
       {vista === 'pedidos' && <Pedidos rol="monitor" />}
+      {vista === 'diaslibres' && <DiasLibresMonitor nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
     </div>
   );
 }
@@ -277,6 +298,7 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
         <NavBtn label="Mi quincena" icon="coin" activo={vista === 'nomina'} onClick={() => setVista('nomina')} />
         <NavBtn label="Mi meta" icon="target" activo={vista === 'metas'} onClick={() => setVista('metas')} />
           <NavBtn label="Tienda" icon="shopping-cart" activo={vista === 'tienda'} onClick={() => setVista('tienda')} />
+            <NavBtn label="Descansos" icon="calendar" activo={vista === 'descanso'} onClick={() => setVista('descanso')} />
       </div>
       <div className="nm-section-label">
         {vista === 'mapa' ? 'Habitaciones disponibles' :
@@ -286,6 +308,7 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
       {vista === 'nomina' && <Nomina nombreModelo={nombreModelo} />}
       {vista === 'metas' && <Metas rol="modelo" nombreModelo={nombreModelo} />}
       {vista === 'tienda' && <Inventario2 rol="tienda" nombreModelo={nombreModelo} />}
+      {vista === 'descanso' && <DiasLibresModelo nombreModelo={nombreModelo} />}
     </div>
   );
 }
@@ -293,6 +316,7 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
 export default function App() {
   const [usuario, setUsuario] = useState(null);
   const [modelaData, setModelaData] = useState(null);
+  const [monitorData, setMonitorData] = useState(null);
   const [temaOscuro, setTemaOscuro] = useState(true);
 
   useEffect(() => {
@@ -305,11 +329,11 @@ export default function App() {
 
   const toggleTema = () => setTemaOscuro(prev => !prev);
 
-  if (!usuario) return <Login onLogin={(rol, data) => { setUsuario(rol); if (data) setModelaData(data); }} temaOscuro={temaOscuro} toggleTema={toggleTema} />;
+  if (!usuario) return <Login onLogin={(rol, data) => { setUsuario(rol); if (rol === 'modelo' && data) setModelaData(data); if (rol === 'monitor' && data) setMonitorData(data); }} temaOscuro={temaOscuro} toggleTema={toggleTema} />;
   if (usuario === 'jefe') return <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} />;
   if (usuario === 'operativo') return <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} soloLectura={true} />;
   if (usuario === 'administrativo') return <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} soloAdmin={true} />;
-  if (usuario === 'monitor') return <AppMonitor onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} />;
+  if (usuario === 'monitor') return <AppMonitor onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} monitorData={monitorData} />;
   if (usuario === 'modelo') return <AppModelo onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} modelaData={modelaData} />;
 }
   
