@@ -13,13 +13,15 @@ import ImportarModelos from './ImportarModelos';
 import Inventario2 from './Inventario2';
 import Pedidos from './Pedidos';
 import { DiasLibresModelo, DiasLibresMonitor, DiasLibresJefe } from './DiasLibres';
+import { solicitarPermiso, escucharNotificaciones } from './Notificaciones';
 import ImportMonitores from './ImportMonitores';
-const CLAVES = { jefe: '1234', monitor: '5678', operativo: 'oper1234', administrativo: 'admin1234' };
+
+const CLAVES = { jefe: '1234', operativo: 'oper1234', administrativo: 'admin1234' };
 const HABITACIONES = Array.from({ length: 16 }, (_, i) => i + 1);
 const ESTADOS = {
-  libre: { color: '#1d9e75', label: 'Libre' },
-  ocupada: { color: '#d85a30', label: 'Ocupada' },
-  fuera: { color: '#444466', label: 'Fuera de servicio' }
+  libre: { color: '#4CAF7D', label: 'Libre' },
+  ocupada: { color: '#C0614A', label: 'Ocupada' },
+  fuera: { color: '#555566', label: 'Fuera de servicio' }
 };
 
 function MapaHabitaciones({ rol }) {
@@ -122,7 +124,9 @@ function Login({ onLogin, temaOscuro, toggleTema }) {
   return (
     <div className="nm-login-wrap">
       <div className="nm-logo-ring">
-        <div className="nm-logo-inner">M</div>
+        <div className="nm-logo-inner">
+          <img src="/momentum_logo.png" alt="Momentum" style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: '50%' }} />
+        </div>
       </div>
       <div className="nm-title">Momentum</div>
       <div className="nm-sub">Studio OS</div>
@@ -171,7 +175,7 @@ function Login({ onLogin, temaOscuro, toggleTema }) {
           <input className="nm-input" type="password" placeholder="••••" value={clave}
             onChange={e => { setClave(e.target.value); setError(''); }}
             onKeyDown={e => e.key === 'Enter' && handleLogin()} />
-          {error && <div style={{ color: '#d85a30', fontSize: 13 }}>{error}</div>}
+          {error && <div style={{ color: '#C0614A', fontSize: 13 }}>{error}</div>}
           <button className="nm-btn-entrar" onClick={handleLogin}>Entrar</button>
           <button className="nm-btn-volver" onClick={() => { setRol(null); setClave(''); setError(''); }}>Volver</button>
         </div>
@@ -228,11 +232,11 @@ function AppJefe({ onLogout, temaOscuro, toggleTema }) {
       {vista === 'metas' && <Metas rol="jefe" />}
       {vista === 'resumen' && <ResumenJefe />}
       {vista === 'modelos' && <GestionModelos />}
-{vista === 'modelos' && <ImportarModelos />}
-{vista === 'monitores' && <ImportMonitores />}
-{vista === 'inventario' && <Inventario2 rol="jefe" />}
-{vista === 'pedidos' && <Pedidos rol="jefe" />}
-{vista === 'diaslibres' && <DiasLibresJefe />}
+      {vista === 'modelos' && <ImportarModelos />}
+      {vista === 'monitores' && <ImportMonitores />}
+      {vista === 'inventario' && <Inventario2 rol="jefe" />}
+      {vista === 'pedidos' && <Pedidos rol="jefe" />}
+      {vista === 'diaslibres' && <DiasLibresJefe />}
     </div>
   );
 }
@@ -258,13 +262,15 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
         <NavBtn label="Asistencia" icon="users" activo={vista === 'asistencia'} onClick={() => setVista('asistencia')} />
         <NavBtn label="Novedades" icon="alert-circle" activo={vista === 'novedades'} onClick={() => setVista('novedades')} />
         <NavBtn label="Cierre" icon="clipboard-check" activo={vista === 'cierre'} onClick={() => setVista('cierre')} />
-          <NavBtn label="Pedidos" icon="shopping-bag" activo={vista === 'pedidos'} onClick={() => setVista('pedidos')} />
-            <NavBtn label="Dias libres" icon="calendar" activo={vista === 'diaslibres'} onClick={() => setVista('diaslibres')} />
+        <NavBtn label="Pedidos" icon="shopping-bag" activo={vista === 'pedidos'} onClick={() => setVista('pedidos')} />
+        <NavBtn label="Dias libres" icon="calendar" activo={vista === 'diaslibres'} onClick={() => setVista('diaslibres')} />
       </div>
       <div className="nm-section-label">
         {vista === 'mapa' ? 'Mapa de habitaciones' :
          vista === 'asistencia' ? 'Registro de asistencia' :
-         vista === 'novedades' ? 'Novedades del turno' : 'Cierre de turno'}
+         vista === 'novedades' ? 'Novedades del turno' :
+         vista === 'cierre' ? 'Cierre de turno' :
+         vista === 'pedidos' ? 'Pedidos' : 'Dias libres'}
       </div>
       {vista === 'mapa' && <MapaHabitaciones rol="monitor" />}
       {vista === 'asistencia' && <Asistencia rol="monitor" />}
@@ -297,12 +303,14 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
         <NavBtn label="Habitaciones" icon="layout-grid" activo={vista === 'mapa'} onClick={() => setVista('mapa')} />
         <NavBtn label="Mi quincena" icon="coin" activo={vista === 'nomina'} onClick={() => setVista('nomina')} />
         <NavBtn label="Mi meta" icon="target" activo={vista === 'metas'} onClick={() => setVista('metas')} />
-          <NavBtn label="Tienda" icon="shopping-cart" activo={vista === 'tienda'} onClick={() => setVista('tienda')} />
-            <NavBtn label="Descansos" icon="calendar" activo={vista === 'descanso'} onClick={() => setVista('descanso')} />
+        <NavBtn label="Tienda" icon="shopping-cart" activo={vista === 'tienda'} onClick={() => setVista('tienda')} />
+        <NavBtn label="Descansos" icon="calendar" activo={vista === 'descanso'} onClick={() => setVista('descanso')} />
       </div>
       <div className="nm-section-label">
         {vista === 'mapa' ? 'Habitaciones disponibles' :
-         vista === 'nomina' ? 'Mi nomina en vivo' : 'Mi meta quincenal'}
+         vista === 'nomina' ? 'Mi nomina en vivo' :
+         vista === 'metas' ? 'Mi meta quincenal' :
+         vista === 'tienda' ? 'Tienda de insumos' : 'Mis descansos'}
       </div>
       {vista === 'mapa' && <MapaHabitaciones rol="modelo" />}
       {vista === 'nomina' && <Nomina nombreModelo={nombreModelo} />}
@@ -318,6 +326,7 @@ export default function App() {
   const [modelaData, setModelaData] = useState(null);
   const [monitorData, setMonitorData] = useState(null);
   const [temaOscuro, setTemaOscuro] = useState(true);
+  const [notif, setNotif] = useState(null);
 
   useEffect(() => {
     document.body.className = temaOscuro ? 'oscuro' : 'claro';
@@ -327,13 +336,51 @@ export default function App() {
     document.body.className = 'oscuro';
   }, []);
 
+  useEffect(() => {
+    if (!usuario) return;
+    const unsub = escucharNotificaciones((payload) => {
+      setNotif(payload.notification);
+      setTimeout(() => setNotif(null), 5000);
+    });
+    return unsub;
+  }, [usuario]);
+
   const toggleTema = () => setTemaOscuro(prev => !prev);
 
-  if (!usuario) return <Login onLogin={(rol, data) => { setUsuario(rol); if (rol === 'modelo' && data) setModelaData(data); if (rol === 'monitor' && data) setMonitorData(data); }} temaOscuro={temaOscuro} toggleTema={toggleTema} />;
-  if (usuario === 'jefe') return <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} />;
-  if (usuario === 'operativo') return <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} soloLectura={true} />;
-  if (usuario === 'administrativo') return <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} soloAdmin={true} />;
-  if (usuario === 'monitor') return <AppMonitor onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} monitorData={monitorData} />;
-  if (usuario === 'modelo') return <AppModelo onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} modelaData={modelaData} />;
+  const handleLogin = (rol, data) => {
+    setUsuario(rol);
+    if (rol === 'modelo' && data) {
+      setModelaData(data);
+      solicitarPermiso('modelo', data.nombreReal);
+    }
+    if (rol === 'monitor' && data) {
+      setMonitorData(data);
+      solicitarPermiso('monitor', data.nombre);
+    }
+    if (rol === 'jefe' || rol === 'operativo' || rol === 'administrativo') {
+      solicitarPermiso('jefe', rol);
+    }
+  };
+
+  return (
+    <>
+      {notif && (
+        <div style={{
+          position: 'fixed', top: 16, right: 16, zIndex: 9999,
+          background: 'var(--bg2)', border: '1px solid var(--border2)',
+          borderRadius: 12, padding: '12px 16px', maxWidth: 280,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+        }}>
+          <div style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>{notif.title}</div>
+          <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>{notif.body}</div>
+        </div>
+      )}
+      {!usuario && <Login onLogin={handleLogin} temaOscuro={temaOscuro} toggleTema={toggleTema} />}
+      {usuario === 'jefe' && <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} />}
+      {usuario === 'operativo' && <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} soloLectura={true} />}
+      {usuario === 'administrativo' && <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} soloAdmin={true} />}
+      {usuario === 'monitor' && <AppMonitor onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} monitorData={monitorData} />}
+      {usuario === 'modelo' && <AppModelo onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} modelaData={modelaData} />}
+    </>
+  );
 }
-  
