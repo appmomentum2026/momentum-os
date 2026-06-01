@@ -52,6 +52,22 @@ input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
   align-items: center;
   justify-content: center;
   padding: 2rem;
+} {
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+} {
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
 }
 
 .nm-logo-ring {
@@ -141,7 +157,13 @@ input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
 
 .nm-version { font-size: 11px; color: var(--text-dim); letter-spacing: 1px; }
 
-.nm-wrap { background: var(--bg); min-height: 100vh; padding: 1.25rem; }
+.nm-wrap { 
+  background: var(--bg); 
+  min-height: 100vh; 
+  padding: 1.25rem;
+  max-width: 900px;
+  margin: 0 auto;
+} { background: var(--bg); min-height: 100vh; padding: 1.25rem; }
 
 .nm-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
 
