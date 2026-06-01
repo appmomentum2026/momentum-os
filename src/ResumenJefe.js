@@ -18,17 +18,18 @@ const MODELOS_TODAS = [
   'Luisa Fernanda Rodriguez Calderon'
 ];
 
-const nm = {
-  wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
-  card: { background: '#1a1a2e', borderRadius: 14, padding: 16, boxShadow: '4px 4px 8px #0d0d1a, -4px -4px 8px #272742' },
-  nombre: { color: '#C9A84C', fontSize: 13, fontWeight: 500, marginBottom: 10 },
-  fila: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1f1f35' },
-  filaLabel: { color: '#555577', fontSize: 12 },
-  filaValor: { color: '#888899', fontSize: 12 },
+const s = {
+  wrap: { display: 'flex', flexDirection: 'column', gap: 10 },
+  totalCard: { background: 'var(--bg2)', borderRadius: 14, padding: 16, border: '1px solid var(--border)', marginBottom: 6 },
+  totalLabel: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 },
+  totalValor: { color: 'var(--gold)', fontSize: 28, fontWeight: 500 },
+  totalSub: { color: 'var(--text-dim)', fontSize: 12, marginTop: 4 },
+  card: { background: 'var(--bg2)', borderRadius: 12, padding: 14, border: '1px solid var(--border)' },
+  nombre: { color: 'var(--gold)', fontSize: 13, fontWeight: 500, marginBottom: 10 },
+  fila: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' },
+  filaLabel: { color: 'var(--text-sub)', fontSize: 12 },
+  filaValor: { color: 'var(--text)', fontSize: 12 },
   badge: { padding: '3px 10px', borderRadius: 20, fontSize: 11, letterSpacing: 1, fontWeight: 500 },
-  totalCard: { background: '#1a1a2e', borderRadius: 14, padding: 16, boxShadow: 'inset 3px 3px 6px #0d0d1a, inset -3px -3px 6px #272742', marginBottom: 16 },
-  totalLabel: { color: '#555577', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 },
-  totalValor: { color: '#C9A84C', fontSize: 24, fontWeight: 500 }
 };
 
 function getQuincena() {
@@ -60,11 +61,11 @@ function calcularPorcentaje(tokens, horasCumplidas, horasRequeridas) {
   return 60;
 }
 
-function getBadgeColor(porcentaje) {
-  if (porcentaje === 70) return { background: '#1d9e7522', color: '#1d9e75' };
-  if (porcentaje === 65) return { background: '#C9A84C22', color: '#C9A84C' };
-  if (porcentaje === 60) return { background: '#4466AA22', color: '#4466AA' };
-  return { background: '#d85a3022', color: '#d85a30' };
+function getBadgeStyle(porcentaje) {
+  if (porcentaje === 70) return { background: 'rgba(76,175,125,0.15)', color: '#4CAF7D' };
+  if (porcentaje === 65) return { background: 'rgba(201,146,74,0.15)', color: '#C9924A' };
+  if (porcentaje === 60) return { background: 'rgba(106,138,170,0.15)', color: '#6A8AAA' };
+  return { background: 'rgba(192,97,74,0.15)', color: '#C0614A' };
 }
 
 export default function ResumenJefe() {
@@ -129,33 +130,24 @@ export default function ResumenJefe() {
   const totalPagar = resumen.reduce((acc, m) => acc + parseFloat(m.usdNeto), 0);
 
   return (
-    <div style={nm.wrap}>
-      <div style={nm.totalCard}>
-        <div style={nm.totalLabel}>Total a pagar esta quincena</div>
-        <div style={nm.totalValor}>${totalPagar.toFixed(2)} USD</div>
-        <div style={{ color: '#555577', fontSize: 12, marginTop: 4 }}>{quincena.label}</div>
+    <div style={s.wrap}>
+      <div style={s.totalCard}>
+        <div style={s.totalLabel}>Total a pagar esta quincena</div>
+        <div style={s.totalValor}>${totalPagar.toFixed(2)} USD</div>
+        <div style={s.totalSub}>{quincena.label}</div>
       </div>
 
       {resumen.map(m => {
-        const badgeColor = getBadgeColor(m.porcentaje);
+        const badgeStyle = getBadgeStyle(m.porcentaje);
         return (
-          <div key={m.nombre} style={nm.card}>
-            <div style={nm.nombre}>{m.nombre}</div>
-            <div style={nm.fila}>
-              <div style={nm.filaLabel}>Dias trabajados</div>
-              <div style={nm.filaValor}>{m.diasTrabajados}</div>
-            </div>
-            <div style={nm.fila}>
-              <div style={nm.filaLabel}>Horas</div>
-              <div style={nm.filaValor}>{m.horasTrabajadas} / {m.horasRequeridas} hrs</div>
-            </div>
-            <div style={nm.fila}>
-              <div style={nm.filaLabel}>Tokens</div>
-              <div style={nm.filaValor}>{m.totalTokens.toLocaleString()}</div>
-            </div>
-            <div style={{ ...nm.fila, borderBottom: 'none', alignItems: 'center' }}>
-              <div style={{ ...nm.badge, ...badgeColor }}>{m.porcentaje}%</div>
-              <div style={{ color: '#C9A84C', fontSize: 14, fontWeight: 500 }}>${m.usdNeto} USD</div>
+          <div key={m.nombre} style={s.card}>
+            <div style={s.nombre}>{m.nombre}</div>
+            <div style={s.fila}><div style={s.filaLabel}>Dias trabajados</div><div style={s.filaValor}>{m.diasTrabajados}</div></div>
+            <div style={s.fila}><div style={s.filaLabel}>Horas</div><div style={s.filaValor}>{m.horasTrabajadas} / {m.horasRequeridas} hrs</div></div>
+            <div style={s.fila}><div style={s.filaLabel}>Tokens</div><div style={s.filaValor}>{m.totalTokens.toLocaleString()}</div></div>
+            <div style={{ ...s.fila, borderBottom: 'none', alignItems: 'center', paddingTop: 8 }}>
+              <div style={{ ...s.badge, ...badgeStyle }}>{m.porcentaje}%</div>
+              <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 500 }}>${m.usdNeto} USD</div>
             </div>
           </div>
         );

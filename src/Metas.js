@@ -18,15 +18,18 @@ const MODELOS_TODAS = [
   'Luisa Fernanda Rodriguez Calderon'
 ];
 
-const nm = {
-  wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
-  card: { background: '#1a1a2e', borderRadius: 14, padding: 16, boxShadow: '4px 4px 8px #0d0d1a, -4px -4px 8px #272742' },
+const s = {
+  wrap: { display: 'flex', flexDirection: 'column', gap: 10 },
+  card: { background: 'var(--bg2)', borderRadius: 12, padding: 14, border: '1px solid var(--border)' },
   fila: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
-  nombre: { color: '#888899', fontSize: 13, flex: 1 },
-  input: { background: '#1a1a2e', border: 'none', borderRadius: 10, boxShadow: 'inset 2px 2px 5px #0d0d1a, inset -2px -2px 5px #272742', color: '#C9A84C', padding: '8px 12px', fontSize: 13, width: 120, outline: 'none', textAlign: 'right' },
-  btnGuardar: { background: '#1a1a2e', border: 'none', borderRadius: 8, boxShadow: '3px 3px 6px #0d0d1a, -3px -3px 6px #272742', color: '#C9A84C', padding: '8px 14px', fontSize: 12, letterSpacing: 1, cursor: 'pointer' },
-  label: { color: '#555577', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 },
-  metaActual: { color: '#444466', fontSize: 12 }
+  nombre: { color: 'var(--text)', fontSize: 13, flex: 1 },
+  input: { background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--gold)', padding: '8px 12px', fontSize: 13, width: 120, outline: 'none', textAlign: 'right' },
+  btnGuardar: { background: 'var(--gold)', border: 'none', borderRadius: 8, color: '#141414', padding: '8px 14px', fontSize: 12, letterSpacing: 1, cursor: 'pointer', fontWeight: 500 },
+  label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 },
+  metaActual: { color: 'var(--text-dim)', fontSize: 12, marginTop: 6 },
+  cardModelo: { background: 'var(--bg2)', borderRadius: 14, padding: 20, border: '1px solid var(--border)' },
+  tituloModelo: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
+  valorModelo: { color: 'var(--gold)', fontSize: 28, fontWeight: 500 }
 };
 
 export default function Metas({ rol, nombreModelo }) {
@@ -50,27 +53,19 @@ export default function Metas({ rol, nombreModelo }) {
 
   if (rol === 'jefe') {
     return (
-      <div style={nm.wrap}>
+      <div style={s.wrap}>
         {MODELOS_TODAS.map(modelo => (
-          <div key={modelo} style={nm.card}>
-            <div style={nm.fila}>
-              <div style={nm.nombre}>{modelo}</div>
+          <div key={modelo} style={s.card}>
+            <div style={s.fila}>
+              <div style={s.nombre}>{modelo}</div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input
-                  style={nm.input}
-                  type="number"
-                  placeholder={metas[modelo]?.tokens || 'Meta'}
+                <input style={s.input} type="number" placeholder={metas[modelo]?.tokens || 'Meta'}
                   value={editando[modelo] || ''}
-                  onChange={e => setEditando(prev => ({ ...prev, [modelo]: e.target.value }))}
-                />
-                <button style={nm.btnGuardar} onClick={() => guardarMeta(modelo, editando[modelo])}>
-                  OK
-                </button>
+                  onChange={e => setEditando(prev => ({ ...prev, [modelo]: e.target.value }))} />
+                <button style={s.btnGuardar} onClick={() => guardarMeta(modelo, editando[modelo])}>OK</button>
               </div>
             </div>
-            {metas[modelo] && (
-              <div style={nm.metaActual}>Meta actual: {metas[modelo].tokens.toLocaleString()} tokens</div>
-            )}
+            {metas[modelo] && <div style={s.metaActual}>Meta actual: {metas[modelo].tokens.toLocaleString()} tokens</div>}
           </div>
         ))}
       </div>
@@ -79,10 +74,10 @@ export default function Metas({ rol, nombreModelo }) {
 
   const meta = metas[nombreModelo]?.tokens || 0;
   return (
-    <div style={nm.wrap}>
-      <div style={nm.card}>
-        <div style={nm.label}>Tu meta esta quincena</div>
-        <div style={{ color: '#C9A84C', fontSize: 28, fontWeight: 500 }}>
+    <div style={s.wrap}>
+      <div style={s.cardModelo}>
+        <div style={s.tituloModelo}>Tu meta esta quincena</div>
+        <div style={s.valorModelo}>
           {meta > 0 ? meta.toLocaleString() + ' tokens' : 'Sin meta asignada'}
         </div>
       </div>
