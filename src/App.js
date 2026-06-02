@@ -15,6 +15,7 @@ import Pedidos from './Pedidos';
 import { DiasLibresModelo, DiasLibresMonitor, DiasLibresJefe } from './DiasLibres';
 import { solicitarPermiso, escucharNotificaciones } from './Notificaciones';
 import ImportMonitores from './ImportMonitores';
+import GoogleSheets from './GoogleSheets';
 
 const CLAVES = { jefe: '1234', operativo: 'oper1234', administrativo: 'admin1234' };
 const HABITACIONES = Array.from({ length: 16 }, (_, i) => i + 1);
@@ -208,6 +209,7 @@ function AppJefe({ onLogout, temaOscuro, toggleTema }) {
         <NavBtn label="Cierres" icon="clipboard-check" activo={vista === 'cierre'} onClick={() => setVista('cierre')} />
         <NavBtn label="Metas" icon="target" activo={vista === 'metas'} onClick={() => setVista('metas')} />
         <NavBtn label="Nomina" icon="report-money" activo={vista === 'resumen'} onClick={() => setVista('resumen')} />
+        <NavBtn label="Sheets" icon="table" activo={vista === 'sheets'} onClick={() => setVista('sheets')} />
         <NavBtn label="Modelos" icon="user-plus" activo={vista === 'modelos'} onClick={() => setVista('modelos')} />
         <NavBtn label="Monitores" icon="users" activo={vista === 'monitores'} onClick={() => setVista('monitores')} />
         <NavBtn label="Inventario" icon="package" activo={vista === 'inventario'} onClick={() => setVista('inventario')} />
@@ -220,6 +222,7 @@ function AppJefe({ onLogout, temaOscuro, toggleTema }) {
          vista === 'cierre' ? 'Cierres de turno' :
          vista === 'metas' ? 'Metas por modelo' :
          vista === 'resumen' ? 'Resumen quincenal' :
+         vista === 'sheets' ? 'Google Sheets — Nómina' :
          vista === 'modelos' ? 'Gestion de modelos' :
          vista === 'monitores' ? 'Gestion de monitores' :
          vista === 'inventario' ? 'Inventario' :
@@ -231,6 +234,7 @@ function AppJefe({ onLogout, temaOscuro, toggleTema }) {
       {vista === 'cierre' && <CierreTurno rol="jefe" />}
       {vista === 'metas' && <Metas rol="jefe" />}
       {vista === 'resumen' && <ResumenJefe />}
+      {vista === 'sheets' && <GoogleSheets />}
       {vista === 'modelos' && <GestionModelos />}
       {vista === 'modelos' && <ImportarModelos />}
       {vista === 'monitores' && <ImportMonitores />}

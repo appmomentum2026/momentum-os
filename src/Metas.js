@@ -25,12 +25,156 @@ const s = {
   nombre: { color: 'var(--text)', fontSize: 13, flex: 1 },
   input: { background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--gold)', padding: '8px 12px', fontSize: 13, width: 120, outline: 'none', textAlign: 'right' },
   btnGuardar: { background: 'var(--gold)', border: 'none', borderRadius: 8, color: '#141414', padding: '8px 14px', fontSize: 12, letterSpacing: 1, cursor: 'pointer', fontWeight: 500 },
-  label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 },
   metaActual: { color: 'var(--text-dim)', fontSize: 12, marginTop: 6 },
-  cardModelo: { background: 'var(--bg2)', borderRadius: 14, padding: 20, border: '1px solid var(--border)' },
-  tituloModelo: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
-  valorModelo: { color: 'var(--gold)', fontSize: 28, fontWeight: 500 }
+  bigCard: { background: 'var(--bg2)', borderRadius: 14, padding: 20, border: '1px solid var(--border)' },
+  label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
+  bigVal: { color: 'var(--gold)', fontSize: 32, fontWeight: 500, marginBottom: 4 },
+  titulo: { color: 'var(--gold)', fontSize: 14, fontWeight: 500, marginBottom: 14 },
+  statFila: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)', alignItems: 'center' },
+  statLabel: { color: 'var(--text-sub)', fontSize: 13 },
+  statVal: { color: 'var(--text)', fontSize: 13 },
+  barraWrap: { background: 'var(--bg3)', borderRadius: 20, height: 8, marginTop: 12, overflow: 'hidden' },
+  barraFill: { height: '100%', borderRadius: 20, transition: 'width 0.5s' },
+  badge: { padding: '4px 12px', borderRadius: 20, fontSize: 12, letterSpacing: 1 },
+  motivacion: { background: 'rgba(76,175,125,0.1)', border: '1px solid rgba(76,175,125,0.2)', borderRadius: 12, padding: 14, color: '#4CAF7D', fontSize: 13, lineHeight: 1.5 }
 };
+
+function getQuincena() {
+  const hoy = new Date();
+  const dia = hoy.getDate();
+  const mes = hoy.getMonth();
+  const anio = hoy.getFullYear();
+  if (dia <= 15) {
+    return {
+      inicio: new Date(anio, mes, 1).toISOString().split('T')[0],
+      fin: new Date(anio, mes, 15).toISOString().split('T')[0],
+    };
+  } else {
+    const ultimoDia = new Date(anio, mes + 1, 0).getDate();
+    return {
+      inicio: new Date(anio, mes, 16).toISOString().split('T')[0],
+      fin: new Date(anio, mes, ultimoDia).toISOString().split('T')[0],
+    };
+  }
+}
+
+function ProyeccionModelo({ nombreModelo, meta }) {
+  const [cierres, setCierres] = useState([]);
+  const [asistencia, setAsistencia] = useState({});
+  const quincena = getQuincena();
+
+  useEffect(() => {
+    const unsub1 = onSnapshot(collection(db, 'cierres'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setCierres(data);
+    });
+    const unsub2 = onSnapshot(collection(db, 'asistencia'), snap => {
+      const data = {};
+      snap.forEach(d => { data[d.id] = d.data(); });
+      setAsistencia(data);
+    });
+    return () => { unsub1(); unsub2(); };
+  }, []);
+
+  let totalTokens = 0;
+  let mejorDia = { fecha: '', tokens: 0 };
+  const tokensPorDia = {};
+
+  cierres.forEach(cierre => {
+    if (cierre.fecha < quincena.inicio || cierre.fecha > quincena.fin + 'Z') return;
+    if (!cierre.modelos) return;
+    const modelaData = cierre.modelos.find(m => m.nombre === nombreModelo);
+    if (!modelaData) return;
+    let tokensDelDia = 0;
+    ['Stripchat', 'Camsoda', 'Chaturbate', 'Streamate'].forEach(p => {
+      tokensDelDia += Number(modelaData[p + '_tokens'] || 0);
+    });
+    totalTokens += tokensDelDia;
+    const fecha = cierre.fecha?.split('T')[0] || '';
+    tokensPorDia[fecha] = (tokensPorDia[fecha] || 0) + tokensDelDia;
+    if (tokensPorDia[fecha] > mejorDia.tokens) {
+      mejorDia = { fecha, tokens: tokensPorDia[fecha] };
+    }
+  });
+
+  const diasTrabajados = Object.values(asistencia).filter(a =>
+    a.modelo === nombreModelo && a.presente === true &&
+    a.fecha >= quincena.inicio && a.fecha <= quincena.fin
+  ).length;
+
+  const hoy = new Date();
+  const finQuincena = new Date(quincena.fin);
+  const diasRestantes = Math.max(1, Math.ceil((finQuincena - hoy) / (1000 * 60 * 60 * 24)));
+  const cumplimiento = meta > 0 ? Math.min(100, Math.round((totalTokens / meta) * 100)) : 0;
+  const tokensNecesarios = Math.max(0, meta - totalTokens);
+  const porDia = diasRestantes > 0 ? Math.ceil(tokensNecesarios / diasRestantes) : 0;
+  const promedioDiario = diasTrabajados > 0 ? Math.round(totalTokens / diasTrabajados) : 0;
+  const diasOrdenados = Object.entries(tokensPorDia).sort(([a], [b]) => a.localeCompare(b)).slice(-10);
+  const maxTokens = Math.max(...diasOrdenados.map(([, v]) => v), 1);
+
+  const getMensaje = () => {
+    if (cumplimiento >= 100) return 'Meta cumplida! Excelente quincena.';
+    if (cumplimiento >= 75) return 'Vas muy bien, sigue asi!';
+    if (cumplimiento >= 50) return 'Vas a mitad de camino, puedes lograrlo!';
+    if (cumplimiento >= 25) return 'Aun hay tiempo, enfocate!';
+    return 'Arranca fuerte, cada token cuenta!';
+  };
+
+  return (
+    <div style={s.wrap}>
+      <div style={s.bigCard}>
+        <div style={s.label}>Tu meta esta quincena</div>
+        <div style={s.bigVal}>{meta > 0 ? meta.toLocaleString() : '—'} tokens</div>
+        <div style={{ ...s.statFila, borderBottom: 'none', marginTop: 4 }}>
+          <div style={{ color: 'var(--text-sub)', fontSize: 13 }}>Llevas {totalTokens.toLocaleString()} tokens</div>
+          <div style={{ ...s.badge, background: cumplimiento >= 100 ? 'rgba(76,175,125,0.15)' : 'rgba(201,146,74,0.15)', color: cumplimiento >= 100 ? '#4CAF7D' : 'var(--gold)' }}>{cumplimiento}%</div>
+        </div>
+        <div style={s.barraWrap}>
+          <div style={{ ...s.barraFill, width: `${cumplimiento}%`, background: cumplimiento >= 100 ? '#4CAF7D' : 'var(--gold)' }}></div>
+        </div>
+      </div>
+
+      <div style={s.motivacion}>{getMensaje()}</div>
+
+      {diasOrdenados.length > 0 && (
+        <div style={s.bigCard}>
+          <div style={s.titulo}>Tokens por dia</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 100, padding: '0 4px' }}>
+            {diasOrdenados.map(([fecha, tokens]) => (
+              <div key={fecha} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <div style={{ fontSize: 9, color: 'var(--text-dim)' }}>{tokens.toLocaleString()}</div>
+                <div style={{
+                  width: '100%',
+                  height: `${Math.round((tokens / maxTokens) * 60)}px`,
+                  background: tokens === mejorDia.tokens ? '#4CAF7D' : 'var(--gold)',
+                  borderRadius: '4px 4px 0 0',
+                  opacity: 0.85,
+                  minHeight: 4
+                }}></div>
+                <div style={{ fontSize: 9, color: 'var(--text-dim)' }}>{fecha.split('-')[2]}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={s.bigCard}>
+        <div style={s.titulo}>Mis estadisticas</div>
+        <div style={s.statFila}><div style={s.statLabel}>Dias trabajados</div><div style={s.statVal}>{diasTrabajados} dias</div></div>
+        <div style={s.statFila}><div style={s.statLabel}>Promedio diario</div><div style={s.statVal}>{promedioDiario.toLocaleString()} tokens</div></div>
+        <div style={s.statFila}><div style={s.statLabel}>Mejor dia</div><div style={s.statVal}>{mejorDia.tokens > 0 ? mejorDia.tokens.toLocaleString() + ' tokens' : '—'}</div></div>
+        <div style={s.statFila}><div style={s.statLabel}>Dias restantes</div><div style={s.statVal}>{diasRestantes} dias</div></div>
+        <div style={{ ...s.statFila, borderBottom: 'none' }}>
+          <div style={s.statLabel}>Necesitas por dia</div>
+          <div style={{ color: tokensNecesarios <= 0 ? '#4CAF7D' : 'var(--gold)', fontSize: 16, fontWeight: 500 }}>
+            {tokensNecesarios <= 0 ? 'Meta cumplida!' : porDia.toLocaleString() + ' tokens'}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Metas({ rol, nombreModelo }) {
   const [metas, setMetas] = useState({});
@@ -73,14 +217,5 @@ export default function Metas({ rol, nombreModelo }) {
   }
 
   const meta = metas[nombreModelo]?.tokens || 0;
-  return (
-    <div style={s.wrap}>
-      <div style={s.cardModelo}>
-        <div style={s.tituloModelo}>Tu meta esta quincena</div>
-        <div style={s.valorModelo}>
-          {meta > 0 ? meta.toLocaleString() + ' tokens' : 'Sin meta asignada'}
-        </div>
-      </div>
-    </div>
-  );
+  return <ProyeccionModelo nombreModelo={nombreModelo} meta={meta} />;
 }

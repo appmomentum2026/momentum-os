@@ -7,7 +7,6 @@ const s = {
   card: { background: 'var(--bg2)', borderRadius: 14, padding: 20, border: '1px solid var(--border)' },
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
   valor: { color: 'var(--gold)', fontSize: 28, fontWeight: 500 },
-  valorSub: { color: 'var(--text-sub)', fontSize: 14, marginTop: 4 },
   fila: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' },
   filaLabel: { color: 'var(--text-sub)', fontSize: 13 },
   filaValor: { color: 'var(--text)', fontSize: 13 },
@@ -16,7 +15,6 @@ const s = {
   pedidoRow: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)', alignItems: 'center' },
   pedidoNombre: { color: 'var(--text)', fontSize: 13 },
   pedidoSub: { color: 'var(--text-sub)', fontSize: 11 },
-  pedidoValor: { color: '#C0614A', fontSize: 13, fontWeight: 500 },
   vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 24, fontSize: 13 }
 };
 
@@ -79,7 +77,7 @@ function ModelaPedidos({ nombreModelo }) {
             <div style={s.pedidoSub}>{p.cuotas > 1 ? '2 cuotas' : 'Pago completo'} · {p.hora}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ ...s.pedidoValor, color: p.estado === 'cancelado' ? 'var(--text-dim)' : '#C0614A' }}>
+            <div style={{ color: p.estado === 'cancelado' ? 'var(--text-dim)' : '#C0614A', fontSize: 13, fontWeight: 500 }}>
               {p.estado === 'cancelado' ? 'Cancelado' : '-$' + p.precio?.toLocaleString()}
             </div>
             {p.cuotas > 1 && p.estado !== 'cancelado' && (
@@ -100,6 +98,7 @@ export default function Nomina({ nombreModelo }) {
   const [cierres, setCierres] = useState([]);
   const [asistencia, setAsistencia] = useState({});
   const [metas, setMetas] = useState({});
+  const [pedidos, setPedidos] = useState([]);
   const quincena = getQuincena();
 
   useEffect(() => {
@@ -118,7 +117,12 @@ export default function Nomina({ nombreModelo }) {
       snap.forEach(d => { data[d.id] = d.data(); });
       setMetas(data);
     });
-    return () => { unsub1(); unsub2(); unsub3(); };
+    const unsub4 = onSnapshot(collection(db, 'pedidos'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setPedidos(data);
+    });
+    return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
   }, []);
 
   const calcularTotales = () => {
@@ -156,7 +160,12 @@ export default function Nomina({ nombreModelo }) {
     const porcentaje = calcularPorcentaje(totalTokens, horasTrabajadas, horasRequeridas);
     const usdBruto = totalTokens / 20;
     const usdNeto = usdBruto * (porcentaje / 100);
-    return { totalTokens, diasTrabajados, horasTrabajadas: horasTrabajadas.toFixed(1), horasRequeridas: horasRequeridas.toFixed(1), porcentaje, usdBruto: usdBruto.toFixed(2), usdNeto: usdNeto.toFixed(2) };
+    const totalDescuentos = pedidos
+      .filter(p => p.modelo === nombreModelo && p.estado !== 'cancelado')
+      .reduce((acc, p) => acc + (p.precio || 0), 0);
+    const descuentoUSD = totalDescuentos / 4000;
+    const usdNetoFinal = Math.max(0, usdNeto - descuentoUSD);
+    return { totalTokens, diasTrabajados, horasTrabajadas: horasTrabajadas.toFixed(1), horasRequeridas: horasRequeridas.toFixed(1), porcentaje, usdNeto: usdNetoFinal.toFixed(2), totalDescuentos };
   };
 
   const t = calcularTotales();
@@ -177,7 +186,7 @@ export default function Nomina({ nombreModelo }) {
     <div style={s.wrap}>
       <div style={s.card}>
         <div style={s.label}>Quincena actual</div>
-        <div style={{ ...s.valorSub, marginTop: 0, color: 'var(--text)' }}>{quincena.label}</div>
+        <div style={{ color: 'var(--text)', fontSize: 14 }}>{quincena.label}</div>
       </div>
 
       <div style={s.card}>
@@ -193,9 +202,13 @@ export default function Nomina({ nombreModelo }) {
       </div>
 
       <div style={s.card}>
-        <div style={s.label}>Lo que llevarias hoy</div>
+        <div style={s.label}>Lo que llevas ganado</div>
         <div style={s.valor}>${t.usdNeto} USD</div>
-        <div style={s.valorSub}>de ${t.usdBruto} USD brutos</div>
+        {t.totalDescuentos > 0 && (
+          <div style={{ color: '#C0614A', fontSize: 12, marginTop: 6 }}>
+            Incluye -{t.totalDescuentos.toLocaleString()} COP en pedidos
+          </div>
+        )}
       </div>
 
       {meta > 0 && (
