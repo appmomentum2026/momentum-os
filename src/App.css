@@ -347,6 +347,94 @@ input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
   padding-bottom: 100px;
 }
 
+/* ===== LAYOUT ESCRITORIO CON SIDEBAR ===== */
+.nm-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.nm-sidebar {
+  width: 210px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  flex-shrink: 0;
+}
+
+.nm-sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 16px;
+}
+
+.nm-sidebar-icon {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--gold-dim);
+  border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gold); font-size: 15px;
+  flex-shrink: 0;
+}
+
+.nm-sidebar-title { color: var(--text); font-size: 13px; font-weight: 600; }
+.nm-sidebar-sub { color: var(--text-sub); font-size: 10px; }
+
+.nm-side-btn {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+}
+
+.nm-side-btn i { color: var(--text-sub); font-size: 16px; transition: color 0.15s; }
+.nm-side-btn span { color: var(--text-sub); font-size: 12px; letter-spacing: 0.3px; transition: color 0.15s; }
+
+.nm-side-btn:hover { background: var(--bg3); }
+.nm-side-btn:hover i, .nm-side-btn:hover span { color: var(--text); }
+
+.nm-side-btn.activo { background: var(--gold); }
+.nm-side-btn.activo i, .nm-side-btn.activo span { color: #141414; font-weight: 600; }
+
+.nm-content {
+  flex: 1;
+  padding: 24px;
+  max-width: 900px;
+}
+
+.nm-content-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+/* En escritorio ocultamos la barra inferior y mostramos sidebar */
+.nm-bottombar { display: none; }
+.nm-layout-desktop { display: flex; }
+.nm-layout-mobile { display: none; }
+
+/* En movil ocultamos sidebar y mostramos barra inferior */
+@media (max-width: 768px) {
+  .nm-bottombar { display: block; }
+  .nm-layout-desktop { display: none; }
+  .nm-layout-mobile { display: block; }
+}
+
 /* Overlay para cerrar la bandeja al tocar fuera */
 .nm-mas-overlay {
   position: fixed;

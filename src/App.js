@@ -137,6 +137,79 @@ function BottomBar({ principales, vista, setVista, masItems }) {
   );
 }
 
+function Sidebar({ items, vista, setVista, titulo, sub, icono, onLogout, temaOscuro, toggleTema }) {
+  return (
+    <div className="nm-sidebar">
+      <div className="nm-sidebar-header">
+        <div className="nm-sidebar-icon"><i className={`ti ti-${icono}`} aria-hidden="true"></i></div>
+        <div>
+          <div className="nm-sidebar-title">{titulo}</div>
+          <div className="nm-sidebar-sub">{sub}</div>
+        </div>
+      </div>
+      {items.map(item => (
+        <button key={item.id}
+          className={`nm-side-btn${vista === item.id ? ' activo' : ''}`}
+          onClick={() => setVista(item.id)}>
+          <i className={`ti ti-${item.icon}`} aria-hidden="true"></i>
+          <span>{item.label}</span>
+        </button>
+      ))}
+      <div style={{ marginTop: 'auto', paddingTop: 12 }}>
+        <button className="nm-side-btn" onClick={toggleTema}>
+          <i className="ti ti-bulb" aria-hidden="true"></i>
+          <span>{temaOscuro ? 'Modo claro' : 'Modo oscuro'}</span>
+        </button>
+        <button className="nm-side-btn" onClick={onLogout}>
+          <i className="ti ti-logout" aria-hidden="true"></i>
+          <span>Salir</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function NavLayout({ todos, principales, masItems, vista, setVista, titulo, sub, icono, seccionLabel, onLogout, temaOscuro, toggleTema, children }) {
+  return (
+    <>
+      {/* ESCRITORIO: sidebar */}
+      <div className="nm-layout-desktop">
+        <div className="nm-layout">
+          <Sidebar items={todos} vista={vista} setVista={setVista}
+            titulo={titulo} sub={sub} icono={icono}
+            onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema} />
+          <div className="nm-content">
+            <div className="nm-section-label">{seccionLabel}</div>
+            {children}
+          </div>
+        </div>
+      </div>
+
+      {/* MOVIL: barra inferior */}
+      <div className="nm-layout-mobile">
+        <div className="nm-wrap">
+          <div className="nm-header">
+            <div>
+              <div className="nm-header-title">{titulo}</div>
+              <div className="nm-header-sub">{sub}</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button className="nm-tema-btn" onClick={toggleTema}>{temaOscuro ? '☀️' : '🌙'}</button>
+              <button className="nm-exit-btn" onClick={onLogout}>
+                <i className="ti ti-logout" aria-hidden="true"></i> Salir
+              </button>
+            </div>
+          </div>
+          <div className="nm-section-label">{seccionLabel}</div>
+          {children}
+          <BottomBar vista={vista} setVista={setVista}
+            principales={principales} masItems={masItems} />
+        </div>
+      </div>
+    </>
+  );
+}
+
 function Login({ onLogin, temaOscuro, toggleTema }) {
   const [rol, setRol] = useState(null);
   const [clave, setClave] = useState('');
@@ -234,46 +307,44 @@ function Login({ onLogin, temaOscuro, toggleTema }) {
 
 function AppJefe({ onLogout, temaOscuro, toggleTema }) {
   const [vista, setVista] = useState('mapa');
+
+  const items = [
+    { id: 'mapa', label: 'Mapa', icon: 'layout-grid' },
+    { id: 'resumen', label: 'Nómina', icon: 'report-money' },
+    { id: 'cierre', label: 'Cierres', icon: 'clipboard-check' },
+    { id: 'metas', label: 'Metas', icon: 'target' },
+    { id: 'inventario', label: 'Inventario', icon: 'package' },
+    { id: 'pedidos', label: 'Pedidos', icon: 'shopping-bag' },
+    { id: 'modelos', label: 'Modelos', icon: 'user-plus' },
+    { id: 'monitores', label: 'Monitores', icon: 'users' },
+    { id: 'diaslibres', label: 'Dias libres', icon: 'calendar' },
+    { id: 'novedades', label: 'Novedades', icon: 'alert-circle' },
+    { id: 'sheets', label: 'Sheets', icon: 'table' },
+  ];
+
+  const seccionLabel =
+    vista === 'mapa' ? 'Mapa de habitaciones — en vivo' :
+    vista === 'novedades' ? 'Novedades del turno' :
+    vista === 'cierre' ? 'Cierres de turno' :
+    vista === 'metas' ? 'Metas por modelo' :
+    vista === 'resumen' ? 'Resumen quincenal' :
+    vista === 'sheets' ? 'Google Sheets — Nómina' :
+    vista === 'modelos' ? 'Gestion de modelos' :
+    vista === 'monitores' ? 'Gestion de monitores' :
+    vista === 'inventario' ? 'Inventario' :
+    vista === 'pedidos' ? 'Pedidos' :
+    vista === 'diaslibres' ? 'Dias libres' : '';
+
   return (
-    <div className="nm-wrap">
-      <div className="nm-header">
-        <div>
-          <div className="nm-header-title">Jefe</div>
-          <div className="nm-header-sub">Panel de control</div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button className="nm-tema-btn" onClick={toggleTema}>{temaOscuro ? '☀️' : '🌙'}</button>
-          <button className="nm-exit-btn" onClick={onLogout}>
-            <i className="ti ti-logout" aria-hidden="true"></i> Salir
-          </button>
-        </div>
-      </div>
-      <div className="nm-nav">
-        <NavBtn label="Mapa" icon="layout-grid" activo={vista === 'mapa'} onClick={() => setVista('mapa')} />
-        <NavBtn label="Novedades" icon="alert-circle" activo={vista === 'novedades'} onClick={() => setVista('novedades')} />
-        <NavBtn label="Cierres" icon="clipboard-check" activo={vista === 'cierre'} onClick={() => setVista('cierre')} />
-        <NavBtn label="Metas" icon="target" activo={vista === 'metas'} onClick={() => setVista('metas')} />
-        <NavBtn label="Nomina" icon="report-money" activo={vista === 'resumen'} onClick={() => setVista('resumen')} />
-        <NavBtn label="Sheets" icon="table" activo={vista === 'sheets'} onClick={() => setVista('sheets')} />
-        <NavBtn label="Modelos" icon="user-plus" activo={vista === 'modelos'} onClick={() => setVista('modelos')} />
-        <NavBtn label="Monitores" icon="users" activo={vista === 'monitores'} onClick={() => setVista('monitores')} />
-        <NavBtn label="Inventario" icon="package" activo={vista === 'inventario'} onClick={() => setVista('inventario')} />
-        <NavBtn label="Pedidos" icon="shopping-bag" activo={vista === 'pedidos'} onClick={() => setVista('pedidos')} />
-        <NavBtn label="Dias libres" icon="calendar" activo={vista === 'diaslibres'} onClick={() => setVista('diaslibres')} />
-      </div>
-      <div className="nm-section-label">
-        {vista === 'mapa' ? 'Mapa de habitaciones — en vivo' :
-         vista === 'novedades' ? 'Novedades del turno' :
-         vista === 'cierre' ? 'Cierres de turno' :
-         vista === 'metas' ? 'Metas por modelo' :
-         vista === 'resumen' ? 'Resumen quincenal' :
-         vista === 'sheets' ? 'Google Sheets — Nómina' :
-         vista === 'modelos' ? 'Gestion de modelos' :
-         vista === 'monitores' ? 'Gestion de monitores' :
-         vista === 'inventario' ? 'Inventario' :
-         vista === 'pedidos' ? 'Pedidos' :
-         vista === 'diaslibres' ? 'Dias libres' : ''}
-      </div>
+    <NavLayout
+      todos={items}
+      principales={items.slice(0, 4)}
+      masItems={items.slice(4)}
+      vista={vista} setVista={setVista}
+      titulo="Jefe" sub="Panel de control" icono="crown"
+      seccionLabel={seccionLabel}
+      onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema}
+    >
       {vista === 'mapa' && <MapaHabitaciones rol="jefe" />}
       {vista === 'novedades' && <Novedades rol="jefe" />}
       {vista === 'cierre' && <CierreTurno rol="jefe" />}
@@ -286,92 +357,83 @@ function AppJefe({ onLogout, temaOscuro, toggleTema }) {
       {vista === 'inventario' && <Inventario2 rol="jefe" />}
       {vista === 'pedidos' && <Pedidos rol="jefe" />}
       {vista === 'diaslibres' && <DiasLibresJefe />}
-    </div>
+    </NavLayout>
   );
 }
 
 function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
   const [vista, setVista] = useState('mapa');
+
+  const items = [
+    { id: 'mapa', label: 'Mapa', icon: 'layout-grid' },
+    { id: 'asistencia', label: 'Asistencia', icon: 'users' },
+    { id: 'cierre', label: 'Cierre', icon: 'clipboard-check' },
+    { id: 'novedades', label: 'Novedades', icon: 'alert-circle' },
+    { id: 'pedidos', label: 'Pedidos', icon: 'shopping-bag' },
+    { id: 'diaslibres', label: 'Dias libres', icon: 'calendar' },
+  ];
+
+  const seccionLabel =
+    vista === 'mapa' ? 'Mapa de habitaciones' :
+    vista === 'asistencia' ? 'Registro de asistencia' :
+    vista === 'novedades' ? 'Novedades del turno' :
+    vista === 'cierre' ? 'Cierre de turno' :
+    vista === 'pedidos' ? 'Pedidos' : 'Dias libres';
+
   return (
-    <div className="nm-wrap">
-      <div className="nm-header">
-        <div>
-          <div className="nm-header-title">Monitor</div>
-          <div className="nm-header-sub">{monitorData?.nombre || 'Monitor'} — {monitorData?.turno || ''}</div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button className="nm-tema-btn" onClick={toggleTema}>{temaOscuro ? '☀️' : '🌙'}</button>
-          <button className="nm-exit-btn" onClick={onLogout}>
-            <i className="ti ti-logout" aria-hidden="true"></i> Salir
-          </button>
-        </div>
-      </div>
-      <div className="nm-nav">
-        <NavBtn label="Mapa" icon="layout-grid" activo={vista === 'mapa'} onClick={() => setVista('mapa')} />
-        <NavBtn label="Asistencia" icon="users" activo={vista === 'asistencia'} onClick={() => setVista('asistencia')} />
-        <NavBtn label="Novedades" icon="alert-circle" activo={vista === 'novedades'} onClick={() => setVista('novedades')} />
-        <NavBtn label="Cierre" icon="clipboard-check" activo={vista === 'cierre'} onClick={() => setVista('cierre')} />
-        <NavBtn label="Pedidos" icon="shopping-bag" activo={vista === 'pedidos'} onClick={() => setVista('pedidos')} />
-        <NavBtn label="Dias libres" icon="calendar" activo={vista === 'diaslibres'} onClick={() => setVista('diaslibres')} />
-      </div>
-      <div className="nm-section-label">
-        {vista === 'mapa' ? 'Mapa de habitaciones' :
-         vista === 'asistencia' ? 'Registro de asistencia' :
-         vista === 'novedades' ? 'Novedades del turno' :
-         vista === 'cierre' ? 'Cierre de turno' :
-         vista === 'pedidos' ? 'Pedidos' : 'Dias libres'}
-      </div>
+    <NavLayout
+      todos={items}
+      principales={items.slice(0, 4)}
+      masItems={items.slice(4)}
+      vista={vista} setVista={setVista}
+      titulo="Monitor" sub={`${monitorData?.nombre || 'Monitor'} — ${monitorData?.turno || ''}`} icono="device-desktop"
+      seccionLabel={seccionLabel}
+      onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema}
+    >
       {vista === 'mapa' && <MapaHabitaciones rol="monitor" />}
       {vista === 'asistencia' && <Asistencia rol="monitor" />}
       {vista === 'novedades' && <Novedades rol="monitor" />}
       {vista === 'cierre' && <CierreTurno rol="monitor" />}
       {vista === 'pedidos' && <Pedidos rol="monitor" />}
       {vista === 'diaslibres' && <DiasLibresMonitor nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
-    </div>
+    </NavLayout>
   );
 }
 
 function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
   const [vista, setVista] = useState('mapa');
   const nombreModelo = modelaData?.nombreReal || '';
+
+  const items = [
+    { id: 'mapa', label: 'Habitaciones', icon: 'layout-grid' },
+    { id: 'nomina', label: 'Mi quincena', icon: 'coin' },
+    { id: 'metas', label: 'Mi meta', icon: 'target' },
+    { id: 'tienda', label: 'Tienda', icon: 'shopping-cart' },
+    { id: 'descanso', label: 'Descansos', icon: 'calendar' },
+  ];
+
+  const seccionLabel =
+    vista === 'mapa' ? 'Habitaciones disponibles' :
+    vista === 'nomina' ? 'Mi nomina en vivo' :
+    vista === 'metas' ? 'Mi meta quincenal' :
+    vista === 'tienda' ? 'Tienda de insumos' : 'Mis descansos';
+
   return (
-    <div className="nm-wrap">
-      <div className="nm-header">
-        <div>
-          <div className="nm-header-title">Mi panel</div>
-          <div className="nm-header-sub">{modelaData?.nombreReal || 'Momentum Studio'}</div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button className="nm-tema-btn" onClick={toggleTema}>{temaOscuro ? '☀️' : '🌙'}</button>
-          <button className="nm-exit-btn" onClick={onLogout}>
-            <i className="ti ti-logout" aria-hidden="true"></i> Salir
-          </button>
-        </div>
-      </div>
-      <div className="nm-section-label">
-        {vista === 'mapa' ? 'Habitaciones disponibles' :
-         vista === 'nomina' ? 'Mi nomina en vivo' :
-         vista === 'metas' ? 'Mi meta quincenal' :
-         vista === 'tienda' ? 'Tienda de insumos' : 'Mis descansos'}
-      </div>
+    <NavLayout
+      todos={items}
+      principales={items}
+      masItems={[]}
+      vista={vista} setVista={setVista}
+      titulo="Mi panel" sub={modelaData?.nombreReal || 'Momentum Studio'} icono="star"
+      seccionLabel={seccionLabel}
+      onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema}
+    >
       {vista === 'mapa' && <MapaHabitaciones rol="modelo" />}
       {vista === 'nomina' && <Nomina nombreModelo={nombreModelo} />}
       {vista === 'metas' && <Metas rol="modelo" nombreModelo={nombreModelo} />}
       {vista === 'tienda' && <Inventario2 rol="tienda" nombreModelo={nombreModelo} />}
       {vista === 'descanso' && <DiasLibresModelo nombreModelo={nombreModelo} />}
-      <BottomBar
-        vista={vista}
-        setVista={setVista}
-        principales={[
-          { id: 'mapa', label: 'Mapa', icon: 'layout-grid' },
-          { id: 'nomina', label: 'Quincena', icon: 'coin' },
-          { id: 'metas', label: 'Mi meta', icon: 'target' },
-          { id: 'tienda', label: 'Tienda', icon: 'shopping-cart' },
-          { id: 'descanso', label: 'Descansos', icon: 'calendar' },
-        ]}
-        masItems={[]}
-      />
-    </div>
+    </NavLayout>
   );
 }
 
