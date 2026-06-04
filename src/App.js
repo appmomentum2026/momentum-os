@@ -92,6 +92,51 @@ function NavBtn({ label, icon, activo, onClick }) {
   );
 }
 
+function BottomBar({ principales, vista, setVista, masItems }) {
+  const [masAbierto, setMasAbierto] = useState(false);
+  const hayMas = masItems && masItems.length > 0;
+
+  return (
+    <>
+      {masAbierto && <div className="nm-mas-overlay" onClick={() => setMasAbierto(false)}></div>}
+      <div className="nm-bottombar">
+        {masAbierto && hayMas && (
+          <div className="nm-mas-tray">
+            <div className="nm-mas-tray-label">Más opciones</div>
+            <div className="nm-mas-grid">
+              {masItems.map(item => (
+                <button key={item.id}
+                  className={`nm-mas-item${vista === item.id ? ' activo' : ''}`}
+                  onClick={() => { setVista(item.id); setMasAbierto(false); }}>
+                  <i className={`ti ti-${item.icon}`} aria-hidden="true"></i>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="nm-bottombar-row">
+          {principales.map(item => (
+            <button key={item.id}
+              className={`nm-bottom-btn${vista === item.id ? ' activo' : ''}`}
+              onClick={() => { setVista(item.id); setMasAbierto(false); }}>
+              <i className={`ti ti-${item.icon}`} aria-hidden="true"></i>
+              <span>{item.label}</span>
+            </button>
+          ))}
+          {hayMas && (
+            <button className={`nm-bottom-btn${masAbierto ? ' activo' : ''}`}
+              onClick={() => setMasAbierto(prev => !prev)}>
+              <i className="ti ti-dots" aria-hidden="true"></i>
+              <span>Más</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 function Login({ onLogin, temaOscuro, toggleTema }) {
   const [rol, setRol] = useState(null);
   const [clave, setClave] = useState('');
@@ -303,13 +348,6 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
           </button>
         </div>
       </div>
-      <div className="nm-nav">
-        <NavBtn label="Habitaciones" icon="layout-grid" activo={vista === 'mapa'} onClick={() => setVista('mapa')} />
-        <NavBtn label="Mi quincena" icon="coin" activo={vista === 'nomina'} onClick={() => setVista('nomina')} />
-        <NavBtn label="Mi meta" icon="target" activo={vista === 'metas'} onClick={() => setVista('metas')} />
-        <NavBtn label="Tienda" icon="shopping-cart" activo={vista === 'tienda'} onClick={() => setVista('tienda')} />
-        <NavBtn label="Descansos" icon="calendar" activo={vista === 'descanso'} onClick={() => setVista('descanso')} />
-      </div>
       <div className="nm-section-label">
         {vista === 'mapa' ? 'Habitaciones disponibles' :
          vista === 'nomina' ? 'Mi nomina en vivo' :
@@ -321,6 +359,18 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
       {vista === 'metas' && <Metas rol="modelo" nombreModelo={nombreModelo} />}
       {vista === 'tienda' && <Inventario2 rol="tienda" nombreModelo={nombreModelo} />}
       {vista === 'descanso' && <DiasLibresModelo nombreModelo={nombreModelo} />}
+      <BottomBar
+        vista={vista}
+        setVista={setVista}
+        principales={[
+          { id: 'mapa', label: 'Mapa', icon: 'layout-grid' },
+          { id: 'nomina', label: 'Quincena', icon: 'coin' },
+          { id: 'metas', label: 'Mi meta', icon: 'target' },
+          { id: 'tienda', label: 'Tienda', icon: 'shopping-cart' },
+          { id: 'descanso', label: 'Descansos', icon: 'calendar' },
+        ]}
+        masItems={[]}
+      />
     </div>
   );
 }
