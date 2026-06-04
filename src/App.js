@@ -83,14 +83,7 @@ function MapaHabitaciones({ rol }) {
   );
 }
 
-function NavBtn({ label, icon, activo, onClick }) {
-  return (
-    <button className={`nm-nav-btn${activo ? ' activo' : ''}`} onClick={onClick}>
-      <i className={`ti ti-${icon}`} aria-hidden="true"></i>
-      {label}
-    </button>
-  );
-}
+
 
 function BottomBar({ principales, vista, setVista, masItems }) {
   const [masAbierto, setMasAbierto] = useState(false);
