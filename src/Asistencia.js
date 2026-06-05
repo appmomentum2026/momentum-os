@@ -4,13 +4,16 @@ import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 const MOTIVOS = ['No contesto', 'Permiso', 'Incapacidad', 'Otro'];
 
-const MODELOS = [
-  'Ashly Naibel Burgos Machado', 'Ana Sofia Ospina Ortega', 'Tatiana Andrea Rios Hurtado',
-  'Luz Magnolia Salazar Garcia', 'Vanessa Arroyave', 'Valentina Osorno Alvarez',
-  'Sara Arango Zuleta', 'Valentina Zapata Azcuntar', 'Alejandra Rojas Vargas',
-  'Maye Catalina Insuasty Saldariaga', 'Juliana Ospina Jimenez', 'Liliana Castillo Salgado',
-  'Nicoll Pulgarin Nohava', 'Alison Daniela Zapata Estrada', 'Evelyn Tamayo Zapata'
-];
+const MONITORES = {
+  'Daniela': ['Ashly Naibel Burgos Machado', 'Ana Sofia Ospina Ortega', 'Tatiana Andrea Rios Hurtado', 'Luz Magnolia Salazar Garcia', 'Vanessa Arroyave', 'Valentina Osorno Alvarez', 'Sara Arango Zuleta', 'Valentina Zapata Azcuntar'],
+  'Ramon': ['Alejandra Rojas Vargas', 'Maye Catalina Insuasty Saldariaga', 'Juliana Ospina Jimenez', 'Liliana Castillo Salgado', 'Nicoll Pulgarin Nohava', 'Alison Daniela Zapata Estrada', 'Evelyn Tamayo Zapata'],
+  'Santiago': ['Valentina Marquez Pino', 'Susana Pelaez', 'Ivonne Camila Zuluaga Prieto', 'Evelin Saday Ricardo Solis', 'Luisa Fernanda Osorio Jimenez'],
+  'Monica': ['Natalia Hernandez Llano', 'Maria Camila Correa Munoz', 'Nataly Cardenas Moreno', 'Dayannis Tobon Acosta', 'Diana Luz Agamez Gonzalez', 'Asoryana Ramos Briseno', 'Yesmi Diaz Ruiz'],
+  'Juan': ['Andrea Carolina Gomez Rodelo', 'Viviana Marcela Zambrano Mosquera', 'Sofia del Pilar Herrera Celis', 'Angie Marcela Villa Carmona', 'Isabela Gutierrez Rivera', 'Alexa Rivera Montoya'],
+  'Cesar': ['Yeimy Viviana Osorio Rojas', 'Maria Jose Lopez Mejia', 'Sara Paulina Mejia Marin', 'Luisa Fernanda Rodriguez Calderon']
+};
+
+const TODAS_MODELOS = Object.values(MONITORES).flat();
 
 const s = {
   tabla: { width: '100%', borderCollapse: 'collapse' },
@@ -23,10 +26,11 @@ const s = {
   btnInactivo: { opacity: 0.35 },
   select: { background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--gold)', padding: '7px 10px', fontSize: 12 },
   badge: { padding: '4px 12px', borderRadius: 20, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
-  hora: { color: 'var(--text-dim)', fontSize: 12 }
+  hora: { color: 'var(--text-dim)', fontSize: 12 },
+  vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 32, fontSize: 13 }
 };
 
-export default function Asistencia({ rol }) {
+export default function Asistencia({ rol, nombreMonitor, modelasMonitor }) {
   const [asistencia, setAsistencia] = useState({});
   const hoy = new Date().toISOString().split('T')[0];
 
@@ -44,11 +48,21 @@ export default function Asistencia({ rol }) {
     await setDoc(doc(db, 'asistencia', id), {
       modelo, fecha: hoy, presente,
       motivo: presente ? '' : motivo,
+      monitor: nombreMonitor || '',
       hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
     });
   };
 
   const getReg = (modelo) => asistencia[`${hoy}_${modelo}`] || null;
+
+  // Si es monitor, solo sus modelos (vienen de Firebase). Si es jefe, todas.
+  const modelosAMostrar = (rol === 'monitor' && modelasMonitor && modelasMonitor.length > 0)
+    ? modelasMonitor
+    : TODAS_MODELOS;
+
+  if (modelosAMostrar.length === 0) {
+    return <div style={s.vacio}>No hay modelos asignadas a este monitor</div>;
+  }
 
   return (
     <table style={s.tabla}>
@@ -61,7 +75,7 @@ export default function Asistencia({ rol }) {
         </tr>
       </thead>
       <tbody>
-        {MODELOS.map(modelo => {
+        {modelosAMostrar.map(modelo => {
           const reg = getReg(modelo);
           return (
             <tr key={modelo}>

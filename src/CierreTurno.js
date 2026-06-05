@@ -4,15 +4,6 @@ import { collection, addDoc, onSnapshot, orderBy, query } from 'firebase/firesto
 
 const PLATAFORMAS = ['Stripchat', 'Camsoda', 'Chaturbate', 'Streamate'];
 
-const MONITORES = {
-  'Daniela': ['Ashly Naibel Burgos Machado', 'Ana Sofia Ospina Ortega', 'Tatiana Andrea Rios Hurtado', 'Luz Magnolia Salazar Garcia', 'Vanessa Arroyave', 'Valentina Osorno Alvarez', 'Sara Arango Zuleta', 'Valentina Zapata Azcuntar'],
-  'Ramon': ['Alejandra Rojas Vargas', 'Maye Catalina Insuasty Saldariaga', 'Juliana Ospina Jimenez', 'Liliana Castillo Salgado', 'Nicoll Pulgarin Nohava', 'Alison Daniela Zapata Estrada', 'Evelyn Tamayo Zapata'],
-  'Santiago': ['Valentina Marquez Pino', 'Susana Pelaez', 'Ivonne Camila Zuluaga Prieto', 'Evelin Saday Ricardo Solis', 'Luisa Fernanda Osorio Jimenez'],
-  'Monica': ['Natalia Hernandez Llano', 'Maria Camila Correa Munoz', 'Nataly Cardenas Moreno', 'Dayannis Tobon Acosta', 'Diana Luz Agamez Gonzalez', 'Asoryana Ramos Briseno', 'Yesmi Diaz Ruiz'],
-  'Juan': ['Andrea Carolina Gomez Rodelo', 'Viviana Marcela Zambrano Mosquera', 'Sofia del Pilar Herrera Celis', 'Angie Marcela Villa Carmona', 'Isabela Gutierrez Rivera', 'Alexa Rivera Montoya'],
-  'Cesar': ['Yeimy Viviana Osorio Rojas', 'Maria Jose Lopez Mejia', 'Sara Paulina Mejia Marin', 'Luisa Fernanda Rodriguez Calderon']
-};
-
 const TURNOS = { 'Daniela': 'Manana', 'Ramon': 'Manana', 'Santiago': 'Tarde', 'Monica': 'Tarde', 'Juan': 'Noche', 'Cesar': 'Noche' };
 
 const s = {
@@ -33,7 +24,10 @@ const s = {
   modelaNombre: { color: 'var(--text)', fontSize: 12, marginBottom: 4 },
   modelaHorario: { color: 'var(--text-dim)', fontSize: 11, marginBottom: 6 },
   platRow: { display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-sub)', padding: '3px 0' },
-  vacia: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 }
+  vacia: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 },
+  banner: { background: 'var(--bg3)', borderRadius: 10, padding: '12px 16px', marginBottom: 14, border: '1px solid var(--border)' },
+  bannerNombre: { color: 'var(--gold)', fontSize: 14, fontWeight: 500 },
+  bannerTurno: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 }
 };
 
 function FormModelo({ nombre, datos, onChange }) {
@@ -61,8 +55,7 @@ function FormModelo({ nombre, datos, onChange }) {
   );
 }
 
-export default function CierreTurno({ rol }) {
-  const [monitor, setMonitor] = useState('');
+export default function CierreTurno({ rol, nombreMonitor, modelasMonitor }) {
   const [datosModelos, setDatosModelos] = useState({});
   const [cierres, setCierres] = useState([]);
   const [enviando, setEnviando] = useState(false);
@@ -81,17 +74,20 @@ export default function CierreTurno({ rol }) {
     setDatosModelos(prev => ({ ...prev, [nombre]: { ...prev[nombre], [campo]: valor } }));
   };
 
+  const misModelos = modelasMonitor && modelasMonitor.length > 0 ? modelasMonitor : [];
+
   const enviarCierre = async () => {
-    if (!monitor) return;
+    if (!nombreMonitor) return;
     setEnviando(true);
-    const resumen = MONITORES[monitor].map(m => ({ nombre: m, ...datosModelos[m] }));
+    const resumen = misModelos.map(m => ({ nombre: m, ...datosModelos[m] }));
     await addDoc(collection(db, 'cierres'), {
-      monitor, turno: TURNOS[monitor], modelos: resumen,
+      monitor: nombreMonitor,
+      turno: TURNOS[nombreMonitor] || '',
+      modelos: resumen,
       fecha: new Date().toISOString(),
       dia: new Date().toLocaleDateString('es-CO'),
       hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
     });
-    setMonitor('');
     setDatosModelos({});
     setEnviando(false);
   };
@@ -122,24 +118,24 @@ export default function CierreTurno({ rol }) {
     );
   }
 
+  // Vista monitor
+  if (misModelos.length === 0) {
+    return <div style={s.vacia}>No tienes modelos asignadas</div>;
+  }
+
   return (
     <div>
-      <div style={s.form}>
-        <label style={s.label}>Tu nombre</label>
-        <select style={s.select} value={monitor} onChange={e => { setMonitor(e.target.value); setDatosModelos({}); }}>
-          <option value="">Seleccionar monitor</option>
-          {Object.keys(MONITORES).map(m => <option key={m} value={m}>{m} ({TURNOS[m]})</option>)}
-        </select>
+      <div style={s.banner}>
+        <div style={s.bannerNombre}>{nombreMonitor}</div>
+        <div style={s.bannerTurno}>Turno {TURNOS[nombreMonitor] || ''} · {misModelos.length} modelos</div>
       </div>
-      {monitor && MONITORES[monitor].map(nombre => (
+      {misModelos.map(nombre => (
         <FormModelo key={nombre} nombre={nombre} datos={datosModelos[nombre] || {}}
           onChange={(campo, valor) => actualizarModelo(nombre, campo, valor)} />
       ))}
-      {monitor && (
-        <button style={s.btnEnviar} onClick={enviarCierre} disabled={enviando}>
-          {enviando ? 'Enviando...' : 'Cerrar turno'}
-        </button>
-      )}
+      <button style={s.btnEnviar} onClick={enviarCierre} disabled={enviando}>
+        {enviando ? 'Enviando...' : 'Cerrar turno'}
+      </button>
     </div>
   );
 }

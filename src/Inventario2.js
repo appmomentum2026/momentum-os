@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
 import { collection, doc, setDoc, onSnapshot, addDoc } from 'firebase/firestore';
+import { storage } from './firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const CATEGORIAS = ['Lubricantes', 'Juguetes', 'Limpiadores', 'Otros'];
 const STOCK_MINIMO = 5;
@@ -35,7 +37,11 @@ const s = {
   cuotaBox: { background: 'var(--bg)', borderRadius: 10, padding: 12, boxShadow: 'var(--shadow-in)', marginTop: 8 },
   cuotaTexto: { color: 'var(--text-sub)', fontSize: 12, marginBottom: 10 },
   cuotaBtns: { display: 'flex', gap: 8 },
-  cuotaBtn: { flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '8px', fontSize: 12, cursor: 'pointer' }
+  cuotaBtn: { flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '8px', fontSize: 12, cursor: 'pointer' },
+  imgTienda: { width: '100%', height: 200, objectFit: 'contain', borderRadius: 10, marginBottom: 12, background: 'var(--bg3)' },
+  imgInventario: { width: 50, height: 50, objectFit: 'cover', borderRadius: 8, background: 'var(--bg3)', flexShrink: 0 },
+  uploadBox: { display: 'block', border: '1px dashed var(--border2)', borderRadius: 10, padding: '16px', textAlign: 'center', cursor: 'pointer', marginBottom: 20, marginTop: 4, color: 'var(--text-sub)', fontSize: 12 },
+  imgPreview: { width: '100%', height: 140, objectFit: 'cover', borderRadius: 10, marginBottom: 10 }
 };
 
 export default function Inventario2({ rol, nombreModelo }) {
@@ -44,6 +50,17 @@ export default function Inventario2({ rol, nombreModelo }) {
   const [form, setForm] = useState({ nombre: '', categoria: '', precio: '', stock: '' });
   const [pedidoEnviado, setPedidoEnviado] = useState(null);
   const [seleccionando, setSeleccionando] = useState(null);
+  const [imagenArchivo, setImagenArchivo] = useState(null);
+  const [imagenPreview, setImagenPreview] = useState(null);
+  const [subiendo, setSubiendo] = useState(false);
+
+  const seleccionarImagen = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImagenArchivo(file);
+      setImagenPreview(URL.createObjectURL(file));
+    }
+  };
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'inventario'), snap => {
@@ -57,16 +74,33 @@ export default function Inventario2({ rol, nombreModelo }) {
 
   const guardar = async () => {
     if (!form.nombre || !form.categoria || !form.precio || !form.stock) return;
+    setSubiendo(true);
     const id = form.nombre.replace(/\s+/g, '_').toLowerCase() + '_' + Date.now();
+
+    let urlImagen = '';
+    if (imagenArchivo) {
+      try {
+        const storageRef = ref(storage, `productos/${id}`);
+        await uploadBytes(storageRef, imagenArchivo);
+        urlImagen = await getDownloadURL(storageRef);
+      } catch (err) {
+        console.error('Error subiendo imagen:', err);
+      }
+    }
+
     await setDoc(doc(db, 'inventario', id), {
       nombre: form.nombre,
       categoria: form.categoria,
       precio: Number(form.precio),
       stock: Number(form.stock),
-      stockMinimo: STOCK_MINIMO
+      stockMinimo: STOCK_MINIMO,
+      imagen: urlImagen
     });
     setModo(null);
     setForm({ nombre: '', categoria: '', precio: '', stock: '' });
+    setImagenArchivo(null);
+    setImagenPreview(null);
+    setSubiendo(false);
   };
 
   const ajustarStock = async (producto, cantidad) => {
@@ -92,6 +126,10 @@ export default function Inventario2({ rol, nombreModelo }) {
 
   const alertas = productos.filter(p => p.stock <= STOCK_MINIMO);
 
+  // Solo el jefe puede gestionar el inventario
+  if (rol !== 'jefe' && rol !== 'tienda') {
+    return <div style={s.vacio}>No tienes acceso a esta sección</div>;
+  }
   if (rol === 'tienda') {
     return (
       <div style={s.wrap}>
@@ -109,6 +147,7 @@ export default function Inventario2({ rol, nombreModelo }) {
               <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, marginTop: 8 }}>{cat}</div>
               {prods.map(p => (
                 <div key={p.id} style={s.card}>
+                  {p.imagen && <img src={p.imagen} alt={p.nombre} style={s.imgTienda} />}
                   <div style={s.cardHeader}>
                     <div style={s.cardNombre}>{p.nombre}</div>
                     <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 500 }}>${p.precio.toLocaleString()}</div>
@@ -177,9 +216,15 @@ export default function Inventario2({ rol, nombreModelo }) {
           <input style={s.input} type="number" placeholder="Ej: 25000" value={form.precio} onChange={e => setForm(p => ({ ...p, precio: e.target.value }))} />
           <label style={s.label}>Stock inicial</label>
           <input style={s.input} type="number" placeholder="Ej: 10" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value }))} />
+          <label style={s.label}>Imagen del producto</label>
+          {imagenPreview && <img src={imagenPreview} alt="preview" style={s.imgPreview} />}
+          <label style={s.uploadBox}>
+            {imagenArchivo ? '✓ Imagen seleccionada — cambiar' : '📷 Seleccionar imagen'}
+            <input type="file" accept="image/*" onChange={seleccionarImagen} style={{ display: 'none' }} />
+          </label>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button style={s.btnGuardar} onClick={guardar}>Guardar</button>
-            <button style={s.btnCancelar} onClick={() => setModo(null)}>Cancelar</button>
+            <button style={s.btnGuardar} onClick={guardar} disabled={subiendo}>{subiendo ? 'Guardando...' : 'Guardar'}</button>
+            <button style={s.btnCancelar} onClick={() => { setModo(null); setImagenArchivo(null); setImagenPreview(null); }}>Cancelar</button>
           </div>
         </div>
       )}
@@ -189,9 +234,12 @@ export default function Inventario2({ rol, nombreModelo }) {
       {productos.map(p => (
         <div key={p.id} style={s.card}>
           <div style={s.cardHeader}>
-            <div>
-              <div style={s.cardNombre}>{p.nombre}</div>
-              <div style={s.cardCategoria}>{p.categoria}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {p.imagen && <img src={p.imagen} alt={p.nombre} style={s.imgInventario} />}
+              <div>
+                <div style={s.cardNombre}>{p.nombre}</div>
+                <div style={s.cardCategoria}>{p.categoria}</div>
+              </div>
             </div>
             <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 500 }}>${p.precio.toLocaleString()}</div>
           </div>

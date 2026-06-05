@@ -149,10 +149,12 @@ function Sidebar({ items, vista, setVista, titulo, sub, icono, onLogout, temaOsc
         </button>
       ))}
       <div style={{ marginTop: 'auto', paddingTop: 12 }}>
-        <button className="nm-side-btn" onClick={toggleTema}>
-          <i className="ti ti-bulb" aria-hidden="true"></i>
-          <span>{temaOscuro ? 'Modo claro' : 'Modo oscuro'}</span>
-        </button>
+        <div className="nm-tema-toggle" onClick={toggleTema} style={{ marginBottom: 8 }}>
+          <div className={`nm-tema-switch${temaOscuro ? '' : ' on'}`}>
+            <div className="nm-tema-switch-bola">{temaOscuro ? '🌙' : '☀️'}</div>
+          </div>
+          <span className="nm-tema-toggle-label">{temaOscuro ? 'Modo oscuro' : 'Modo claro'}</span>
+        </div>
         <button className="nm-side-btn" onClick={onLogout}>
           <i className="ti ti-logout" aria-hidden="true"></i>
           <span>Salir</span>
@@ -277,9 +279,12 @@ function Login({ onLogin, temaOscuro, toggleTema }) {
               <button className="nm-btn-volver" onClick={() => setMostrarJefes(false)}>← Volver</button>
             </>
           )}
-          <button className="nm-tema-btn" onClick={toggleTema}>
-            {temaOscuro ? '☀️ Modo claro' : '🌙 Modo oscuro'}
-          </button>
+          <div className="nm-tema-toggle" onClick={toggleTema} style={{ alignSelf: 'center', marginTop: 8 }}>
+            <div className={`nm-tema-switch${temaOscuro ? '' : ' on'}`}>
+              <div className="nm-tema-switch-bola">{temaOscuro ? '🌙' : '☀️'}</div>
+            </div>
+            <span className="nm-tema-toggle-label">{temaOscuro ? 'Modo oscuro' : 'Modo claro'}</span>
+          </div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, width: '100%', maxWidth: 260 }}>
@@ -357,6 +362,7 @@ function AppJefe({ onLogout, temaOscuro, toggleTema }) {
 function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
   const [vista, setVista] = useState('mapa');
 
+
   const items = [
     { id: 'mapa', label: 'Mapa', icon: 'layout-grid' },
     { id: 'asistencia', label: 'Asistencia', icon: 'users' },
@@ -384,9 +390,9 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
       onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema}
     >
       {vista === 'mapa' && <MapaHabitaciones rol="monitor" />}
-      {vista === 'asistencia' && <Asistencia rol="monitor" />}
+      {vista === 'asistencia' && <Asistencia rol="monitor" nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
       {vista === 'novedades' && <Novedades rol="monitor" />}
-      {vista === 'cierre' && <CierreTurno rol="monitor" />}
+      {vista === 'cierre' && <CierreTurno rol="monitor" nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
       {vista === 'pedidos' && <Pedidos rol="monitor" />}
       {vista === 'diaslibres' && <DiasLibresMonitor nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
     </NavLayout>
