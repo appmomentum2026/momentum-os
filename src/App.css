@@ -264,22 +264,23 @@ input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
   border: none;
   cursor: pointer;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 6px;
   flex: 1;
 }
 
 .nm-bottom-btn i {
-  font-size: 25px;
+  font-size: 20px;
   color: var(--text-sub);
   transition: color 0.15s;
 }
 
 .nm-bottom-btn span {
-  font-size: 10px;
-  letter-spacing: 1px;
+  font-size: 12px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--text-sub);
   transition: color 0.15s;
@@ -402,8 +403,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
   transition: background 0.15s, color 0.15s;
 }
 
-.nm-side-btn i { color: var(--text-sub); font-size: 16px; transition: color 0.15s; }
-.nm-side-btn span { color: var(--text-sub); font-size: 12px; letter-spacing: 0.3px; transition: color 0.15s; }
+.nm-side-btn i { color: var(--text-sub); font-size: 18px; transition: color 0.15s; }
+.nm-side-btn span { color: var(--text-sub); font-size: 14px; letter-spacing: 0.3px; transition: color 0.15s; }
 
 .nm-side-btn:hover { background: var(--bg3); }
 .nm-side-btn:hover i, .nm-side-btn:hover span { color: var(--text); }
