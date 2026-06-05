@@ -31,7 +31,7 @@ export default function GoogleSheets() {
   const s = {
     wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
     botones: { display: 'flex', gap: 10, marginBottom: 4, flexWrap: 'wrap' },
-    btn: { padding: '10px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: 'var(--bg2)', color: 'var(--text-sub)', border: '1px solid var(--border)' },
+    btn: { padding: '10px 18px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600, background: 'var(--bg2)', color: 'var(--text-sub)', border: '1px solid var(--border)' },
     btnActivo: { background: 'var(--bg2)', color: 'var(--gold)', borderBottom: '2px solid var(--gold)' },
     card: { background: 'var(--bg2)', borderRadius: 14, padding: 20, border: '1px solid var(--border)' },
     titulo: { color: 'var(--gold)', fontSize: 14, fontWeight: 500, marginBottom: 14 },
