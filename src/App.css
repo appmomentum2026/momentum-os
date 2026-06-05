@@ -434,6 +434,16 @@ input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
   .nm-bottombar { display: block; }
   .nm-layout-desktop { display: none; }
   .nm-layout-mobile { display: block; }
+
+  .nm-bottombar-row { padding: 0 4px; }
+  .nm-bottom-btn { gap: 4px; padding: 6px 2px; }
+  .nm-bottom-btn i { font-size: 17px; }
+  .nm-bottom-btn span { font-size: 10px; letter-spacing: 0; }
+}
+
+@media (max-width: 400px) {
+  .nm-bottom-btn span { font-size: 9px; }
+  .nm-bottom-btn i { font-size: 16px; }
 }
 
 /* Overlay para cerrar la bandeja al tocar fuera */
