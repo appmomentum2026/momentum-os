@@ -6,6 +6,8 @@ const PLATAFORMAS = ['Stripchat', 'Camsoda', 'Chaturbate', 'Streamate'];
 
 const TURNOS = { 'Daniela': 'Manana', 'Ramon': 'Manana', 'Santiago': 'Tarde', 'Monica': 'Tarde', 'Juan': 'Noche', 'Cesar': 'Noche' };
 
+const ORDEN_TURNOS = ['Manana', 'Tarde', 'Noche'];
+
 const s = {
   form: { background: 'var(--bg2)', borderRadius: 14, padding: 20, marginBottom: 14, border: '1px solid var(--border)' },
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
@@ -17,17 +19,22 @@ const s = {
   inputSmall: { background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', padding: '8px 10px', fontSize: 12, width: '100%', outline: 'none' },
   platLabel: { color: 'var(--text-dim)', fontSize: 11, letterSpacing: 1, marginBottom: 4 },
   btnEnviar: { background: 'var(--gold)', border: 'none', borderRadius: 10, color: '#141414', padding: '13px 24px', fontSize: 13, fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', width: '100%', marginTop: 8 },
-  cierreCard: { background: 'var(--bg2)', borderRadius: 12, padding: 16, marginBottom: 10, border: '1px solid var(--border)', borderLeft: '3px solid var(--gold)' },
-  cierreTitulo: { color: 'var(--gold)', fontSize: 14, fontWeight: 500, marginBottom: 4 },
-  cierreMeta: { color: 'var(--text-dim)', fontSize: 11, marginBottom: 12 },
-  modelaRow: { borderTop: '1px solid var(--border)', paddingTop: 10, marginTop: 10 },
-  modelaNombre: { color: 'var(--text)', fontSize: 12, marginBottom: 4 },
-  modelaHorario: { color: 'var(--text-dim)', fontSize: 11, marginBottom: 6 },
-  platRow: { display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-sub)', padding: '3px 0' },
   vacia: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 },
   banner: { background: 'var(--bg3)', borderRadius: 10, padding: '12px 16px', marginBottom: 14, border: '1px solid var(--border)' },
   bannerNombre: { color: 'var(--gold)', fontSize: 14, fontWeight: 500 },
-  bannerTurno: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 }
+  bannerTurno: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 },
+  turnoCard: { background: 'var(--bg2)', borderRadius: 14, padding: 18, marginBottom: 14, border: '1px solid var(--border)' },
+  turnoHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
+  turnoTitulo: { color: 'var(--gold)', fontSize: 16, fontWeight: 500 },
+  turnoSubtotal: { textAlign: 'right' },
+  turnoSubtotalTokens: { color: 'var(--text)', fontSize: 15, fontWeight: 500 },
+  turnoSubtotalUsd: { color: 'var(--gold)', fontSize: 13 },
+  turnoMeta: { color: 'var(--text-dim)', fontSize: 11, marginBottom: 12 },
+  modelaRow: { borderTop: '1px solid var(--border)', paddingTop: 10, marginTop: 10 },
+  modelaTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  modelaNombre: { color: 'var(--text)', fontSize: 13, fontWeight: 500 },
+  modelaTotal: { color: 'var(--gold)', fontSize: 12 },
+  platRow: { display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-sub)', padding: '3px 0' },
 };
 
 function FormModelo({ nombre, datos, onChange }) {
@@ -55,6 +62,77 @@ function FormModelo({ nombre, datos, onChange }) {
   );
 }
 
+function VistaJefe({ cierres }) {
+  const fechasDisponibles = [...new Set(cierres.map(c => c.dia).filter(Boolean))];
+  const hoy = new Date().toLocaleDateString('es-CO');
+  const [fechaSel, setFechaSel] = useState(fechasDisponibles.includes(hoy) ? hoy : (fechasDisponibles[0] || hoy));
+
+  const cierresDia = cierres.filter(c => c.dia === fechaSel);
+
+  const porTurno = { Manana: [], Tarde: [], Noche: [] };
+  cierresDia.forEach(c => {
+    const turno = c.turno || TURNOS[c.monitor] || '';
+    if (!porTurno[turno]) return;
+    (c.modelos || []).forEach(m => {
+      porTurno[turno].push({ ...m, monitor: c.monitor });
+    });
+  });
+
+  const tokensModelo = (m) => PLATAFORMAS.reduce((acc, p) => acc + Number(m[p + '_tokens'] || 0), 0);
+
+  return (
+    <div>
+      <div style={s.form}>
+        <label style={s.label}>Ver cierre del día</label>
+        <select style={s.select} value={fechaSel} onChange={e => setFechaSel(e.target.value)}>
+          {fechasDisponibles.length === 0 && <option value={hoy}>{hoy}</option>}
+          {fechasDisponibles.map(f => <option key={f} value={f}>{f}{f === hoy ? ' (hoy)' : ''}</option>)}
+        </select>
+      </div>
+
+      {cierresDia.length === 0 && <p style={s.vacia}>No hay cierres registrados este día</p>}
+
+      {ORDEN_TURNOS.map(turno => {
+        const modelos = porTurno[turno];
+        if (!modelos || modelos.length === 0) return null;
+
+        const subtotalTokens = modelos.reduce((acc, m) => acc + tokensModelo(m), 0);
+        const subtotalUsd = (subtotalTokens / 20).toFixed(2);
+
+        return (
+          <div key={turno} style={s.turnoCard}>
+            <div style={s.turnoHeader}>
+              <div style={s.turnoTitulo}>Turno {turno}</div>
+              <div style={s.turnoSubtotal}>
+                <div style={s.turnoSubtotalTokens}>{subtotalTokens.toLocaleString()} tokens</div>
+                <div style={s.turnoSubtotalUsd}>${subtotalUsd} USD</div>
+              </div>
+            </div>
+            <div style={s.turnoMeta}>{modelos.length} modelos · {fechaSel}</div>
+
+            {modelos.map((m, i) => {
+              const tot = tokensModelo(m);
+              return (
+                <div key={m.nombre + i} style={s.modelaRow}>
+                  <div style={s.modelaTop}>
+                    <span style={s.modelaNombre}>{m.nombre}</span>
+                    <span style={s.modelaTotal}>{tot.toLocaleString()} tkns · ${(tot / 20).toFixed(2)}</span>
+                  </div>
+                  {PLATAFORMAS.map(p => (m[p + '_tokens'] || m[p + '_usd']) ? (
+                    <div key={p} style={s.platRow}>
+                      <span>{p}</span>
+                      <span>{Number(m[p + '_tokens'] || 0).toLocaleString()} tokens · ${m[p + '_usd'] || 0} USD</span>
+                    </div>
+                  ) : null)}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 export default function CierreTurno({ rol, nombreMonitor, modelasMonitor }) {
   const [datosModelos, setDatosModelos] = useState({});
   const [cierres, setCierres] = useState([]);
@@ -93,30 +171,10 @@ export default function CierreTurno({ rol, nombreMonitor, modelasMonitor }) {
   };
 
   if (rol === 'jefe') {
-    return (
-      <div>
-        {cierres.length === 0 && <p style={s.vacia}>No hay cierres registrados</p>}
-        {cierres.map(c => (
-          <div key={c.id} style={s.cierreCard}>
-            <div style={s.cierreTitulo}>{c.monitor} — Turno {c.turno}</div>
-            <div style={s.cierreMeta}>{c.dia} · {c.hora}</div>
-            {c.modelos && c.modelos.map(m => (
-              <div key={m.nombre} style={s.modelaRow}>
-                <div style={s.modelaNombre}>{m.nombre}</div>
-                <div style={s.modelaHorario}>{m.inicio && `Inicio: ${m.inicio}`}{m.fin && ` · Fin: ${m.fin}`}</div>
-                {PLATAFORMAS.map(p => (m[p + '_tokens'] || m[p + '_usd']) ? (
-                  <div key={p} style={s.platRow}>
-                    <span>{p}</span>
-                    <span>{m[p + '_tokens'] || 0} tokens · ${m[p + '_usd'] || 0} USD</span>
-                  </div>
-                ) : null)}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-    );
+    return <VistaJefe cierres={cierres} />;
   }
+
+    
 
   // Vista monitor
   if (misModelos.length === 0) {

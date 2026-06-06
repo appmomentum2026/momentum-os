@@ -30,6 +30,18 @@ const s = {
   filaLabel: { color: 'var(--text-sub)', fontSize: 12 },
   filaValor: { color: 'var(--text)', fontSize: 12 },
   badge: { padding: '3px 10px', borderRadius: 20, fontSize: 11, letterSpacing: 1, fontWeight: 500 },
+  bigCard: { background: 'var(--bg2)', borderRadius: 14, padding: 20, border: '1px solid var(--border)' },
+  titulo: { color: 'var(--gold)', fontSize: 14, fontWeight: 500, marginBottom: 16 },
+  statsRow: { display: 'flex', gap: 10, marginBottom: 6 },
+  statBox: { flex: 1, background: 'var(--bg2)', borderRadius: 12, padding: 14, border: '1px solid var(--border)' },
+  statLabel: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
+  statVal: { color: 'var(--text)', fontSize: 20, fontWeight: 500 },
+  rankRow: { marginBottom: 12 },
+  rankTop: { display: 'flex', justifyContent: 'space-between', marginBottom: 5 },
+  rankNombre: { color: 'var(--text)', fontSize: 12 },
+  rankTokens: { color: 'var(--gold)', fontSize: 12, fontWeight: 500 },
+  rankBarBg: { background: 'var(--bg3)', borderRadius: 20, height: 9, overflow: 'hidden' },
+  rankBarFill: { height: '100%', background: 'var(--gold)', borderRadius: 20 },
 };
 
 function getQuincena() {
@@ -128,6 +140,24 @@ export default function ResumenJefe() {
 
   const resumen = MODELOS_TODAS.map(m => ({ nombre: m, ...calcularModelo(m) }));
   const totalPagar = resumen.reduce((acc, m) => acc + parseFloat(m.usdNeto), 0);
+  const totalTokensEstudio = resumen.reduce((acc, m) => acc + m.totalTokens, 0);
+
+  // Proyección del estudio
+  const diasConData = new Set();
+  cierres.forEach(c => {
+    const f = c.fecha?.split('T')[0] || '';
+    if (f >= quincena.inicio && f <= quincena.fin) diasConData.add(f);
+  });
+  const diasTranscurridos = diasConData.size;
+  const proyeccionTokens = diasTranscurridos > 0
+    ? Math.round((totalTokensEstudio / diasTranscurridos) * 15)
+    : 0;
+
+  // Ranking: modelos con tokens > 0, ordenadas de mayor a menor
+  const ranking = resumen
+    .filter(m => m.totalTokens > 0)
+    .sort((a, b) => b.totalTokens - a.totalTokens);
+  const maxRank = ranking.length > 0 ? ranking[0].totalTokens : 1;
 
   return (
     <div style={s.wrap}>
@@ -135,6 +165,38 @@ export default function ResumenJefe() {
         <div style={s.totalLabel}>Total a pagar esta quincena</div>
         <div style={s.totalValor}>${totalPagar.toFixed(2)} USD</div>
         <div style={s.totalSub}>{quincena.label}</div>
+      </div>
+
+      <div style={s.statsRow}>
+        <div style={s.statBox}>
+          <div style={s.statLabel}>Tokens del estudio</div>
+          <div style={s.statVal}>{totalTokensEstudio.toLocaleString()}</div>
+        </div>
+        <div style={s.statBox}>
+          <div style={s.statLabel}>Proyección quincena</div>
+          <div style={{ ...s.statVal, color: 'var(--gold)' }}>{proyeccionTokens.toLocaleString()}</div>
+        </div>
+      </div>
+
+      {ranking.length > 0 && (
+        <div style={s.bigCard}>
+          <div style={s.titulo}>Ranking por tokens</div>
+          {ranking.map(m => (
+            <div key={m.nombre} style={s.rankRow}>
+              <div style={s.rankTop}>
+                <span style={s.rankNombre}>{m.nombre}</span>
+                <span style={s.rankTokens}>{m.totalTokens.toLocaleString()}</span>
+              </div>
+              <div style={s.rankBarBg}>
+                <div style={{ ...s.rankBarFill, width: `${Math.round((m.totalTokens / maxRank) * 100)}%` }}></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginTop: 8, marginBottom: 4 }}>
+        Detalle por modelo
       </div>
 
       {resumen.map(m => {

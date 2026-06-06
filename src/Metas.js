@@ -36,15 +36,38 @@ const s = {
   barraWrap: { background: 'var(--bg3)', borderRadius: 20, height: 8, marginTop: 12, overflow: 'hidden' },
   barraFill: { height: '100%', borderRadius: 20, transition: 'width 0.5s' },
   badge: { padding: '4px 12px', borderRadius: 20, fontSize: 12, letterSpacing: 1 },
-  motivacion: { background: 'rgba(76,175,125,0.1)', border: '1px solid rgba(76,175,125,0.2)', borderRadius: 12, padding: 14, color: '#4CAF7D', fontSize: 13, lineHeight: 1.5 }
+  motivacion: { background: 'rgba(76,175,125,0.1)', border: '1px solid rgba(76,175,125,0.2)', borderRadius: 12, padding: 14, color: '#4CAF7D', fontSize: 13, lineHeight: 1.5 },
+  compRow: { display: 'flex', gap: 10 },
+  compBox: { flex: 1, background: 'var(--bg3)', borderRadius: 10, padding: 14, textAlign: 'center' },
+  compLabel: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
+  compVal: { color: 'var(--text)', fontSize: 18, fontWeight: 500 },
+  proyeccionBox: { background: 'rgba(201,146,74,0.08)', border: '1px solid rgba(201,146,74,0.2)', borderRadius: 12, padding: 16, textAlign: 'center' },
 };
 
-function getQuincena() {
+function getQuincena(offset = 0) {
+  // offset 0 = quincena actual, -1 = quincena anterior
   const hoy = new Date();
-  const dia = hoy.getDate();
-  const mes = hoy.getMonth();
-  const anio = hoy.getFullYear();
-  if (dia <= 15) {
+  let dia = hoy.getDate();
+  let mes = hoy.getMonth();
+  let anio = hoy.getFullYear();
+
+  // Determinar si estamos en primera (1-15) o segunda (16-fin) quincena
+  let esPrimera = dia <= 15;
+
+  // Aplicar offset
+  let totalQuincenas = (esPrimera ? 0 : 1) + offset;
+  while (totalQuincenas < 0) {
+    mes -= 1;
+    if (mes < 0) { mes = 11; anio -= 1; }
+    totalQuincenas += 2;
+  }
+  while (totalQuincenas > 1) {
+    mes += 1;
+    if (mes > 11) { mes = 0; anio += 1; }
+    totalQuincenas -= 2;
+  }
+
+  if (totalQuincenas === 0) {
     return {
       inicio: new Date(anio, mes, 1).toISOString().split('T')[0],
       fin: new Date(anio, mes, 15).toISOString().split('T')[0],
@@ -58,10 +81,30 @@ function getQuincena() {
   }
 }
 
+function tokensEnRango(cierres, nombreModelo, inicio, fin) {
+  let total = 0;
+  const porDia = {};
+  cierres.forEach(cierre => {
+    const fechaCierre = cierre.fecha?.split('T')[0] || '';
+    if (fechaCierre < inicio || fechaCierre > fin) return;
+    if (!cierre.modelos) return;
+    const modelaData = cierre.modelos.find(m => m.nombre === nombreModelo);
+    if (!modelaData) return;
+    let tokensDelDia = 0;
+    ['Stripchat', 'Camsoda', 'Chaturbate', 'Streamate'].forEach(p => {
+      tokensDelDia += Number(modelaData[p + '_tokens'] || 0);
+    });
+    total += tokensDelDia;
+    porDia[fechaCierre] = (porDia[fechaCierre] || 0) + tokensDelDia;
+  });
+  return { total, porDia };
+}
+
 function ProyeccionModelo({ nombreModelo, meta }) {
   const [cierres, setCierres] = useState([]);
   const [asistencia, setAsistencia] = useState({});
-  const quincena = getQuincena();
+  const quincena = getQuincena(0);
+  const quincenaAnterior = getQuincena(-1);
 
   useEffect(() => {
     const unsub1 = onSnapshot(collection(db, 'cierres'), snap => {
@@ -77,25 +120,15 @@ function ProyeccionModelo({ nombreModelo, meta }) {
     return () => { unsub1(); unsub2(); };
   }, []);
 
-  let totalTokens = 0;
-  let mejorDia = { fecha: '', tokens: 0 };
-  const tokensPorDia = {};
+  const actual = tokensEnRango(cierres, nombreModelo, quincena.inicio, quincena.fin);
+  const anterior = tokensEnRango(cierres, nombreModelo, quincenaAnterior.inicio, quincenaAnterior.fin);
 
-  cierres.forEach(cierre => {
-    if (cierre.fecha < quincena.inicio || cierre.fecha > quincena.fin + 'Z') return;
-    if (!cierre.modelos) return;
-    const modelaData = cierre.modelos.find(m => m.nombre === nombreModelo);
-    if (!modelaData) return;
-    let tokensDelDia = 0;
-    ['Stripchat', 'Camsoda', 'Chaturbate', 'Streamate'].forEach(p => {
-      tokensDelDia += Number(modelaData[p + '_tokens'] || 0);
-    });
-    totalTokens += tokensDelDia;
-    const fecha = cierre.fecha?.split('T')[0] || '';
-    tokensPorDia[fecha] = (tokensPorDia[fecha] || 0) + tokensDelDia;
-    if (tokensPorDia[fecha] > mejorDia.tokens) {
-      mejorDia = { fecha, tokens: tokensPorDia[fecha] };
-    }
+  const totalTokens = actual.total;
+  const tokensPorDia = actual.porDia;
+
+  let mejorDia = { fecha: '', tokens: 0 };
+  Object.entries(tokensPorDia).forEach(([fecha, tokens]) => {
+    if (tokens > mejorDia.tokens) mejorDia = { fecha, tokens };
   });
 
   const diasTrabajados = Object.values(asistencia).filter(a =>
@@ -112,6 +145,19 @@ function ProyeccionModelo({ nombreModelo, meta }) {
   const promedioDiario = diasTrabajados > 0 ? Math.round(totalTokens / diasTrabajados) : 0;
   const diasOrdenados = Object.entries(tokensPorDia).sort(([a], [b]) => a.localeCompare(b)).slice(-10);
   const maxTokens = Math.max(...diasOrdenados.map(([, v]) => v), 1);
+
+  // Proyección: al ritmo actual, cuánto terminará haciendo
+  const diasTranscurridos = Object.keys(tokensPorDia).length;
+  const totalDiasQuincena = 15;
+  const proyeccionFinal = diasTranscurridos > 0
+    ? Math.round((totalTokens / diasTranscurridos) * totalDiasQuincena)
+    : 0;
+
+  // Comparación con quincena anterior
+  
+  const porcentajeCambio = anterior.total > 0
+    ? Math.round(((totalTokens - anterior.total) / anterior.total) * 100)
+    : null;
 
   const getMensaje = () => {
     if (cumplimiento >= 100) return 'Meta cumplida! Excelente quincena.';
@@ -136,6 +182,44 @@ function ProyeccionModelo({ nombreModelo, meta }) {
       </div>
 
       <div style={s.motivacion}>{getMensaje()}</div>
+
+      {meta > 0 && (
+        <div style={s.proyeccionBox}>
+          <div style={s.compLabel}>Proyección al ritmo actual</div>
+          <div style={{ color: 'var(--gold)', fontSize: 26, fontWeight: 500, marginBottom: 4 }}>
+            {proyeccionFinal.toLocaleString()} tokens
+          </div>
+          <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>
+            {proyeccionFinal >= meta
+              ? '🎯 Vas camino a superar tu meta!'
+              : `Te faltarían ${(meta - proyeccionFinal).toLocaleString()} para la meta`}
+          </div>
+        </div>
+      )}
+
+      <div style={s.bigCard}>
+        <div style={s.titulo}>Comparación quincenas</div>
+        <div style={s.compRow}>
+          <div style={s.compBox}>
+            <div style={s.compLabel}>Quincena anterior</div>
+            <div style={s.compVal}>{anterior.total.toLocaleString()}</div>
+          </div>
+          <div style={s.compBox}>
+            <div style={s.compLabel}>Esta quincena</div>
+            <div style={s.compVal}>{totalTokens.toLocaleString()}</div>
+          </div>
+        </div>
+        {porcentajeCambio !== null && (
+          <div style={{ textAlign: 'center', marginTop: 12, fontSize: 14, fontWeight: 500, color: porcentajeCambio >= 0 ? '#4CAF7D' : '#C0614A' }}>
+            {porcentajeCambio >= 0 ? '▲' : '▼'} {Math.abs(porcentajeCambio)}% {porcentajeCambio >= 0 ? 'más' : 'menos'} que la quincena pasada
+          </div>
+        )}
+        {porcentajeCambio === null && (
+          <div style={{ textAlign: 'center', marginTop: 12, fontSize: 12, color: 'var(--text-dim)' }}>
+            Sin datos de la quincena anterior para comparar
+          </div>
+        )}
+      </div>
 
       {diasOrdenados.length > 0 && (
         <div style={s.bigCard}>

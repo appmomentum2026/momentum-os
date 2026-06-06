@@ -15,6 +15,7 @@ import Pedidos from './Pedidos';
 import { DiasLibresModelo, DiasLibresMonitor, DiasLibresJefe } from './DiasLibres';
 import { solicitarPermiso, escucharNotificaciones } from './Notificaciones';
 import ImportMonitores from './ImportMonitores';
+import ResumenMonitores from './ResumenMonitores';
 import GoogleSheets from './GoogleSheets';
 
 const CLAVES = { jefe: '1234', operativo: 'oper1234', administrativo: 'admin1234' };
@@ -351,6 +352,7 @@ function AppJefe({ onLogout, temaOscuro, toggleTema }) {
       {vista === 'sheets' && <GoogleSheets />}
       {vista === 'modelos' && <GestionModelos />}
       {vista === 'modelos' && <ImportarModelos />}
+      {vista === 'monitores' && <ResumenMonitores />}
       {vista === 'monitores' && <ImportMonitores />}
       {vista === 'inventario' && <Inventario2 rol="jefe" />}
       {vista === 'pedidos' && <Pedidos rol="jefe" />}
