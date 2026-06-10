@@ -21,9 +21,9 @@ import GoogleSheets from './GoogleSheets';
 const CLAVES = { jefe: '1234', operativo: 'oper1234', administrativo: 'admin1234' };
 const HABITACIONES = Array.from({ length: 16 }, (_, i) => i + 1);
 const ESTADOS = {
-  libre: { color: '#4CAF7D', label: 'Libre' },
-  ocupada: { color: '#C0614A', label: 'Ocupada' },
-  fuera: { color: '#555566', label: 'Fuera de servicio' }
+  libre: { color: '#4CAF7D', label: 'Libre', icono: 'circle-check' },
+  ocupada: { color: '#C0614A', label: 'Ocupada', icono: 'lock' },
+  fuera: { color: '#555566', label: 'Fuera de servicio', icono: 'tool' }
 };
 
 function MapaHabitaciones({ rol }) {
@@ -49,7 +49,7 @@ function MapaHabitaciones({ rol }) {
       <div className="nm-leyenda">
         {Object.entries(ESTADOS).map(([key, val]) => (
           <div key={key} className="nm-leyenda-item">
-            <div className="nm-leyenda-dot" style={{ background: val.color }}></div>
+            <i className={`ti ti-${val.icono}`} style={{ color: val.color, fontSize: 15 }} aria-hidden="true"></i>
             {val.label}
           </div>
         ))}
@@ -63,7 +63,9 @@ function MapaHabitaciones({ rol }) {
             <div key={num} className={`nm-hab${abierto ? ' abierto' : ''}`}
               onClick={() => rol === 'monitor' && setMenuAbierto(abierto ? null : num)}>
               <div className="nm-hab-num">{num}</div>
-              <div className="nm-hab-dot" style={{ background: info.color }}></div>
+              <div className="nm-hab-icono" style={{ color: info.color }}>
+                <i className={`ti ti-${info.icono}`} aria-hidden="true"></i>
+              </div>
               <div className="nm-hab-label" style={{ color: info.color }}>{info.label}</div>
               {rol === 'monitor' && abierto && (
                 <div className="nm-menu-flotante">

@@ -42,7 +42,11 @@ body.claro {
   background: #F0EDE8;
 }
 
-input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
+body.oscuro input[type="time"]::-webkit-calendar-picker-indicator,
+body.oscuro input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7) sepia(1) saturate(2) hue-rotate(5deg); cursor: pointer; }
+
+body.claro input[type="time"]::-webkit-calendar-picker-indicator,
+body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.3); cursor: pointer; }
 
 .nm-login-wrap {
   background: var(--bg);
@@ -185,8 +189,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
 }
 
 .nm-section-label {
-  font-size: 10px; color: var(--text-dim);
-  letter-spacing: 2px; text-transform: uppercase; margin-bottom: 1rem;
+  font-size: 20px; color: var(--text);
+  letter-spacing: 0.5px; margin-bottom: 1.25rem; font-weight: 600;
 }
 
 .nm-card {
@@ -206,22 +210,23 @@ input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
 .nm-fila-label { color: var(--text-sub); font-size: 12px; }
 .nm-fila-valor { color: var(--text); font-size: 12px; }
 
-.nm-hab-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.nm-hab-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 
 .nm-hab {
-  border-radius: 12px; padding: 12px 6px;
+  border-radius: 16px; padding: 20px 10px;
   background: var(--bg2);
   border: 1px solid var(--border);
-  display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer;
   transition: border-color 0.15s;
 }
 
 .nm-hab:hover { border-color: var(--border2); }
 .nm-hab.abierto { background: var(--bg3); border-color: var(--border2); }
 
-.nm-hab-num { font-size: 16px; font-weight: 500; color: var(--text); }
+.nm-hab-num { font-size: 26px; font-weight: 600; color: var(--text); }
+.nm-hab-icono { font-size: 22px; line-height: 1; }
 .nm-hab-dot { width: 6px; height: 6px; border-radius: 50%; }
-.nm-hab-label { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; }
+.nm-hab-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
 
 .nm-leyenda { display: flex; gap: 14px; margin-bottom: 1rem; flex-wrap: wrap; }
 .nm-leyenda-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-sub); }
