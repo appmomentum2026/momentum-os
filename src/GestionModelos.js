@@ -59,7 +59,7 @@ export default function GestionModelos() {
   };
 
   const s = {
-    wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
+    wrap: { display: 'block' },
     btnNuevo: { background: 'var(--bg)', border: 'none', borderRadius: 12, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '12px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginBottom: 8 },
     form: { background: 'var(--bg)', borderRadius: 14, padding: 20, boxShadow: 'var(--shadow-out)', marginBottom: 8 },
     label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
@@ -123,6 +123,7 @@ export default function GestionModelos() {
         return (
           <div key={turno} style={{ marginBottom: 8 }}>
             <div style={s.turnoLabel}>Turno {turno}</div>
+            <div className="nm-grid-cards">
             {modelosTurno.map(m => (
               <div key={m.id} style={{ marginBottom: 12 }}>
                 <div style={s.card} onClick={() => setExpandida(expandida === m.id ? null : m.id)}>
@@ -166,6 +167,7 @@ export default function GestionModelos() {
                 )}
               </div>
             ))}
+            </div>
           </div>
         );
       })}

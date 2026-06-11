@@ -18,7 +18,7 @@ const TURNOS = { 'Daniela': 'Manana', 'Ramon': 'Manana', 'Santiago': 'Tarde', 'M
 const ICONO_TURNO = { 'Manana': 'sun', 'Tarde': 'sunset', 'Noche': 'moon' };
 
 const s = {
-  wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
+  wrap: { display: 'block' },
   card: { background: 'var(--bg2)', borderRadius: 14, padding: 18, border: '1px solid var(--border)' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
   nombreRow: { display: 'flex', alignItems: 'center', gap: 10 },
@@ -90,6 +90,7 @@ export default function ResumenMonitores() {
         return (
           <div key={turnoActual} style={{ marginBottom: 8 }}>
             <div style={s.turnoLabel}>Turno {turnoActual}</div>
+            <div className="nm-grid-cards">
             {monitoresTurno.map(monitor => {
               const datos = calcularMonitor(monitor);
               const turno = TURNOS[monitor];
@@ -121,6 +122,7 @@ export default function ResumenMonitores() {
           </div>
               );
             })}
+            </div>
           </div>
         );
       })}

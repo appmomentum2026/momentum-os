@@ -285,7 +285,9 @@ export function DiasLibresJefe() {
           return (
             <div key={turno} style={{ marginBottom: 8 }}>
               <div style={s.turnoLabel}>Turno {turno}</div>
-              {modelosTurno.map(sol => renderSolicitud(sol, false))}
+              <div className="nm-grid-cards">
+                {modelosTurno.map(sol => renderSolicitud(sol, false))}
+              </div>
             </div>
           );
         })}

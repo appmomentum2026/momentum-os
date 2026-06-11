@@ -15,7 +15,7 @@ function getQuincena() {
   }
 }
 const s = {
-  wrap: { display: 'flex', flexDirection: 'column', gap: 10 },
+  wrap: { display: 'block' },
   card: { background: 'var(--bg2)', borderRadius: 12, padding: 16, border: '1px solid var(--border)' },
   cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   producto: { color: 'var(--gold)', fontSize: 13, fontWeight: 500 },
@@ -74,6 +74,7 @@ export default function Pedidos({ rol }) {
 
       {pedidosFiltrados.length === 0 && <p style={s.vacio}>No hay pedidos</p>}
 
+      <div className="nm-grid-cards">
       {pedidosFiltrados.map(p => {
         const estadoStyle = ESTADOS_STYLE[p.estado] || ESTADOS_STYLE.pendiente;
         return (
@@ -97,6 +98,7 @@ export default function Pedidos({ rol }) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

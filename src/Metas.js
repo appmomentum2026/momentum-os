@@ -26,7 +26,7 @@ const MODELOS_POR_TURNO = {
 };
 
 const s = {
-  wrap: { display: 'flex', flexDirection: 'column', gap: 10 },
+  wrap: { display: 'block' },
   card: { background: 'var(--bg2)', borderRadius: 12, padding: 14, border: '1px solid var(--border)' },
   fila: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   nombre: { color: 'var(--text)', fontSize: 13, flex: 1 },
@@ -308,7 +308,9 @@ export default function Metas({ rol, nombreModelo }) {
         {Object.entries(MODELOS_POR_TURNO).map(([turno, modelos]) => (
           <div key={turno} style={{ marginBottom: 8 }}>
             <div style={s.turnoLabel}>Turno {turno}</div>
-            {modelos.map(renderModelo)}
+            <div className="nm-grid-cards">
+              {modelos.map(renderModelo)}
+            </div>
           </div>
         ))}
       </div>

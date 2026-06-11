@@ -199,6 +199,7 @@ export default function ResumenJefe() {
         Detalle por modelo
       </div>
 
+      <div className="nm-grid-cards">
       {resumen.map(m => {
         const badgeStyle = getBadgeStyle(m.porcentaje);
         return (
@@ -214,6 +215,7 @@ export default function ResumenJefe() {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

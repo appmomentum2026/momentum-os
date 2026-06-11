@@ -8,7 +8,7 @@ const CATEGORIAS = ['Lubricantes', 'Juguetes', 'Limpiadores', 'Otros'];
 const STOCK_MINIMO = 5;
 
 const s = {
-  wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
+  wrap: { display: 'block' },
   alertaCard: { background: '#d85a3022', borderRadius: 14, padding: 16, border: '1px solid #d85a30', marginBottom: 8 },
   alertaTitulo: { color: '#d85a30', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 },
   alertaItem: { color: '#d85a30', fontSize: 13, padding: '4px 0' },
@@ -238,6 +238,7 @@ export default function Inventario2({ rol, nombreModelo }) {
         return (
           <div key={cat} style={{ marginBottom: 8 }}>
             <div style={s.turnoLabel}>{cat}</div>
+            <div className="nm-grid-cards">
             {prodsCat.map(p => (
               <div key={p.id} style={s.card}>
                 <div style={s.cardHeader}>
@@ -262,6 +263,7 @@ export default function Inventario2({ rol, nombreModelo }) {
                 </div>
               </div>
             ))}
+            </div>
           </div>
         );
       })}
