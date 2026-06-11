@@ -2,6 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
 import { collection, doc, setDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
 
+function getQuincena() {
+  const hoy = new Date();
+  const dia = hoy.getDate();
+  const mes = hoy.getMonth();
+  const anio = hoy.getFullYear();
+  if (dia <= 15) {
+    return { inicio: new Date(anio, mes, 1).toISOString().split('T')[0], fin: new Date(anio, mes, 15).toISOString().split('T')[0] };
+  } else {
+    const ultimoDia = new Date(anio, mes + 1, 0).getDate();
+    return { inicio: new Date(anio, mes, 16).toISOString().split('T')[0], fin: new Date(anio, mes, ultimoDia).toISOString().split('T')[0] };
+  }
+}
 const s = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 10 },
   card: { background: 'var(--bg2)', borderRadius: 12, padding: 16, border: '1px solid var(--border)' },
@@ -43,7 +55,12 @@ export default function Pedidos({ rol }) {
     await setDoc(doc(db, 'pedidos', pedido.id), { ...pedido, estado: nuevoEstado });
   };
 
-  const pedidosFiltrados = filtro === 'todos' ? pedidos : pedidos.filter(p => p.estado === filtro);
+  const quincena = getQuincena();
+  const pedidosQuincena = pedidos.filter(p => {
+    const fechaPedido = p.fecha?.split('T')[0] || '';
+    return fechaPedido >= quincena.inicio && fechaPedido <= quincena.fin;
+  });
+  const pedidosFiltrados = filtro === 'todos' ? pedidosQuincena : pedidosQuincena.filter(p => p.estado === filtro);
 
   return (
     <div style={s.wrap}>

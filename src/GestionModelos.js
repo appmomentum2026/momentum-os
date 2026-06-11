@@ -81,7 +81,8 @@ export default function GestionModelos() {
     detalle: { background: 'var(--bg)', borderRadius: '0 0 14px 14px', padding: '12px 16px', boxShadow: 'var(--shadow-in)', marginTop: -4 },
     detalleRow: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' },
     detalleLabel: { color: 'var(--text-sub)', fontSize: 12 },
-    detalleValor: { color: 'var(--text)', fontSize: 12 }
+    detalleValor: { color: 'var(--text)', fontSize: 12 },
+    turnoLabel: { color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, marginTop: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' }
   };
 
   return (
@@ -116,49 +117,58 @@ export default function GestionModelos() {
 
       {modelos.length === 0 && modo === null && <p style={s.vacio}>No hay modelos registradas</p>}
 
-      {modelos.map(m => (
-        <div key={m.id}>
-          <div style={s.card} onClick={() => setExpandida(expandida === m.id ? null : m.id)}>
-            <div style={s.cardInfo}>
-              <div style={s.cardNombre}>{m.nombreReal}</div>
-              <div style={s.cardSub}>{m.nombreModelo && `${m.nombreModelo} · `}{m.monitor} · {m.turno}</div>
-            </div>
-            <div style={s.cardBtns}>
-              <button style={s.btnEditar} onClick={e => { e.stopPropagation(); editar(m); }}>Editar</button>
-              <button style={s.btnEliminar} onClick={e => { e.stopPropagation(); setConfirmEliminar(m.id); }}>Eliminar</button>
-            </div>
+      {['Manana', 'Tarde', 'Noche'].map(turno => {
+        const modelosTurno = modelos.filter(m => m.turno === turno);
+        if (modelosTurno.length === 0) return null;
+        return (
+          <div key={turno} style={{ marginBottom: 8 }}>
+            <div style={s.turnoLabel}>Turno {turno}</div>
+            {modelosTurno.map(m => (
+              <div key={m.id} style={{ marginBottom: 12 }}>
+                <div style={s.card} onClick={() => setExpandida(expandida === m.id ? null : m.id)}>
+                  <div style={s.cardInfo}>
+                    <div style={s.cardNombre}>{m.nombreReal}</div>
+                    <div style={s.cardSub}>{m.nombreModelo && `${m.nombreModelo} · `}{m.monitor} · {m.turno}</div>
+                  </div>
+                  <div style={s.cardBtns}>
+                    <button style={s.btnEditar} onClick={e => { e.stopPropagation(); editar(m); }}>Editar</button>
+                    <button style={s.btnEliminar} onClick={e => { e.stopPropagation(); setConfirmEliminar(m.id); }}>Eliminar</button>
+                  </div>
+                </div>
+                {expandida === m.id && (
+                  <div style={s.detalle}>
+                    <div style={s.detalleRow}>
+                      <span style={s.detalleLabel}>Nombre real</span>
+                      <span style={s.detalleValor}>{m.nombreReal}</span>
+                    </div>
+                    <div style={s.detalleRow}>
+                      <span style={s.detalleLabel}>Nombre modelo</span>
+                      <span style={s.detalleValor}>{m.nombreModelo || 'Sin definir'}</span>
+                    </div>
+                    <div style={s.detalleRow}>
+                      <span style={s.detalleLabel}>Monitor</span>
+                      <span style={s.detalleValor}>{m.monitor}</span>
+                    </div>
+                    <div style={{ ...s.detalleRow, borderBottom: 'none' }}>
+                      <span style={s.detalleLabel}>Turno</span>
+                      <span style={s.detalleValor}>{m.turno}</span>
+                    </div>
+                  </div>
+                )}
+                {confirmEliminar === m.id && (
+                  <div style={s.confirmBox}>
+                    <div style={s.confirmText}>Seguro que quieres eliminar a {m.nombreReal}?</div>
+                    <div style={s.btnRow}>
+                      <button style={{ ...s.btnEliminar, boxShadow: 'var(--shadow-out)' }} onClick={() => eliminar(m.id)}>Si, eliminar</button>
+                      <button style={s.btnCancelar} onClick={() => setConfirmEliminar(null)}>Cancelar</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-          {expandida === m.id && (
-            <div style={s.detalle}>
-              <div style={s.detalleRow}>
-                <span style={s.detalleLabel}>Nombre real</span>
-                <span style={s.detalleValor}>{m.nombreReal}</span>
-              </div>
-              <div style={s.detalleRow}>
-                <span style={s.detalleLabel}>Nombre modelo</span>
-                <span style={s.detalleValor}>{m.nombreModelo || 'Sin definir'}</span>
-              </div>
-              <div style={s.detalleRow}>
-                <span style={s.detalleLabel}>Monitor</span>
-                <span style={s.detalleValor}>{m.monitor}</span>
-              </div>
-              <div style={{ ...s.detalleRow, borderBottom: 'none' }}>
-                <span style={s.detalleLabel}>Turno</span>
-                <span style={s.detalleValor}>{m.turno}</span>
-              </div>
-            </div>
-          )}
-          {confirmEliminar === m.id && (
-            <div style={s.confirmBox}>
-              <div style={s.confirmText}>Seguro que quieres eliminar a {m.nombreReal}?</div>
-              <div style={s.btnRow}>
-                <button style={{ ...s.btnEliminar, boxShadow: 'var(--shadow-out)' }} onClick={() => eliminar(m.id)}>Si, eliminar</button>
-                <button style={s.btnCancelar} onClick={() => setConfirmEliminar(null)}>Cancelar</button>
-              </div>
-            </div>
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

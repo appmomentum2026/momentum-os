@@ -41,7 +41,8 @@ const s = {
   imgTienda: { width: '100%', height: 200, objectFit: 'contain', borderRadius: 10, marginBottom: 12, background: 'var(--bg3)' },
   imgInventario: { width: 50, height: 50, objectFit: 'cover', borderRadius: 8, background: 'var(--bg3)', flexShrink: 0 },
   uploadBox: { display: 'block', border: '1px dashed var(--border2)', borderRadius: 10, padding: '16px', textAlign: 'center', cursor: 'pointer', marginBottom: 20, marginTop: 4, color: 'var(--text-sub)', fontSize: 12 },
-  imgPreview: { width: '100%', height: 140, objectFit: 'cover', borderRadius: 10, marginBottom: 10 }
+  imgPreview: { width: '100%', height: 140, objectFit: 'cover', borderRadius: 10, marginBottom: 10 },
+  turnoLabel: { color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, marginTop: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' }
 };
 
 export default function Inventario2({ rol, nombreModelo }) {
@@ -231,30 +232,39 @@ export default function Inventario2({ rol, nombreModelo }) {
 
       {productos.length === 0 && modo === null && <p style={s.vacio}>No hay productos en inventario</p>}
 
-      {productos.map(p => (
-        <div key={p.id} style={s.card}>
-          <div style={s.cardHeader}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              {p.imagen && <img src={p.imagen} alt={p.nombre} style={s.imgInventario} />}
-              <div>
-                <div style={s.cardNombre}>{p.nombre}</div>
-                <div style={s.cardCategoria}>{p.categoria}</div>
+      {CATEGORIAS.map(cat => {
+        const prodsCat = productos.filter(p => p.categoria === cat);
+        if (prodsCat.length === 0) return null;
+        return (
+          <div key={cat} style={{ marginBottom: 8 }}>
+            <div style={s.turnoLabel}>{cat}</div>
+            {prodsCat.map(p => (
+              <div key={p.id} style={s.card}>
+                <div style={s.cardHeader}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {p.imagen && <img src={p.imagen} alt={p.nombre} style={s.imgInventario} />}
+                    <div>
+                      <div style={s.cardNombre}>{p.nombre}</div>
+                      <div style={s.cardCategoria}>{p.categoria}</div>
+                    </div>
+                  </div>
+                  <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 500 }}>${p.precio.toLocaleString()}</div>
+                </div>
+                <div style={s.fila}>
+                  <div style={s.filaLabel}>Stock actual</div>
+                  <div style={p.stock <= STOCK_MINIMO ? s.stockBajo : s.stockOk}>{p.stock} unidades {p.stock <= STOCK_MINIMO ? '⚠️' : '✓'}</div>
+                </div>
+                <div style={s.btnRow}>
+                  <button style={s.btnMas} onClick={() => ajustarStock(p, 1)}>+ 1</button>
+                  <button style={s.btnMas} onClick={() => ajustarStock(p, 5)}>+ 5</button>
+                  <button style={s.btnMas} onClick={() => ajustarStock(p, 10)}>+ 10</button>
+                  <button style={s.btnMenos} onClick={() => ajustarStock(p, -1)}>- 1</button>
+                </div>
               </div>
-            </div>
-            <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 500 }}>${p.precio.toLocaleString()}</div>
+            ))}
           </div>
-          <div style={s.fila}>
-            <div style={s.filaLabel}>Stock actual</div>
-            <div style={p.stock <= STOCK_MINIMO ? s.stockBajo : s.stockOk}>{p.stock} unidades {p.stock <= STOCK_MINIMO ? '⚠️' : '✓'}</div>
-          </div>
-          <div style={s.btnRow}>
-            <button style={s.btnMas} onClick={() => ajustarStock(p, 1)}>+ 1</button>
-            <button style={s.btnMas} onClick={() => ajustarStock(p, 5)}>+ 5</button>
-            <button style={s.btnMas} onClick={() => ajustarStock(p, 10)}>+ 10</button>
-            <button style={s.btnMenos} onClick={() => ajustarStock(p, -1)}>- 1</button>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -2,6 +2,34 @@ import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
 import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
+const MODELOS_POR_TURNO = {
+  'Manana': [
+    'Ashly Naibel Burgos Machado', 'Ana Sofia Ospina Ortega', 'Tatiana Andrea Rios Hurtado',
+    'Luz Magnolia Salazar Garcia', 'Vanessa Arroyave', 'Valentina Osorno Alvarez',
+    'Sara Arango Zuleta', 'Valentina Zapata Azcuntar', 'Alejandra Rojas Vargas',
+    'Maye Catalina Insuasty Saldariaga', 'Juliana Ospina Jimenez', 'Liliana Castillo Salgado',
+    'Nicoll Pulgarin Nohava', 'Alison Daniela Zapata Estrada', 'Evelyn Tamayo Zapata'
+  ],
+  'Tarde': [
+    'Valentina Marquez Pino', 'Susana Pelaez', 'Ivonne Camila Zuluaga Prieto',
+    'Evelin Saday Ricardo Solis', 'Luisa Fernanda Osorio Jimenez',
+    'Natalia Hernandez Llano', 'Maria Camila Correa Munoz', 'Nataly Cardenas Moreno',
+    'Dayannis Tobon Acosta', 'Diana Luz Agamez Gonzalez', 'Asoryana Ramos Briseno', 'Yesmi Diaz Ruiz'
+  ],
+  'Noche': [
+    'Andrea Carolina Gomez Rodelo', 'Viviana Marcela Zambrano Mosquera', 'Sofia del Pilar Herrera Celis',
+    'Angie Marcela Villa Carmona', 'Isabela Gutierrez Rivera', 'Alexa Rivera Montoya',
+    'Yeimy Viviana Osorio Rojas', 'Maria Jose Lopez Mejia', 'Sara Paulina Mejia Marin',
+    'Luisa Fernanda Rodriguez Calderon'
+  ]
+};
+
+function turnoDeModelo(nombre) {
+  for (const [turno, lista] of Object.entries(MODELOS_POR_TURNO)) {
+    if (lista.includes(nombre)) return turno;
+  }
+  return 'Sin turno';
+}
 const QUINCENA_ACTUAL = () => {
   const hoy = new Date();
   const dia = hoy.getDate();
@@ -27,7 +55,8 @@ const s = {
   vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 24, fontSize: 13 },
   nombre: { color: 'var(--gold)', fontSize: 13, fontWeight: 500, marginBottom: 4 },
   sub: { color: 'var(--text-sub)', fontSize: 12 },
-  exito: { background: '#1d9e7522', borderRadius: 12, padding: 12, border: '1px solid #1d9e75', color: '#1d9e75', fontSize: 13, marginBottom: 12 }
+  exito: { background: '#1d9e7522', borderRadius: 12, padding: 12, border: '1px solid #1d9e75', color: '#1d9e75', fontSize: 13, marginBottom: 12 },
+  turnoLabel: { color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, marginTop: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' }
 };
 
 const ESTADO_COLOR = {
@@ -250,7 +279,16 @@ export function DiasLibresJefe() {
       <div style={s.card}>
         <div style={s.titulo}>Descansos de modelos</div>
         {modelos.length === 0 && <p style={s.vacio}>No hay solicitudes de modelos</p>}
-        {modelos.map(sol => renderSolicitud(sol, false))}
+        {['Manana', 'Tarde', 'Noche'].map(turno => {
+          const modelosTurno = modelos.filter(sol => turnoDeModelo(sol.modelo) === turno);
+          if (modelosTurno.length === 0) return null;
+          return (
+            <div key={turno} style={{ marginBottom: 8 }}>
+              <div style={s.turnoLabel}>Turno {turno}</div>
+              {modelosTurno.map(sol => renderSolicitud(sol, false))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

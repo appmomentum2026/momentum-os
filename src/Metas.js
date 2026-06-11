@@ -2,21 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
 import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
-const MODELOS_TODAS = [
-  'Ashly Naibel Burgos Machado', 'Ana Sofia Ospina Ortega', 'Tatiana Andrea Rios Hurtado',
-  'Luz Magnolia Salazar Garcia', 'Vanessa Arroyave', 'Valentina Osorno Alvarez',
-  'Sara Arango Zuleta', 'Valentina Zapata Azcuntar', 'Alejandra Rojas Vargas',
-  'Maye Catalina Insuasty Saldariaga', 'Juliana Ospina Jimenez', 'Liliana Castillo Salgado',
-  'Nicoll Pulgarin Nohava', 'Alison Daniela Zapata Estrada', 'Evelyn Tamayo Zapata',
-  'Valentina Marquez Pino', 'Susana Pelaez', 'Ivonne Camila Zuluaga Prieto',
-  'Evelin Saday Ricardo Solis', 'Luisa Fernanda Osorio Jimenez',
-  'Natalia Hernandez Llano', 'Maria Camila Correa Munoz', 'Nataly Cardenas Moreno',
-  'Dayannis Tobon Acosta', 'Diana Luz Agamez Gonzalez', 'Asoryana Ramos Briseno', 'Yesmi Diaz Ruiz',
-  'Andrea Carolina Gomez Rodelo', 'Viviana Marcela Zambrano Mosquera', 'Sofia del Pilar Herrera Celis',
-  'Angie Marcela Villa Carmona', 'Isabela Gutierrez Rivera', 'Alexa Rivera Montoya',
-  'Yeimy Viviana Osorio Rojas', 'Maria Jose Lopez Mejia', 'Sara Paulina Mejia Marin',
-  'Luisa Fernanda Rodriguez Calderon'
-];
+
+const MODELOS_POR_TURNO = {
+  'Manana': [
+    'Ashly Naibel Burgos Machado', 'Ana Sofia Ospina Ortega', 'Tatiana Andrea Rios Hurtado',
+    'Luz Magnolia Salazar Garcia', 'Vanessa Arroyave', 'Valentina Osorno Alvarez',
+    'Sara Arango Zuleta', 'Valentina Zapata Azcuntar', 'Alejandra Rojas Vargas',
+    'Maye Catalina Insuasty Saldariaga', 'Juliana Ospina Jimenez', 'Liliana Castillo Salgado',
+    'Nicoll Pulgarin Nohava', 'Alison Daniela Zapata Estrada', 'Evelyn Tamayo Zapata'
+  ],
+  'Tarde': [
+    'Valentina Marquez Pino', 'Susana Pelaez', 'Ivonne Camila Zuluaga Prieto',
+    'Evelin Saday Ricardo Solis', 'Luisa Fernanda Osorio Jimenez',
+    'Natalia Hernandez Llano', 'Maria Camila Correa Munoz', 'Nataly Cardenas Moreno',
+    'Dayannis Tobon Acosta', 'Diana Luz Agamez Gonzalez', 'Asoryana Ramos Briseno', 'Yesmi Diaz Ruiz'
+  ],
+  'Noche': [
+    'Andrea Carolina Gomez Rodelo', 'Viviana Marcela Zambrano Mosquera', 'Sofia del Pilar Herrera Celis',
+    'Angie Marcela Villa Carmona', 'Isabela Gutierrez Rivera', 'Alexa Rivera Montoya',
+    'Yeimy Viviana Osorio Rojas', 'Maria Jose Lopez Mejia', 'Sara Paulina Mejia Marin',
+    'Luisa Fernanda Rodriguez Calderon'
+  ]
+};
 
 const s = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 10 },
@@ -37,6 +44,7 @@ const s = {
   barraFill: { height: '100%', borderRadius: 20, transition: 'width 0.5s' },
   badge: { padding: '4px 12px', borderRadius: 20, fontSize: 12, letterSpacing: 1 },
   motivacion: { background: 'rgba(76,175,125,0.1)', border: '1px solid rgba(76,175,125,0.2)', borderRadius: 12, padding: 14, color: '#4CAF7D', fontSize: 13, lineHeight: 1.5 },
+  turnoLabel: { color: 'var(--gold)', fontSize: 15, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, marginTop: 8, paddingBottom: 6, borderBottom: '1px solid var(--border)' },
   compRow: { display: 'flex', gap: 10 },
   compBox: { flex: 1, background: 'var(--bg3)', borderRadius: 10, padding: 14, textAlign: 'center' },
   compLabel: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
@@ -280,20 +288,27 @@ export default function Metas({ rol, nombreModelo }) {
   };
 
   if (rol === 'jefe') {
+    const renderModelo = (modelo) => (
+      <div key={modelo} style={s.card}>
+        <div style={s.fila}>
+          <div style={s.nombre}>{modelo}</div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input style={s.input} type="number" placeholder={metas[modelo]?.tokens || 'Meta'}
+              value={editando[modelo] || ''}
+              onChange={e => setEditando(prev => ({ ...prev, [modelo]: e.target.value }))} />
+            <button style={s.btnGuardar} onClick={() => guardarMeta(modelo, editando[modelo])}>OK</button>
+          </div>
+        </div>
+        {metas[modelo] && <div style={s.metaActual}>Meta actual: {metas[modelo].tokens.toLocaleString()} tokens</div>}
+      </div>
+    );
+
     return (
       <div style={s.wrap}>
-        {MODELOS_TODAS.map(modelo => (
-          <div key={modelo} style={s.card}>
-            <div style={s.fila}>
-              <div style={s.nombre}>{modelo}</div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input style={s.input} type="number" placeholder={metas[modelo]?.tokens || 'Meta'}
-                  value={editando[modelo] || ''}
-                  onChange={e => setEditando(prev => ({ ...prev, [modelo]: e.target.value }))} />
-                <button style={s.btnGuardar} onClick={() => guardarMeta(modelo, editando[modelo])}>OK</button>
-              </div>
-            </div>
-            {metas[modelo] && <div style={s.metaActual}>Meta actual: {metas[modelo].tokens.toLocaleString()} tokens</div>}
+        {Object.entries(MODELOS_POR_TURNO).map(([turno, modelos]) => (
+          <div key={turno} style={{ marginBottom: 8 }}>
+            <div style={s.turnoLabel}>Turno {turno}</div>
+            {modelos.map(renderModelo)}
           </div>
         ))}
       </div>

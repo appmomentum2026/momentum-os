@@ -30,6 +30,7 @@ const s = {
   statLabel: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
   statVal: { color: 'var(--text)', fontSize: 17, fontWeight: 500 },
   statValGold: { color: 'var(--gold)', fontSize: 17, fontWeight: 500 },
+  turnoLabel: { color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, marginTop: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' },
 };
 
 function getQuincena() {
@@ -79,12 +80,20 @@ export default function ResumenMonitores() {
     return { numModelos: susModelos.length, totalTokens, totalUsd };
   };
 
+  const ORDEN = ['Manana', 'Tarde', 'Noche'];
+
   return (
     <div style={s.wrap}>
-      {Object.keys(MONITORES).map(monitor => {
-        const datos = calcularMonitor(monitor);
-        const turno = TURNOS[monitor];
+      {ORDEN.map(turnoActual => {
+        const monitoresTurno = Object.keys(MONITORES).filter(m => TURNOS[m] === turnoActual);
+        if (monitoresTurno.length === 0) return null;
         return (
+          <div key={turnoActual} style={{ marginBottom: 8 }}>
+            <div style={s.turnoLabel}>Turno {turnoActual}</div>
+            {monitoresTurno.map(monitor => {
+              const datos = calcularMonitor(monitor);
+              const turno = TURNOS[monitor];
+              return (
           <div key={monitor} style={s.card}>
             <div style={s.header}>
               <div style={s.nombreRow}>
@@ -109,6 +118,9 @@ export default function ResumenMonitores() {
                 <div style={s.statValGold}>${datos.totalUsd}</div>
               </div>
             </div>
+          </div>
+              );
+            })}
           </div>
         );
       })}
