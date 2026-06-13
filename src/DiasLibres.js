@@ -41,7 +41,7 @@ const QUINCENA_ACTUAL = () => {
 
 const s = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
-  card: { background: 'var(--bg)', borderRadius: 14, padding: 16, boxShadow: 'var(--shadow-out)' },
+  card: { background: 'var(--bg2)', borderRadius: 14, padding: 16, boxShadow: 'var(--shadow-out)' },
   titulo: { color: 'var(--gold)', fontSize: 14, fontWeight: 500, letterSpacing: 1, marginBottom: 12 },
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
   input: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14 },

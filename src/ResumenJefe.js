@@ -2,21 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
-const MODELOS_TODAS = [
-  'Ashly Naibel Burgos Machado', 'Ana Sofia Ospina Ortega', 'Tatiana Andrea Rios Hurtado',
-  'Luz Magnolia Salazar Garcia', 'Vanessa Arroyave', 'Valentina Osorno Alvarez',
-  'Sara Arango Zuleta', 'Valentina Zapata Azcuntar', 'Alejandra Rojas Vargas',
-  'Maye Catalina Insuasty Saldariaga', 'Juliana Ospina Jimenez', 'Liliana Castillo Salgado',
-  'Nicoll Pulgarin Nohava', 'Alison Daniela Zapata Estrada', 'Evelyn Tamayo Zapata',
-  'Valentina Marquez Pino', 'Susana Pelaez', 'Ivonne Camila Zuluaga Prieto',
-  'Evelin Saday Ricardo Solis', 'Luisa Fernanda Osorio Jimenez',
-  'Natalia Hernandez Llano', 'Maria Camila Correa Munoz', 'Nataly Cardenas Moreno',
-  'Dayannis Tobon Acosta', 'Diana Luz Agamez Gonzalez', 'Asoryana Ramos Briseno', 'Yesmi Diaz Ruiz',
-  'Andrea Carolina Gomez Rodelo', 'Viviana Marcela Zambrano Mosquera', 'Sofia del Pilar Herrera Celis',
-  'Angie Marcela Villa Carmona', 'Isabela Gutierrez Rivera', 'Alexa Rivera Montoya',
-  'Yeimy Viviana Osorio Rojas', 'Maria Jose Lopez Mejia', 'Sara Paulina Mejia Marin',
-  'Luisa Fernanda Rodriguez Calderon'
-];
+const MODELOS_POR_TURNO = {
+  'Mañana': [
+    'Ashly Naibel Burgos Machado', 'Ana Sofia Ospina Ortega', 'Tatiana Andrea Rios Hurtado',
+    'Luz Magnolia Salazar Garcia', 'Vanessa Arroyave', 'Valentina Osorno Alvarez',
+    'Sara Arango Zuleta', 'Valentina Zapata Azcuntar', 'Alejandra Rojas Vargas',
+    'Maye Catalina Insuasty Saldariaga', 'Juliana Ospina Jimenez', 'Liliana Castillo Salgado',
+    'Nicoll Pulgarin Nohava', 'Alison Daniela Zapata Estrada', 'Evelyn Tamayo Zapata'
+  ],
+  'Tarde': [
+    'Valentina Marquez Pino', 'Susana Pelaez', 'Ivonne Camila Zuluaga Prieto',
+    'Evelin Saday Ricardo Solis', 'Luisa Fernanda Osorio Jimenez',
+    'Natalia Hernandez Llano', 'Maria Camila Correa Munoz', 'Nataly Cardenas Moreno',
+    'Dayannis Tobon Acosta', 'Diana Luz Agamez Gonzalez', 'Asoryana Ramos Briseno', 'Yesmi Diaz Ruiz'
+  ],
+  'Noche': [
+    'Andrea Carolina Gomez Rodelo', 'Viviana Marcela Zambrano Mosquera', 'Sofia del Pilar Herrera Celis',
+    'Angie Marcela Villa Carmona', 'Isabela Gutierrez Rivera', 'Alexa Rivera Montoya',
+    'Yeimy Viviana Osorio Rojas', 'Maria Jose Lopez Mejia', 'Sara Paulina Mejia Marin',
+    'Luisa Fernanda Rodriguez Calderon'
+  ]
+};
+
+const MODELOS_TODAS = Object.values(MODELOS_POR_TURNO).flat();
 
 const s = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 10 },
@@ -169,8 +177,9 @@ export default function ResumenJefe() {
 
       <div style={s.statsRow}>
         <div style={s.statBox}>
-          <div style={s.statLabel}>Tokens del estudio</div>
+          <div style={s.statLabel}>Tokens generados</div>
           <div style={s.statVal}>{totalTokensEstudio.toLocaleString()}</div>
+          <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 4 }}>${(totalTokensEstudio / 20).toFixed(2)} USD</div>
         </div>
         <div style={s.statBox}>
           <div style={s.statLabel}>Proyección quincena</div>
@@ -195,27 +204,40 @@ export default function ResumenJefe() {
         </div>
       )}
 
-      <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginTop: 8, marginBottom: 4 }}>
-        Detalle por modelo
-      </div>
-
-      <div className="nm-grid-cards">
-      {resumen.map(m => {
-        const badgeStyle = getBadgeStyle(m.porcentaje);
+      {Object.entries(MODELOS_POR_TURNO).map(([turno, modelos]) => {
+        const modelosTurno = resumen.filter(m => modelos.includes(m.nombre));
+        const totalTurno = modelosTurno.reduce((acc, m) => acc + parseFloat(m.usdNeto), 0);
+        const tokensTurno = modelosTurno.reduce((acc, m) => acc + m.totalTokens, 0);
         return (
-          <div key={m.nombre} style={s.card}>
-            <div style={s.nombre}>{m.nombre}</div>
-            <div style={s.fila}><div style={s.filaLabel}>Dias trabajados</div><div style={s.filaValor}>{m.diasTrabajados}</div></div>
-            <div style={s.fila}><div style={s.filaLabel}>Horas</div><div style={s.filaValor}>{m.horasTrabajadas} / {m.horasRequeridas} hrs</div></div>
-            <div style={s.fila}><div style={s.filaLabel}>Tokens</div><div style={s.filaValor}>{m.totalTokens.toLocaleString()}</div></div>
-            <div style={{ ...s.fila, borderBottom: 'none', alignItems: 'center', paddingTop: 8 }}>
-              <div style={{ ...s.badge, ...badgeStyle }}>{m.porcentaje}%</div>
-              <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 500 }}>${m.usdNeto} USD</div>
+          <div key={turno}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, marginBottom: 8 }}>
+              <div style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase' }}>
+                Turno {turno}
+              </div>
+              <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>
+                {tokensTurno.toLocaleString()} tokens · <span style={{ color: 'var(--gold)' }}>${totalTurno.toFixed(2)} USD</span>
+              </div>
+            </div>
+            <div className="nm-grid-cards">
+              {modelosTurno.map(m => {
+                const badgeStyle = getBadgeStyle(m.porcentaje);
+                return (
+                  <div key={m.nombre} style={s.card}>
+                    <div style={s.nombre}>{m.nombre}</div>
+                    <div style={s.fila}><div style={s.filaLabel}>Dias trabajados</div><div style={s.filaValor}>{m.diasTrabajados}</div></div>
+                    <div style={s.fila}><div style={s.filaLabel}>Horas</div><div style={s.filaValor}>{m.horasTrabajadas} / {m.horasRequeridas} hrs</div></div>
+                    <div style={s.fila}><div style={s.filaLabel}>Tokens</div><div style={s.filaValor}>{m.totalTokens.toLocaleString()}</div></div>
+                    <div style={{ ...s.fila, borderBottom: 'none', alignItems: 'center', paddingTop: 8 }}>
+                      <div style={{ ...s.badge, ...badgeStyle }}>{m.porcentaje}%</div>
+                      <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 500 }}>${m.usdNeto} USD</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
       })}
-      </div>
     </div>
   );
 }

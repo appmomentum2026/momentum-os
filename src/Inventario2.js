@@ -12,7 +12,7 @@ const s = {
   alertaCard: { background: '#d85a3022', borderRadius: 14, padding: 16, border: '1px solid #d85a30', marginBottom: 8 },
   alertaTitulo: { color: '#d85a30', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 },
   alertaItem: { color: '#d85a30', fontSize: 13, padding: '4px 0' },
-  card: { background: 'var(--bg)', borderRadius: 14, padding: 16, boxShadow: 'var(--shadow-out)', marginBottom: 8 },
+  card: { background: 'var(--bg2)', borderRadius: 14, padding: 16, boxShadow: 'var(--shadow-out)', marginBottom: 8 },
   cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   cardNombre: { color: 'var(--gold)', fontSize: 13, fontWeight: 500 },
   cardCategoria: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
@@ -26,7 +26,7 @@ const s = {
   btnMenos: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '6px 14px', fontSize: 13, cursor: 'pointer' },
   btnNuevo: { background: 'var(--bg)', border: 'none', borderRadius: 12, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '12px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginBottom: 8 },
   btnPedir: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '8px 16px', fontSize: 12, letterSpacing: 1, cursor: 'pointer' },
-  form: { background: 'var(--bg)', borderRadius: 14, padding: 20, boxShadow: 'var(--shadow-out)', marginBottom: 8 },
+  form: { background: 'var(--bg2)', borderRadius: 14, padding: 20, boxShadow: 'var(--shadow-out)', marginBottom: 8 },
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
   input: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14 },
   select: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14 },
@@ -146,42 +146,44 @@ export default function Inventario2({ rol, nombreModelo }) {
           return (
             <div key={cat}>
               <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, marginTop: 8 }}>{cat}</div>
-              {prods.map(p => (
-                <div key={p.id} style={s.card}>
-                  {p.imagen && <img src={p.imagen} alt={p.nombre} style={s.imgTienda} />}
-                  <div style={s.cardHeader}>
-                    <div style={s.cardNombre}>{p.nombre}</div>
-                    <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 500 }}>${p.precio.toLocaleString()}</div>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>Disponibles: {p.stock}</div>
-                    <button style={s.btnPedir} onClick={() => setSeleccionando(seleccionando === p.id ? null : p.id)}>
-                      Pedir
-                    </button>
-                  </div>
-                  {seleccionando === p.id && (
-                    <div style={s.cuotaBox}>
-                      {p.precio > 100000 ? (
-                        <>
-                          <div style={s.cuotaTexto}>Este producto vale ${p.precio.toLocaleString()} — elige como pagarlo:</div>
-                          <div style={s.cuotaBtns}>
-                            <button style={s.cuotaBtn} onClick={() => hacerPedido(p, 1)}>Pago completo</button>
-                            <button style={s.cuotaBtn} onClick={() => hacerPedido(p, 2)}>2 cuotas de ${Math.ceil(p.precio / 2).toLocaleString()}</button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div style={s.cuotaTexto}>Confirmar pedido de {p.nombre} por ${p.precio.toLocaleString()}</div>
-                          <div style={s.cuotaBtns}>
-                            <button style={s.cuotaBtn} onClick={() => hacerPedido(p, 1)}>Confirmar</button>
-                            <button style={{ ...s.cuotaBtn, color: 'var(--text-sub)' }} onClick={() => setSeleccionando(null)}>Cancelar</button>
-                          </div>
-                        </>
-                      )}
+              <div className="nm-grid-cards">
+                {prods.map(p => (
+                  <div key={p.id} style={s.card}>
+                    {p.imagen && <img src={p.imagen} alt={p.nombre} style={s.imgTienda} />}
+                    <div style={s.cardHeader}>
+                      <div style={s.cardNombre}>{p.nombre}</div>
+                      <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 500 }}>${p.precio.toLocaleString()}</div>
                     </div>
-                  )}
-                </div>
-              ))}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>Disponibles: {p.stock}</div>
+                      <button style={s.btnPedir} onClick={() => setSeleccionando(seleccionando === p.id ? null : p.id)}>
+                        Pedir
+                      </button>
+                    </div>
+                    {seleccionando === p.id && (
+                      <div style={s.cuotaBox}>
+                        {p.precio > 100000 ? (
+                          <>
+                            <div style={s.cuotaTexto}>Este producto vale ${p.precio.toLocaleString()} — elige como pagarlo:</div>
+                            <div style={s.cuotaBtns}>
+                              <button style={s.cuotaBtn} onClick={() => hacerPedido(p, 1)}>Pago completo</button>
+                              <button style={s.cuotaBtn} onClick={() => hacerPedido(p, 2)}>2 cuotas de ${Math.ceil(p.precio / 2).toLocaleString()}</button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={s.cuotaTexto}>Confirmar pedido de {p.nombre} por ${p.precio.toLocaleString()}</div>
+                            <div style={s.cuotaBtns}>
+                              <button style={s.cuotaBtn} onClick={() => hacerPedido(p, 1)}>Confirmar</button>
+                              <button style={{ ...s.cuotaBtn, color: 'var(--text-sub)' }} onClick={() => setSeleccionando(null)}>Cancelar</button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           );
         })}

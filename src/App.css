@@ -10,7 +10,7 @@ body.oscuro {
   --bg: #141414;
   --bg2: #1c1c1c;
   --bg3: #242424;
-  --shadow-out: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-out: 0 2px 8px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.35);
   --shadow-in: inset 0 1px 3px rgba(0,0,0,0.5);
   --gold: #C9924A;
   --gold-dim: rgba(201,146,74,0.15);
@@ -24,11 +24,21 @@ body.oscuro {
   background: #141414;
 }
 
+body.oscuro::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
 body.claro {
   --bg: #F0EDE8;
   --bg2: #E8E4DE;
   --bg3: #DDD9D2;
-  --shadow-out: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-out: 0 2px 8px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
   --shadow-in: inset 0 1px 3px rgba(0,0,0,0.08);
   --gold: #8B6230;
   --gold-dim: rgba(139,98,48,0.12);
@@ -471,8 +481,8 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
 .nm-content {
   flex: 1;
   padding: 32px 40px;
-  width: 100%;
   min-width: 0;
+  overflow-x: hidden;
 }
 
 .nm-content-header {
@@ -525,4 +535,57 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
 
 @media (max-width: 768px) {
   .nm-grid-cards { grid-template-columns: 1fr; }
+}
+
+/* ===== PANEL LATERAL DE WIDGETS ===== */
+.nm-panel-widgets {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100vh;
+  width: 260px;
+  z-index: 100;
+  transform: translateX(260px);
+  transition: transform 0.3s ease;
+  overflow: visible;
+}
+
+.nm-panel-widgets.abierto {
+  transform: translateX(0);
+}
+
+.nm-widgets-inner {
+  width: 100%;
+  height: 100%;
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.nm-widgets-tab {
+  position: absolute;
+  left: -28px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 56px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+  font-size: 14px;
+  box-shadow: -2px 0 6px rgba(0,0,0,0.3);
+}
+
+/* Ocultar en móvil */
+@media (max-width: 768px) {
+  .nm-panel-widgets { display: none; }
 }

@@ -26,7 +26,8 @@ const MODELOS_POR_TURNO = {
 };
 
 const s = {
-  wrap: { display: 'block' },
+  wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
+  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
   card: { background: 'var(--bg2)', borderRadius: 12, padding: 14, border: '1px solid var(--border)' },
   fila: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   nombre: { color: 'var(--text)', fontSize: 13, flex: 1 },
@@ -177,93 +178,100 @@ function ProyeccionModelo({ nombreModelo, meta }) {
 
   return (
     <div style={s.wrap}>
-      <div style={s.bigCard}>
-        <div style={s.label}>Tu meta esta quincena</div>
-        <div style={s.bigVal}>{meta > 0 ? meta.toLocaleString() : '—'} tokens</div>
-        <div style={{ ...s.statFila, borderBottom: 'none', marginTop: 4 }}>
-          <div style={{ color: 'var(--text-sub)', fontSize: 13 }}>Llevas {totalTokens.toLocaleString()} tokens</div>
-          <div style={{ ...s.badge, background: cumplimiento >= 100 ? 'rgba(76,175,125,0.15)' : 'rgba(201,146,74,0.15)', color: cumplimiento >= 100 ? '#4CAF7D' : 'var(--gold)' }}>{cumplimiento}%</div>
-        </div>
-        <div style={s.barraWrap}>
-          <div style={{ ...s.barraFill, width: `${cumplimiento}%`, background: cumplimiento >= 100 ? '#4CAF7D' : 'var(--gold)' }}></div>
-        </div>
-      </div>
 
-      <div style={s.motivacion}>{getMensaje()}</div>
-
-      {meta > 0 && (
-        <div style={s.proyeccionBox}>
-          <div style={s.compLabel}>Proyección al ritmo actual</div>
-          <div style={{ color: 'var(--gold)', fontSize: 26, fontWeight: 500, marginBottom: 4 }}>
-            {proyeccionFinal.toLocaleString()} tokens
-          </div>
-          <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>
-            {proyeccionFinal >= meta
-              ? '🎯 Vas camino a superar tu meta!'
-              : `Te faltarían ${(meta - proyeccionFinal).toLocaleString()} para la meta`}
-          </div>
-        </div>
-      )}
-
-      <div style={s.bigCard}>
-        <div style={s.titulo}>Comparación quincenas</div>
-        <div style={s.compRow}>
-          <div style={s.compBox}>
-            <div style={s.compLabel}>Quincena anterior</div>
-            <div style={s.compVal}>{anterior.total.toLocaleString()}</div>
-          </div>
-          <div style={s.compBox}>
-            <div style={s.compLabel}>Esta quincena</div>
-            <div style={s.compVal}>{totalTokens.toLocaleString()}</div>
-          </div>
-        </div>
-        {porcentajeCambio !== null && (
-          <div style={{ textAlign: 'center', marginTop: 12, fontSize: 14, fontWeight: 500, color: porcentajeCambio >= 0 ? '#4CAF7D' : '#C0614A' }}>
-            {porcentajeCambio >= 0 ? '▲' : '▼'} {Math.abs(porcentajeCambio)}% {porcentajeCambio >= 0 ? 'más' : 'menos'} que la quincena pasada
-          </div>
-        )}
-        {porcentajeCambio === null && (
-          <div style={{ textAlign: 'center', marginTop: 12, fontSize: 12, color: 'var(--text-dim)' }}>
-            Sin datos de la quincena anterior para comparar
-          </div>
-        )}
-      </div>
-
-      {diasOrdenados.length > 0 && (
+      <div style={s.grid2}>
         <div style={s.bigCard}>
-          <div style={s.titulo}>Tokens por dia</div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 100, padding: '0 4px' }}>
-            {diasOrdenados.map(([fecha, tokens]) => (
-              <div key={fecha} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                <div style={{ fontSize: 9, color: 'var(--text-dim)' }}>{tokens.toLocaleString()}</div>
-                <div style={{
-                  width: '100%',
-                  height: `${Math.round((tokens / maxTokens) * 60)}px`,
-                  background: tokens === mejorDia.tokens ? '#4CAF7D' : 'var(--gold)',
-                  borderRadius: '4px 4px 0 0',
-                  opacity: 0.85,
-                  minHeight: 4
-                }}></div>
-                <div style={{ fontSize: 9, color: 'var(--text-dim)' }}>{fecha.split('-')[2]}</div>
-              </div>
-            ))}
+          <div style={s.label}>Tu meta esta quincena</div>
+          <div style={s.bigVal}>{meta > 0 ? meta.toLocaleString() : '—'} tokens</div>
+          <div style={{ ...s.statFila, borderBottom: 'none', marginTop: 4 }}>
+            <div style={{ color: 'var(--text-sub)', fontSize: 13 }}>Llevas {totalTokens.toLocaleString()} tokens</div>
+            <div style={{ ...s.badge, background: cumplimiento >= 100 ? 'rgba(76,175,125,0.15)' : 'rgba(201,146,74,0.15)', color: cumplimiento >= 100 ? '#4CAF7D' : 'var(--gold)' }}>{cumplimiento}%</div>
           </div>
+          <div style={s.barraWrap}>
+            <div style={{ ...s.barraFill, width: `${cumplimiento}%`, background: cumplimiento >= 100 ? '#4CAF7D' : 'var(--gold)' }}></div>
+          </div>
+          <div style={{ ...s.motivacion, marginTop: 12 }}>{getMensaje()}</div>
         </div>
-      )}
 
-      <div style={s.bigCard}>
-        <div style={s.titulo}>Mis estadisticas</div>
-        <div style={s.statFila}><div style={s.statLabel}>Dias trabajados</div><div style={s.statVal}>{diasTrabajados} dias</div></div>
-        <div style={s.statFila}><div style={s.statLabel}>Promedio diario</div><div style={s.statVal}>{promedioDiario.toLocaleString()} tokens</div></div>
-        <div style={s.statFila}><div style={s.statLabel}>Mejor dia</div><div style={s.statVal}>{mejorDia.tokens > 0 ? mejorDia.tokens.toLocaleString() + ' tokens' : '—'}</div></div>
-        <div style={s.statFila}><div style={s.statLabel}>Dias restantes</div><div style={s.statVal}>{diasRestantes} dias</div></div>
-        <div style={{ ...s.statFila, borderBottom: 'none' }}>
-          <div style={s.statLabel}>Necesitas por dia</div>
-          <div style={{ color: tokensNecesarios <= 0 ? '#4CAF7D' : 'var(--gold)', fontSize: 16, fontWeight: 500 }}>
-            {tokensNecesarios <= 0 ? 'Meta cumplida!' : porDia.toLocaleString() + ' tokens'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {meta > 0 && (
+            <div style={s.proyeccionBox}>
+              <div style={s.compLabel}>Proyección al ritmo actual</div>
+              <div style={{ color: 'var(--gold)', fontSize: 26, fontWeight: 500, marginBottom: 4 }}>
+                {proyeccionFinal.toLocaleString()} tokens
+              </div>
+              <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>
+                {proyeccionFinal >= meta
+                  ? 'Vas camino a superar tu meta!'
+                  : `Te faltarían ${(meta - proyeccionFinal).toLocaleString()} para la meta`}
+              </div>
+            </div>
+          )}
+
+          <div style={s.bigCard}>
+            <div style={s.titulo}>Mis estadisticas</div>
+            <div style={s.statFila}><div style={s.statLabel}>Dias trabajados</div><div style={s.statVal}>{diasTrabajados} dias</div></div>
+            <div style={s.statFila}><div style={s.statLabel}>Promedio diario</div><div style={s.statVal}>{promedioDiario.toLocaleString()} tokens</div></div>
+            <div style={s.statFila}><div style={s.statLabel}>Mejor dia</div><div style={s.statVal}>{mejorDia.tokens > 0 ? mejorDia.tokens.toLocaleString() + ' tokens' : '—'}</div></div>
+            <div style={s.statFila}><div style={s.statLabel}>Dias restantes</div><div style={s.statVal}>{diasRestantes} dias</div></div>
+            <div style={{ ...s.statFila, borderBottom: 'none' }}>
+              <div style={s.statLabel}>Necesitas por dia</div>
+              <div style={{ color: tokensNecesarios <= 0 ? '#4CAF7D' : 'var(--gold)', fontSize: 16, fontWeight: 500 }}>
+                {tokensNecesarios <= 0 ? 'Meta cumplida!' : porDia.toLocaleString() + ' tokens'}
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      <div style={s.grid2}>
+        <div style={s.bigCard}>
+          <div style={s.titulo}>Comparación quincenas</div>
+          <div style={s.compRow}>
+            <div style={s.compBox}>
+              <div style={s.compLabel}>Quincena anterior</div>
+              <div style={s.compVal}>{anterior.total.toLocaleString()}</div>
+            </div>
+            <div style={s.compBox}>
+              <div style={s.compLabel}>Esta quincena</div>
+              <div style={s.compVal}>{totalTokens.toLocaleString()}</div>
+            </div>
+          </div>
+          {porcentajeCambio !== null && (
+            <div style={{ textAlign: 'center', marginTop: 12, fontSize: 14, fontWeight: 500, color: porcentajeCambio >= 0 ? '#4CAF7D' : '#C0614A' }}>
+              {porcentajeCambio >= 0 ? '▲' : '▼'} {Math.abs(porcentajeCambio)}% {porcentajeCambio >= 0 ? 'más' : 'menos'} que la quincena pasada
+            </div>
+          )}
+          {porcentajeCambio === null && (
+            <div style={{ textAlign: 'center', marginTop: 12, fontSize: 12, color: 'var(--text-dim)' }}>
+              Sin datos de la quincena anterior para comparar
+            </div>
+          )}
+        </div>
+
+        {diasOrdenados.length > 0 && (
+          <div style={s.bigCard}>
+            <div style={s.titulo}>Tokens por dia</div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 100, padding: '0 4px' }}>
+              {diasOrdenados.map(([fecha, tokens]) => (
+                <div key={fecha} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{ fontSize: 9, color: 'var(--text-dim)' }}>{tokens.toLocaleString()}</div>
+                  <div style={{
+                    width: '100%',
+                    height: `${Math.round((tokens / maxTokens) * 60)}px`,
+                    background: tokens === mejorDia.tokens ? '#4CAF7D' : 'var(--gold)',
+                    borderRadius: '4px 4px 0 0',
+                    opacity: 0.85,
+                    minHeight: 4
+                  }}></div>
+                  <div style={{ fontSize: 9, color: 'var(--text-dim)' }}>{fecha.split('-')[2]}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

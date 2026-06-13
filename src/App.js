@@ -17,6 +17,7 @@ import { solicitarPermiso, escucharNotificaciones } from './Notificaciones';
 import ImportMonitores from './ImportMonitores';
 import ResumenMonitores from './ResumenMonitores';
 import GoogleSheets from './GoogleSheets';
+import PanelWidgets from './PanelWidgets';
 
 const CLAVES = { jefe: '1234', operativo: 'oper1234', administrativo: 'admin1234' };
 const HABITACIONES = Array.from({ length: 16 }, (_, i) => i + 1);
@@ -180,6 +181,7 @@ function NavLayout({ todos, principales, masItems, vista, setVista, titulo, sub,
             <div className="nm-section-label">{seccionLabel}</div>
             {children}
           </div>
+          <PanelWidgets />
         </div>
       </div>
 

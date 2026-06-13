@@ -92,6 +92,7 @@ function VistaJefe({ cierres }) {
 
       {cierresDia.length === 0 && <p style={s.vacia}>No hay cierres registrados este día</p>}
 
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
       {ORDEN_TURNOS.map(turno => {
         const modelos = porTurno[turno];
         if (!modelos || modelos.length === 0) return null;
@@ -130,6 +131,7 @@ function VistaJefe({ cierres }) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
@@ -187,10 +189,12 @@ export default function CierreTurno({ rol, nombreMonitor, modelasMonitor }) {
         <div style={s.bannerNombre}>{nombreMonitor}</div>
         <div style={s.bannerTurno}>Turno {TURNOS[nombreMonitor] || ''} · {misModelos.length} modelos</div>
       </div>
-      {misModelos.map(nombre => (
-        <FormModelo key={nombre} nombre={nombre} datos={datosModelos[nombre] || {}}
-          onChange={(campo, valor) => actualizarModelo(nombre, campo, valor)} />
-      ))}
+      <div className="nm-grid-cards">
+        {misModelos.map(nombre => (
+          <FormModelo key={nombre} nombre={nombre} datos={datosModelos[nombre] || {}}
+            onChange={(campo, valor) => actualizarModelo(nombre, campo, valor)} />
+        ))}
+      </div>
       <button style={s.btnEnviar} onClick={enviarCierre} disabled={enviando}>
         {enviando ? 'Enviando...' : 'Cerrar turno'}
       </button>

@@ -4,6 +4,7 @@ import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 const s = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
+  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
   card: { background: 'var(--bg2)', borderRadius: 14, padding: 20, border: '1px solid var(--border)' },
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
   valor: { color: 'var(--gold)', fontSize: 28, fontWeight: 500 },
@@ -184,47 +185,52 @@ export default function Nomina({ nombreModelo }) {
 
   return (
     <div style={s.wrap}>
-      <div style={s.card}>
-        <div style={s.label}>Quincena actual</div>
-        <div style={{ color: 'var(--text)', fontSize: 14 }}>{quincena.label}</div>
-      </div>
 
-      <div style={s.card}>
-        <div style={s.titulo}>Mi resumen</div>
-        <div style={s.fila}><div style={s.filaLabel}>Dias trabajados</div><div style={s.filaValor}>{t.diasTrabajados} dias</div></div>
-        <div style={s.fila}><div style={s.filaLabel}>Horas trabajadas</div><div style={s.filaValor}>{t.horasTrabajadas} hrs</div></div>
-        <div style={s.fila}><div style={s.filaLabel}>Horas requeridas</div><div style={s.filaValor}>{t.horasRequeridas} hrs</div></div>
-        <div style={s.fila}><div style={s.filaLabel}>Tokens totales</div><div style={s.filaValor}>{t.totalTokens.toLocaleString()}</div></div>
-        <div style={{ ...s.fila, borderBottom: 'none' }}>
-          <div style={s.filaLabel}>Porcentaje</div>
-          <div style={s.porcentajeBadge}>{t.porcentaje}%</div>
+      <div style={s.grid2}>
+        <div style={s.card}>
+          <div style={s.label}>Quincena actual</div>
+          <div style={{ color: 'var(--text)', fontSize: 14 }}>{quincena.label}</div>
+        </div>
+
+        <div style={s.card}>
+          <div style={s.label}>Lo que llevas ganado</div>
+          <div style={s.valor}>${t.usdNeto} USD</div>
+          {t.totalDescuentos > 0 && (
+            <div style={{ color: '#C0614A', fontSize: 12, marginTop: 6 }}>
+              Incluye -{t.totalDescuentos.toLocaleString()} COP en pedidos
+            </div>
+          )}
         </div>
       </div>
 
-      <div style={s.card}>
-        <div style={s.label}>Lo que llevas ganado</div>
-        <div style={s.valor}>${t.usdNeto} USD</div>
-        {t.totalDescuentos > 0 && (
-          <div style={{ color: '#C0614A', fontSize: 12, marginTop: 6 }}>
-            Incluye -{t.totalDescuentos.toLocaleString()} COP en pedidos
-          </div>
-        )}
-      </div>
-
-      {meta > 0 && (
+      <div style={s.grid2}>
         <div style={s.card}>
-          <div style={s.titulo}>Predictor de meta</div>
-          <div style={s.fila}><div style={s.filaLabel}>Meta quincenal</div><div style={s.filaValor}>{meta.toLocaleString()} tokens</div></div>
-          <div style={s.fila}><div style={s.filaLabel}>Tokens que llevas</div><div style={s.filaValor}>{t.totalTokens.toLocaleString()} tokens</div></div>
-          <div style={s.fila}><div style={s.filaLabel}>Dias restantes</div><div style={s.filaValor}>{p.diasRestantes} dias</div></div>
+          <div style={s.titulo}>Mi resumen</div>
+          <div style={s.fila}><div style={s.filaLabel}>Dias trabajados</div><div style={s.filaValor}>{t.diasTrabajados} dias</div></div>
+          <div style={s.fila}><div style={s.filaLabel}>Horas trabajadas</div><div style={s.filaValor}>{t.horasTrabajadas} hrs</div></div>
+          <div style={s.fila}><div style={s.filaLabel}>Horas requeridas</div><div style={s.filaValor}>{t.horasRequeridas} hrs</div></div>
+          <div style={s.fila}><div style={s.filaLabel}>Tokens totales</div><div style={s.filaValor}>{t.totalTokens.toLocaleString()}</div></div>
           <div style={{ ...s.fila, borderBottom: 'none' }}>
-            <div style={s.filaLabel}>Necesitas por dia</div>
-            <div style={{ color: p.tokensNecesarios <= 0 ? '#4CAF7D' : 'var(--gold)', fontSize: 18, fontWeight: 500 }}>
-              {p.tokensNecesarios <= 0 ? 'Meta cumplida!' : p.porDia.toLocaleString() + ' tokens'}
+            <div style={s.filaLabel}>Porcentaje</div>
+            <div style={s.porcentajeBadge}>{t.porcentaje}%</div>
+          </div>
+        </div>
+
+        {meta > 0 ? (
+          <div style={s.card}>
+            <div style={s.titulo}>Predictor de meta</div>
+            <div style={s.fila}><div style={s.filaLabel}>Meta quincenal</div><div style={s.filaValor}>{meta.toLocaleString()} tokens</div></div>
+            <div style={s.fila}><div style={s.filaLabel}>Tokens que llevas</div><div style={s.filaValor}>{t.totalTokens.toLocaleString()} tokens</div></div>
+            <div style={s.fila}><div style={s.filaLabel}>Dias restantes</div><div style={s.filaValor}>{p.diasRestantes} dias</div></div>
+            <div style={{ ...s.fila, borderBottom: 'none' }}>
+              <div style={s.filaLabel}>Necesitas por dia</div>
+              <div style={{ color: p.tokensNecesarios <= 0 ? '#4CAF7D' : 'var(--gold)', fontSize: 18, fontWeight: 500 }}>
+                {p.tokensNecesarios <= 0 ? 'Meta cumplida!' : p.porDia.toLocaleString() + ' tokens'}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        ) : <div />}
+      </div>
 
       <ModelaPedidos nombreModelo={nombreModelo} />
     </div>
