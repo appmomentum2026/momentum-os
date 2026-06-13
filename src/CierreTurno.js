@@ -21,9 +21,15 @@ const s = {
   btnEnviar: { background: 'var(--gold)', border: 'none', borderRadius: 10, color: '#141414', padding: '13px 24px', fontSize: 13, fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', width: '100%', marginTop: 8 },
   vacia: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 },
   banner: { background: 'var(--bg3)', borderRadius: 10, padding: '12px 16px', marginBottom: 14, border: '1px solid var(--border)' },
-  bannerNombre: { color: 'var(--gold)', fontSize: 14, fontWeight: 500 },
+  bannerNombre: { color: 'var(--gold)', fontSize: 22, fontWeight: 700 },
   bannerTurno: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 },
   turnoCard: { background: 'var(--bg2)', borderRadius: 14, padding: 18, marginBottom: 14, border: '1px solid var(--border)' },
+  sheetRow: { display: 'flex', gap: 8, marginBottom: 12 },
+  sheetBtn: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--text-sub)', padding: '7px 14px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 },
+  sheetBtnActivo: { color: 'var(--gold)' },
+  sheetCard: { background: 'var(--bg2)', borderRadius: 12, padding: '10px 14px', border: '1px solid var(--border)', marginBottom: 14 },
+  sheetTit: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 },
+  sheetFila: { display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid var(--border)', fontSize: 12 },
   turnoHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
   turnoTitulo: { color: 'var(--gold)', fontSize: 16, fontWeight: 500 },
   turnoSubtotal: { textAlign: 'right' },
@@ -139,6 +145,9 @@ export default function CierreTurno({ rol, nombreMonitor, modelasMonitor }) {
   const [datosModelos, setDatosModelos] = useState({});
   const [cierres, setCierres] = useState([]);
   const [enviando, setEnviando] = useState(false);
+  const [sheetDatos, setSheetDatos] = useState(null);
+  const [sheetVista, setSheetVista] = useState(null);
+  const [cargandoSheet, setCargandoSheet] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, 'cierres'), orderBy('fecha', 'desc'));
@@ -155,6 +164,18 @@ export default function CierreTurno({ rol, nombreMonitor, modelasMonitor }) {
   };
 
   const misModelos = modelasMonitor && modelasMonitor.length > 0 ? modelasMonitor : [];
+
+  const cargarSheet = async (tipo) => {
+    if (sheetVista === tipo) { setSheetVista(null); setSheetDatos(null); return; }
+    setCargandoSheet(true);
+    setSheetVista(tipo);
+    setSheetDatos(null);
+    try {
+      const res = await fetch(`/api/sheets?sheet=${tipo}`);
+      const json = await res.json();
+      setSheetDatos(json);
+    } catch { } finally { setCargandoSheet(false); }
+  };
 
   const enviarCierre = async () => {
     if (!nombreMonitor) return;
@@ -189,6 +210,41 @@ export default function CierreTurno({ rol, nombreMonitor, modelasMonitor }) {
         <div style={s.bannerNombre}>{nombreMonitor}</div>
         <div style={s.bannerTurno}>Turno {TURNOS[nombreMonitor] || ''} · {misModelos.length} modelos</div>
       </div>
+      <div style={s.sheetRow}>
+        <button style={{ ...s.sheetBtn, ...(sheetVista === 'horario' ? s.sheetBtnActivo : {}) }} onClick={() => cargarSheet('horario')}>
+          <i className="ti ti-table" aria-hidden="true"></i> Horario Sheet
+        </button>
+        <button style={{ ...s.sheetBtn, ...(sheetVista === 'registro' ? s.sheetBtnActivo : {}) }} onClick={() => cargarSheet('registro')}>
+          <i className="ti ti-coin" aria-hidden="true"></i> Tokens Sheet
+        </button>
+      </div>
+      {(cargandoSheet || sheetDatos) && (
+        <div style={s.sheetCard}>
+          {cargandoSheet && <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>Cargando Sheet...</div>}
+          {sheetDatos && sheetVista === 'horario' && (
+            <>
+              <div style={s.sheetTit}>Horario S1 — {sheetDatos.totalModelos} modelos</div>
+              {sheetDatos.modelos?.map((m, i) => (
+                <div key={i} style={s.sheetFila}>
+                  <span style={{ color: 'var(--text)' }}>{m.nombre}</span>
+                  <span style={{ color: 'var(--text-sub)' }}>{m.horaEntrada || '—'} – {m.horaSalida || '—'}</span>
+                </div>
+              ))}
+            </>
+          )}
+          {sheetDatos && sheetVista === 'registro' && (
+            <>
+              <div style={s.sheetTit}>Tokens Sheet</div>
+              {sheetDatos.modelos?.map((m, i) => (
+                <div key={i} style={s.sheetFila}>
+                  <span style={{ color: 'var(--text)' }}>{m.nombre}</span>
+                  <span style={{ color: 'var(--gold)' }}>{m.totalTokens?.toLocaleString() || 0} tkns</span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
       <div className="nm-grid-cards">
         {misModelos.map(nombre => (
           <FormModelo key={nombre} nombre={nombre} datos={datosModelos[nombre] || {}}

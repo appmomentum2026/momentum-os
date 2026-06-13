@@ -210,8 +210,8 @@ export default function ResumenJefe() {
         const tokensTurno = modelosTurno.reduce((acc, m) => acc + m.totalTokens, 0);
         return (
           <div key={turno}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, marginBottom: 8 }}>
-              <div style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 28, marginBottom: 12 }}>
+              <div style={{ color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
                 Turno {turno}
               </div>
               <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>

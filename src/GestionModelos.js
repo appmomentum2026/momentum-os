@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
-import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, arrayUnion, arrayRemove } from 'firebase/firestore';
 
 const MONITORES_LISTA = [
   { nombre: 'Daniela', turno: 'Manana' },
@@ -11,45 +11,100 @@ const MONITORES_LISTA = [
   { nombre: 'Cesar', turno: 'Noche' }
 ];
 
+const FORM_VACIO = { nombreReal: '', nombreModelo: '', monitor: '', turno: '', clave: '', nacimiento: '', correo: '', lovense: '', amazon: '' };
+
 export default function GestionModelos() {
   const [modelos, setModelos] = useState([]);
+  const [monitores, setMonitores] = useState([]);
   const [modo, setModo] = useState(null);
-  const [form, setForm] = useState({ nombreReal: '', nombreModelo: '', monitor: '', turno: '', clave: '' });
+  const [form, setForm] = useState(FORM_VACIO);
+  const [paginas, setPaginas] = useState([]);
   const [confirmEliminar, setConfirmEliminar] = useState(null);
   const [expandida, setExpandida] = useState(null);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'modelos'), snap => {
+    const unsub1 = onSnapshot(collection(db, 'modelos'), snap => {
       const data = [];
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
       data.sort((a, b) => a.nombreReal.localeCompare(b.nombreReal));
       setModelos(data);
     });
-    return unsub;
+    const unsub2 = onSnapshot(collection(db, 'monitores'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setMonitores(data);
+    });
+    return () => { unsub1(); unsub2(); };
   }, []);
 
   const guardar = async () => {
     if (!form.nombreReal || !form.monitor) return;
     const id = modo === 'nuevo' ? Date.now().toString() : modo;
+    const modeloActual = modo !== 'nuevo' ? modelos.find(m => m.id === modo) : null;
+
     await setDoc(doc(db, 'modelos', id), {
       nombreReal: form.nombreReal,
       nombreModelo: form.nombreModelo,
       monitor: form.monitor,
       turno: form.turno,
       clave: form.clave || '',
-      activa: true
+      activa: true,
+      nacimiento: form.nacimiento || '',
+      correo: form.correo || '',
+      lovense: form.lovense || '',
+      amazon: form.amazon || '',
+      paginas: paginas
     });
+
+    // Sincronizar con la colección monitores
+    if (modo === 'nuevo') {
+      const monDoc = monitores.find(m => m.nombre === form.monitor);
+      if (monDoc) await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayUnion(form.nombreReal) });
+    } else if (modeloActual) {
+      const oldMonitor = modeloActual.monitor;
+      const oldNombreReal = modeloActual.nombreReal;
+      if (oldMonitor !== form.monitor) {
+        const oldMon = monitores.find(m => m.nombre === oldMonitor);
+        if (oldMon) await updateDoc(doc(db, 'monitores', oldMon.id), { modelas: arrayRemove(oldNombreReal) });
+        const newMon = monitores.find(m => m.nombre === form.monitor);
+        if (newMon) await updateDoc(doc(db, 'monitores', newMon.id), { modelas: arrayUnion(form.nombreReal) });
+      } else if (oldNombreReal !== form.nombreReal) {
+        const monDoc = monitores.find(m => m.nombre === form.monitor);
+        if (monDoc) {
+          await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayRemove(oldNombreReal) });
+          await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayUnion(form.nombreReal) });
+        }
+      }
+    }
+
     setModo(null);
-    setForm({ nombreReal: '', nombreModelo: '', monitor: '', turno: '', clave: '' });
+    setForm(FORM_VACIO);
+    setPaginas([]);
   };
 
   const editar = (modelo) => {
     setModo(modelo.id);
-    setForm({ nombreReal: modelo.nombreReal, nombreModelo: modelo.nombreModelo || '', monitor: modelo.monitor, turno: modelo.turno, clave: modelo.clave || '' });
+    setForm({
+      nombreReal: modelo.nombreReal,
+      nombreModelo: modelo.nombreModelo || '',
+      monitor: modelo.monitor,
+      turno: modelo.turno,
+      clave: modelo.clave || '',
+      nacimiento: modelo.nacimiento || '',
+      correo: modelo.correo || '',
+      lovense: modelo.lovense || '',
+      amazon: modelo.amazon || ''
+    });
+    setPaginas(modelo.paginas || []);
   };
 
   const eliminar = async (id) => {
+    const modelo = modelos.find(m => m.id === id);
     await deleteDoc(doc(db, 'modelos', id));
+    if (modelo) {
+      const monDoc = monitores.find(m => m.nombre === modelo.monitor);
+      if (monDoc) await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayRemove(modelo.nombreReal) });
+    }
     setConfirmEliminar(null);
   };
 
@@ -108,9 +163,27 @@ export default function GestionModelos() {
           <input style={{ ...s.input, color: 'var(--text-sub)' }} value={form.turno} readOnly placeholder="Se asigna con el monitor" />
           <label style={s.label}>Clave de acceso</label>
           <input style={s.input} placeholder="Clave para la modelo" value={form.clave || ''} onChange={e => setForm(prev => ({ ...prev, clave: e.target.value }))} />
+          <label style={s.label}>Fecha de nacimiento</label>
+          <input style={s.input} placeholder="DD/MM/AAAA" value={form.nacimiento || ''} onChange={e => setForm(prev => ({ ...prev, nacimiento: e.target.value }))} />
+          <label style={s.label}>Correo electrónico</label>
+          <input style={s.input} type="email" placeholder="correo@ejemplo.com" value={form.correo || ''} onChange={e => setForm(prev => ({ ...prev, correo: e.target.value }))} />
+          <label style={s.label}>Accesos Lovense</label>
+          <input style={s.input} placeholder="Usuario / Clave" value={form.lovense || ''} onChange={e => setForm(prev => ({ ...prev, lovense: e.target.value }))} />
+          <label style={s.label}>Accesos Amazon</label>
+          <input style={s.input} placeholder="Usuario / Clave" value={form.amazon || ''} onChange={e => setForm(prev => ({ ...prev, amazon: e.target.value }))} />
+          <label style={s.label}>Páginas</label>
+          {paginas.map((p, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 6, marginBottom: 8 }}>
+              <input style={{ ...s.input, marginBottom: 0 }} placeholder="Plataforma" value={p.nombre} onChange={e => setPaginas(ps => ps.map((x, idx) => idx === i ? { ...x, nombre: e.target.value } : x))} />
+              <input style={{ ...s.input, marginBottom: 0 }} placeholder="Usuario" value={p.usuario} onChange={e => setPaginas(ps => ps.map((x, idx) => idx === i ? { ...x, usuario: e.target.value } : x))} />
+              <input style={{ ...s.input, marginBottom: 0 }} placeholder="Clave" value={p.clave} onChange={e => setPaginas(ps => ps.map((x, idx) => idx === i ? { ...x, clave: e.target.value } : x))} />
+              <button style={{ background: 'transparent', border: 'none', color: '#d85a30', cursor: 'pointer', fontSize: 16, padding: '0 4px' }} onClick={() => setPaginas(ps => ps.filter((_, idx) => idx !== i))}>✕</button>
+            </div>
+          ))}
+          <button style={{ ...s.btnCancelar, color: 'var(--gold)', marginBottom: 14, display: 'block' }} onClick={() => setPaginas(ps => [...ps, { nombre: '', usuario: '', clave: '' }])}>+ Agregar página</button>
           <div style={s.btnRow}>
             <button style={s.btnGuardar} onClick={guardar}>Guardar</button>
-            <button style={s.btnCancelar} onClick={() => setModo(null)}>Cancelar</button>
+            <button style={s.btnCancelar} onClick={() => { setModo(null); setPaginas([]); }}>Cancelar</button>
           </div>
         </div>
       )}

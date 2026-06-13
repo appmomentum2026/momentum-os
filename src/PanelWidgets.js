@@ -167,21 +167,22 @@ function Calculadora() {
 }
 
 // ─── BLOC DE NOTAS ────────────────────────────────────────────────────────────
-function BlocNotas() {
+function BlocNotas({ userId }) {
   const [texto,     setTexto]     = useState('');
   const [guardando, setGuardando] = useState(false);
   const timerRef = useRef(null);
+  const docId = userId || 'notas';
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'panel_widgets', 'notas'), snap => {
+    const unsub = onSnapshot(doc(db, 'panel_widgets', docId), snap => {
       if (snap.exists()) setTexto(snap.data().contenido || '');
     });
     return unsub;
-  }, []);
+  }, [docId]);
 
   const guardar = async val => {
     setGuardando(true);
-    await setDoc(doc(db, 'panel_widgets', 'notas'), {
+    await setDoc(doc(db, 'panel_widgets', docId), {
       contenido: val,
       actualizado: new Date().toISOString()
     });
@@ -213,7 +214,7 @@ function BlocNotas() {
 }
 
 // ─── PANEL PRINCIPAL ──────────────────────────────────────────────────────────
-export default function PanelWidgets() {
+export default function PanelWidgets({ userId }) {
   const [abierto, setAbierto] = useState(false);
 
   return (
@@ -226,7 +227,7 @@ export default function PanelWidgets() {
         <div style={s.sep} />
         <Calculadora />
         <div style={s.sep} />
-        <BlocNotas />
+        <BlocNotas userId={userId} />
       </div>
     </div>
   );

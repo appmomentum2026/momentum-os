@@ -16,6 +16,7 @@ import { DiasLibresModelo, DiasLibresMonitor, DiasLibresJefe } from './DiasLibre
 import { solicitarPermiso, escucharNotificaciones } from './Notificaciones';
 import ImportMonitores from './ImportMonitores';
 import ResumenMonitores from './ResumenMonitores';
+import ModelasMonitor from './ModelasMonitor';
 import GoogleSheets from './GoogleSheets';
 import PanelWidgets from './PanelWidgets';
 
@@ -168,7 +169,7 @@ function Sidebar({ items, vista, setVista, titulo, sub, icono, onLogout, temaOsc
   );
 }
 
-function NavLayout({ todos, principales, masItems, vista, setVista, titulo, sub, icono, seccionLabel, onLogout, temaOscuro, toggleTema, children }) {
+function NavLayout({ todos, principales, masItems, vista, setVista, titulo, sub, icono, seccionLabel, onLogout, temaOscuro, toggleTema, userId, children }) {
   return (
     <>
       {/* ESCRITORIO: sidebar */}
@@ -181,7 +182,7 @@ function NavLayout({ todos, principales, masItems, vista, setVista, titulo, sub,
             <div className="nm-section-label">{seccionLabel}</div>
             {children}
           </div>
-          <PanelWidgets />
+          <PanelWidgets userId={userId} />
         </div>
       </div>
 
@@ -308,7 +309,7 @@ function Login({ onLogin, temaOscuro, toggleTema }) {
   );
 }
 
-function AppJefe({ onLogout, temaOscuro, toggleTema }) {
+function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
   const [vista, setVista] = useState('mapa');
 
   const items = [
@@ -347,6 +348,7 @@ function AppJefe({ onLogout, temaOscuro, toggleTema }) {
       titulo="Jefe" sub="Panel de control" icono="crown"
       seccionLabel={seccionLabel}
       onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema}
+      userId={userId}
     >
       {vista === 'mapa' && <MapaHabitaciones rol="jefe" />}
       {vista === 'novedades' && <Novedades rol="jefe" />}
@@ -374,6 +376,7 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
     { id: 'asistencia', label: 'Asistencia', icon: 'users' },
     { id: 'cierre', label: 'Cierre', icon: 'clipboard-check' },
     { id: 'novedades', label: 'Novedades', icon: 'alert-circle' },
+    { id: 'modelos', label: 'Modelos', icon: 'id-badge' },
     { id: 'pedidos', label: 'Pedidos', icon: 'shopping-bag' },
     { id: 'diaslibres', label: 'Dias libres', icon: 'calendar' },
   ];
@@ -383,7 +386,10 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
     vista === 'asistencia' ? 'Registro de asistencia' :
     vista === 'novedades' ? 'Novedades del turno' :
     vista === 'cierre' ? 'Cierre de turno' :
+    vista === 'modelos' ? 'Mis modelos' :
     vista === 'pedidos' ? 'Pedidos' : 'Dias libres';
+
+  const userId = `monitor_${monitorData?.nombre || 'monitor'}`;
 
   return (
     <NavLayout
@@ -394,11 +400,13 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
       titulo="Monitor" sub={`${monitorData?.nombre || 'Monitor'} — ${monitorData?.turno || ''}`} icono="device-desktop"
       seccionLabel={seccionLabel}
       onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema}
+      userId={userId}
     >
       {vista === 'mapa' && <MapaHabitaciones rol="monitor" />}
       {vista === 'asistencia' && <Asistencia rol="monitor" nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
       {vista === 'novedades' && <Novedades rol="monitor" />}
       {vista === 'cierre' && <CierreTurno rol="monitor" nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
+      {vista === 'modelos' && <ModelasMonitor monitorData={monitorData} />}
       {vista === 'pedidos' && <Pedidos rol="monitor" />}
       {vista === 'diaslibres' && <DiasLibresMonitor nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
     </NavLayout>
@@ -423,6 +431,8 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
     vista === 'metas' ? 'Mi meta quincenal' :
     vista === 'tienda' ? 'Tienda de insumos' : 'Mis descansos';
 
+  const userId = `modelo_${modelaData?.nombreReal || 'modelo'}`;
+
   return (
     <NavLayout
       todos={items}
@@ -432,6 +442,7 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
       titulo="Mi panel" sub={modelaData?.nombreReal || 'Momentum Studio'} icono="star"
       seccionLabel={seccionLabel}
       onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema}
+      userId={userId}
     >
       {vista === 'mapa' && <MapaHabitaciones rol="modelo" />}
       {vista === 'nomina' && <Nomina nombreModelo={nombreModelo} />}
@@ -497,9 +508,9 @@ export default function App() {
         </div>
       )}
       {!usuario && <Login onLogin={handleLogin} temaOscuro={temaOscuro} toggleTema={toggleTema} />}
-      {usuario === 'jefe' && <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} />}
-      {usuario === 'operativo' && <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} soloLectura={true} />}
-      {usuario === 'administrativo' && <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} soloAdmin={true} />}
+      {usuario === 'jefe' && <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} userId="jefe" />}
+      {usuario === 'operativo' && <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} soloLectura={true} userId="operativo" />}
+      {usuario === 'administrativo' && <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} soloAdmin={true} userId="administrativo" />}
       {usuario === 'monitor' && <AppMonitor onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} monitorData={monitorData} />}
       {usuario === 'modelo' && <AppModelo onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} modelaData={modelaData} />}
     </>

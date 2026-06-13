@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
-import { collection, doc, setDoc, onSnapshot, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, addDoc, deleteDoc } from 'firebase/firestore';
 import { storage } from './firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -25,7 +25,7 @@ const s = {
   btnMas: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#1d9e75', padding: '6px 14px', fontSize: 13, cursor: 'pointer' },
   btnMenos: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '6px 14px', fontSize: 13, cursor: 'pointer' },
   btnNuevo: { background: 'var(--bg)', border: 'none', borderRadius: 12, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '12px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginBottom: 8 },
-  btnPedir: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '8px 16px', fontSize: 12, letterSpacing: 1, cursor: 'pointer' },
+  btnPedir: { background: 'var(--gold)', border: 'none', borderRadius: 8, color: '#141414', padding: '9px 20px', fontSize: 13, fontWeight: 700, letterSpacing: 1, cursor: 'pointer' },
   form: { background: 'var(--bg2)', borderRadius: 14, padding: 20, boxShadow: 'var(--shadow-out)', marginBottom: 8 },
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
   input: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14 },
@@ -42,7 +42,11 @@ const s = {
   imgInventario: { width: 50, height: 50, objectFit: 'cover', borderRadius: 8, background: 'var(--bg3)', flexShrink: 0 },
   uploadBox: { display: 'block', border: '1px dashed var(--border2)', borderRadius: 10, padding: '16px', textAlign: 'center', cursor: 'pointer', marginBottom: 20, marginTop: 4, color: 'var(--text-sub)', fontSize: 12 },
   imgPreview: { width: '100%', height: 140, objectFit: 'cover', borderRadius: 10, marginBottom: 10 },
-  turnoLabel: { color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, marginTop: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' }
+  turnoLabel: { color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, marginTop: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' },
+  accionRow: { display: 'flex', gap: 8, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' },
+  btnEditar: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '6px 14px', fontSize: 12, cursor: 'pointer' },
+  btnEliminar: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '6px 14px', fontSize: 12, cursor: 'pointer' },
+  btnConfirmar: { background: '#d85a3022', border: '1px solid #d85a30', borderRadius: 8, color: '#d85a30', padding: '6px 10px', fontSize: 11, cursor: 'pointer', fontWeight: 600 },
 };
 
 export default function Inventario2({ rol, nombreModelo }) {
@@ -54,6 +58,9 @@ export default function Inventario2({ rol, nombreModelo }) {
   const [imagenArchivo, setImagenArchivo] = useState(null);
   const [imagenPreview, setImagenPreview] = useState(null);
   const [subiendo, setSubiendo] = useState(false);
+  const [editando, setEditando] = useState(null);
+  const [formEdit, setFormEdit] = useState({});
+  const [confirmando, setConfirmando] = useState(null);
 
   const seleccionarImagen = (e) => {
     const file = e.target.files[0];
@@ -125,6 +132,31 @@ export default function Inventario2({ rol, nombreModelo }) {
     setTimeout(() => setPedidoEnviado(null), 3000);
   };
 
+  const iniciarEdicion = (p) => {
+    setEditando(p.id);
+    setFormEdit({ nombre: p.nombre, categoria: p.categoria, precio: p.precio, stock: p.stock });
+    setConfirmando(null);
+  };
+
+  const guardarEdicion = async () => {
+    if (!editando) return;
+    const p = productos.find(x => x.id === editando);
+    await setDoc(doc(db, 'inventario', editando), {
+      ...p,
+      nombre: formEdit.nombre,
+      categoria: formEdit.categoria,
+      precio: Number(formEdit.precio),
+      stock: Number(formEdit.stock)
+    });
+    setEditando(null);
+    setFormEdit({});
+  };
+
+  const eliminar = async (id) => {
+    await deleteDoc(doc(db, 'inventario', id));
+    setConfirmando(null);
+  };
+
   const alertas = productos.filter(p => p.stock <= STOCK_MINIMO);
 
   // Solo el jefe puede gestionar el inventario
@@ -145,7 +177,7 @@ export default function Inventario2({ rol, nombreModelo }) {
           if (prods.length === 0) return null;
           return (
             <div key={cat}>
-              <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, marginTop: 8 }}>{cat}</div>
+              <div style={{ color: 'var(--text)', fontSize: 15, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, marginTop: 16 }}>{cat}</div>
               <div className="nm-grid-cards">
                 {prods.map(p => (
                   <div key={p.id} style={s.card}>
@@ -243,26 +275,58 @@ export default function Inventario2({ rol, nombreModelo }) {
             <div className="nm-grid-cards">
             {prodsCat.map(p => (
               <div key={p.id} style={s.card}>
-                <div style={s.cardHeader}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    {p.imagen && <img src={p.imagen} alt={p.nombre} style={s.imgInventario} />}
-                    <div>
-                      <div style={s.cardNombre}>{p.nombre}</div>
-                      <div style={s.cardCategoria}>{p.categoria}</div>
+                {editando === p.id ? (
+                  <>
+                    <label style={s.label}>Nombre</label>
+                    <input style={s.input} value={formEdit.nombre || ''} onChange={e => setFormEdit(f => ({ ...f, nombre: e.target.value }))} />
+                    <label style={s.label}>Categoría</label>
+                    <select style={s.select} value={formEdit.categoria || ''} onChange={e => setFormEdit(f => ({ ...f, categoria: e.target.value }))}>
+                      {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <label style={s.label}>Precio</label>
+                    <input style={s.input} type="number" value={formEdit.precio || ''} onChange={e => setFormEdit(f => ({ ...f, precio: e.target.value }))} />
+                    <label style={s.label}>Stock</label>
+                    <input style={s.input} type="number" value={formEdit.stock || ''} onChange={e => setFormEdit(f => ({ ...f, stock: e.target.value }))} />
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button style={s.btnGuardar} onClick={guardarEdicion}>Guardar</button>
+                      <button style={s.btnCancelar} onClick={() => { setEditando(null); setFormEdit({}); }}>Cancelar</button>
                     </div>
-                  </div>
-                  <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 500 }}>${p.precio.toLocaleString()}</div>
-                </div>
-                <div style={s.fila}>
-                  <div style={s.filaLabel}>Stock actual</div>
-                  <div style={p.stock <= STOCK_MINIMO ? s.stockBajo : s.stockOk}>{p.stock} unidades {p.stock <= STOCK_MINIMO ? '⚠️' : '✓'}</div>
-                </div>
-                <div style={s.btnRow}>
-                  <button style={s.btnMas} onClick={() => ajustarStock(p, 1)}>+ 1</button>
-                  <button style={s.btnMas} onClick={() => ajustarStock(p, 5)}>+ 5</button>
-                  <button style={s.btnMas} onClick={() => ajustarStock(p, 10)}>+ 10</button>
-                  <button style={s.btnMenos} onClick={() => ajustarStock(p, -1)}>- 1</button>
-                </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={s.cardHeader}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        {p.imagen && <img src={p.imagen} alt={p.nombre} style={s.imgInventario} />}
+                        <div>
+                          <div style={s.cardNombre}>{p.nombre}</div>
+                          <div style={s.cardCategoria}>{p.categoria}</div>
+                        </div>
+                      </div>
+                      <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 500 }}>${p.precio.toLocaleString()}</div>
+                    </div>
+                    <div style={s.fila}>
+                      <div style={s.filaLabel}>Stock actual</div>
+                      <div style={p.stock <= STOCK_MINIMO ? s.stockBajo : s.stockOk}>{p.stock} unidades {p.stock <= STOCK_MINIMO ? '⚠️' : '✓'}</div>
+                    </div>
+                    <div style={s.btnRow}>
+                      <button style={s.btnMas} onClick={() => ajustarStock(p, 1)}>+ 1</button>
+                      <button style={s.btnMas} onClick={() => ajustarStock(p, 5)}>+ 5</button>
+                      <button style={s.btnMas} onClick={() => ajustarStock(p, 10)}>+ 10</button>
+                      <button style={s.btnMenos} onClick={() => ajustarStock(p, -1)}>- 1</button>
+                    </div>
+                    <div style={s.accionRow}>
+                      <button style={s.btnEditar} onClick={() => iniciarEdicion(p)}>Editar</button>
+                      {confirmando === p.id ? (
+                        <>
+                          <button style={s.btnConfirmar} onClick={() => eliminar(p.id)}>¿Confirmar?</button>
+                          <button style={s.btnCancelar} onClick={() => setConfirmando(null)}>No</button>
+                        </>
+                      ) : (
+                        <button style={s.btnEliminar} onClick={() => setConfirmando(p.id)}>Eliminar</button>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             ))}
             </div>
