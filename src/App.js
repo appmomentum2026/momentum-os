@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
+import { signInAnonymously } from 'firebase/auth';
 import { functions } from './firebase';
 import Asistencia from './Asistencia';
 import Novedades from './Novedades';
@@ -35,6 +36,7 @@ function MapaHabitaciones({ rol }) {
   const [menuAbierto, setMenuAbierto] = useState(null);
 
   useEffect(() => {
+    signInAnonymously(auth).catch(err => console.error("Auth anónimo falló:", err));
     const unsub = onSnapshot(collection(db, 'habitaciones'), snap => {
       const data = {};
       snap.forEach(d => { data[d.id] = d.data(); });
