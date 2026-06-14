@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
-import { collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, doc, deleteDoc, updateDoc, onSnapshot, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from './firebase';
 
 const MONITORES_LISTA = [
   { nombre: 'Daniela', turno: 'Manana' },
@@ -42,18 +44,23 @@ export default function GestionModelos() {
     const id = modo === 'nuevo' ? Date.now().toString() : modo;
     const modeloActual = modo !== 'nuevo' ? modelos.find(m => m.id === modo) : null;
 
-    await setDoc(doc(db, 'modelos', id), {
-      nombreReal: form.nombreReal,
-      nombreModelo: form.nombreModelo,
-      monitor: form.monitor,
-      turno: form.turno,
+    const guardarUsuario = httpsCallable(functions, 'guardarUsuario');
+    await guardarUsuario({
+      coleccion: 'modelos',
+      id: id,
       clave: form.clave || '',
-      activa: true,
-      nacimiento: form.nacimiento || '',
-      correo: form.correo || '',
-      lovense: form.lovense || '',
-      amazon: form.amazon || '',
-      paginas: paginas
+      datos: {
+        nombreReal: form.nombreReal,
+        nombreModelo: form.nombreModelo,
+        monitor: form.monitor,
+        turno: form.turno,
+        activa: true,
+        nacimiento: form.nacimiento || '',
+        correo: form.correo || '',
+        lovense: form.lovense || '',
+        amazon: form.amazon || '',
+        paginas: paginas
+      }
     });
 
     // Sincronizar con la colección monitores

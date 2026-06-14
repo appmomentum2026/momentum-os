@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import { db } from './firebase';
-import { collection, doc, setDoc, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from './firebase';
 import Asistencia from './Asistencia';
 import Novedades from './Novedades';
 import CierreTurno from './CierreTurno';
@@ -14,13 +16,13 @@ import Inventario2 from './Inventario2';
 import Pedidos from './Pedidos';
 import { DiasLibresModelo, DiasLibresMonitor, DiasLibresJefe } from './DiasLibres';
 import { solicitarPermiso, escucharNotificaciones } from './Notificaciones';
-import ImportMonitores from './ImportMonitores';
+import GestionMonitores from './GestionMonitores';
 import ResumenMonitores from './ResumenMonitores';
 import ModelasMonitor from './ModelasMonitor';
 import GoogleSheets from './GoogleSheets';
 import PanelWidgets from './PanelWidgets';
 
-const CLAVES = { jefe: '1234', operativo: 'oper1234', administrativo: 'admin1234' };
+
 const HABITACIONES = Array.from({ length: 16 }, (_, i) => i + 1);
 const ESTADOS = {
   libre: { color: '#4CAF7D', label: 'Libre', icono: 'circle-check' },
@@ -218,25 +220,15 @@ function Login({ onLogin, temaOscuro, toggleTema }) {
   const [mostrarJefes, setMostrarJefes] = useState(false);
 
   const handleLogin = async () => {
-    if (rol === 'modelo') {
-      const snap = await getDocs(collection(db, 'modelos'));
-      let encontrada = null;
-      snap.forEach(d => {
-        if (d.data().clave === clave) encontrada = { id: d.id, ...d.data() };
-      });
-      if (encontrada) onLogin('modelo', encontrada);
-      else setError('Clave incorrecta');
-    } else if (rol === 'monitor') {
-      const snap = await getDocs(collection(db, 'monitores'));
-      let encontrado = null;
-      snap.forEach(d => {
-        if (d.data().clave === clave) encontrado = { id: d.id, ...d.data() };
-      });
-      if (encontrado) onLogin('monitor', encontrado);
-      else setError('Clave incorrecta');
-    } else if (CLAVES[rol] && clave === CLAVES[rol]) {
-      onLogin(rol);
-    } else {
+    try {
+      const verificar = httpsCallable(functions, 'verificarClave');
+      const resultado = await verificar({ rol, clave });
+      if (resultado.data.ok) {
+        onLogin(rol, resultado.data.data);
+      } else {
+        setError('Clave incorrecta');
+      }
+    } catch (err) {
       setError('Clave incorrecta');
     }
   };
@@ -359,7 +351,7 @@ function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
       {vista === 'modelos' && <GestionModelos />}
       {vista === 'modelos' && <ImportarModelos />}
       {vista === 'monitores' && <ResumenMonitores />}
-      {vista === 'monitores' && <ImportMonitores />}
+      {vista === 'monitores' && <GestionMonitores />}
       {vista === 'inventario' && <Inventario2 rol="jefe" />}
       {vista === 'pedidos' && <Pedidos rol="jefe" />}
       {vista === 'diaslibres' && <DiasLibresJefe />}
