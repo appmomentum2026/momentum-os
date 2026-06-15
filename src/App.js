@@ -505,8 +505,8 @@ export default function App() {
       {usuario === 'jefe' && <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} userId="jefe" />}
       {usuario === 'operativo' && <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} soloLectura={true} userId="operativo" />}
       {usuario === 'administrativo' && <AppJefe onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} soloAdmin={true} userId="administrativo" />}
-      {usuario === 'monitor' && <AppMonitor onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} monitorData={monitorData} />}
-      {usuario === 'modelo' && <AppModelo onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} modelaData={modelaData} />}
+      {usuario === 'monitor' && <AppMonitor onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} monitorData={monitorData} userId={`monitor_${monitorData?.nombre}`} />}
+      {usuario === 'modelo' && <AppModelo onLogout={() => setUsuario(null)} temaOscuro={temaOscuro} toggleTema={toggleTema} modelaData={modelaData} userId={`modelo_${modelaData?.nombreReal}`} />}
     </>
   );
 }
