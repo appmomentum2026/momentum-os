@@ -233,7 +233,6 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
 
 export function DiasLibresJefe() {
   const [solicitudes, setSolicitudes] = useState([]);
-  const [vistaGrid, setVistaGrid] = useState(true);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'diasLibres'), snap => {
@@ -251,53 +250,88 @@ export function DiasLibresJefe() {
   const monitores = solicitudes.filter(s => s.tipo === 'monitor');
   const modelos = solicitudes.filter(s => s.tipo === 'modelo');
 
-  const renderSolicitud = (sol, puedeAprobar) => {
-    const estadoColor = ESTADO_COLOR[sol.estado] || ESTADO_COLOR.pendiente;
+  const TURNO_ICONO = { 'Manana': '🌅', 'Tarde': '☀️', 'Noche': '🌙' };
+  const inicial = (nombre) => (nombre || '?').charAt(0).toUpperCase();
+
+  const renderMonitor = (sol) => {
+    const ec = ESTADO_COLOR[sol.estado] || ESTADO_COLOR.pendiente;
     return (
-      <div key={sol.id} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
-        <div style={s.nombre}>{sol.monitor || sol.modelo}</div>
-        <div style={s.sub}>Dia 1: {sol.fecha1}{sol.fecha2 && ` · Dia 2: ${sol.fecha2}`}</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-          <div style={{ ...s.badge, background: estadoColor.bg, color: estadoColor.color }}>{sol.estado}</div>
-          {sol.estado === 'pendiente' && puedeAprobar && (
-            <div style={s.btnRow}>
-              <button style={{ ...s.btn, color: '#1d9e75' }} onClick={() => cambiarEstado(sol, 'aprobado')}>Aprobar</button>
-              <button style={{ ...s.btn, color: '#d85a30' }} onClick={() => cambiarEstado(sol, 'rechazado')}>Rechazar</button>
+      <div key={sol.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 15, fontWeight: 600, flexShrink: 0 }}>{inicial(sol.monitor)}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>{sol.monitor}</div>
+          <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 2 }}>{sol.fecha1}{sol.fecha2 ? ` — ${sol.fecha2}` : ''}</div>
+          {sol.estado === 'pendiente' && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button style={{ ...s.btn, color: '#1d9e75', boxShadow: 'var(--shadow-out)' }} onClick={() => cambiarEstado(sol, 'aprobado')}>Aprobar</button>
+              <button style={{ ...s.btn, color: '#d85a30', boxShadow: 'var(--shadow-out)' }} onClick={() => cambiarEstado(sol, 'rechazado')}>Rechazar</button>
             </div>
           )}
         </div>
+        <span style={{ ...s.badge, background: ec.bg, color: ec.color, flexShrink: 0 }}>{sol.estado}</span>
+      </div>
+    );
+  };
+
+  const renderModela = (sol) => {
+    const ec = ESTADO_COLOR[sol.estado] || ESTADO_COLOR.pendiente;
+    return (
+      <div key={sol.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ width: 36, height: 36, borderRadius: 18, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 14, flexShrink: 0 }}>👤</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: 'var(--text)', fontSize: 12, fontWeight: 500 }}>{sol.modelo}</div>
+          <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>{sol.fecha1}{sol.fecha2 ? ` — ${sol.fecha2}` : ''}</div>
+          {sol.estado === 'pendiente' && (
+            <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+              <button style={{ ...s.btn, color: '#1d9e75', boxShadow: 'var(--shadow-out)', padding: '5px 10px' }} onClick={() => cambiarEstado(sol, 'aprobado')}>Aprobar</button>
+              <button style={{ ...s.btn, color: '#d85a30', boxShadow: 'var(--shadow-out)', padding: '5px 10px' }} onClick={() => cambiarEstado(sol, 'rechazado')}>Rechazar</button>
+            </div>
+          )}
+        </div>
+        <span style={{ ...s.badge, background: ec.bg, color: ec.color, flexShrink: 0 }}>{sol.estado}</span>
       </div>
     );
   };
 
   return (
-    <div style={s.wrap}>
-      <div style={s.card}>
-        <div style={s.titulo}>Dias libres de monitores</div>
-        {monitores.length === 0 && <p style={s.vacio}>No hay solicitudes de monitores</p>}
-        {monitores.map(sol => renderSolicitud(sol, true))}
-      </div>
-      <div style={s.card}>
-        <div style={{ ...s.titulo, fontSize: 18, fontWeight: 700 }}>Descansos de modelos</div>
-        {modelos.length === 0 && <p style={s.vacio}>No hay solicitudes de modelos</p>}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-          <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 8, padding: 3 }}>
-            <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
-            <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
+    <div>
+      <div style={{ color: 'var(--text)', fontSize: 26, fontWeight: 700, marginBottom: 20 }}>Días libres</div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 16, alignItems: 'start' }}>
+
+        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <i className="ti ti-calendar" style={{ color: 'var(--gold)', fontSize: 18 }} />
+            <span style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>Días libres de monitores</span>
           </div>
+          {monitores.length === 0 && <p style={s.vacio}>No hay solicitudes de monitores</p>}
+          {monitores.map(renderMonitor)}
         </div>
-        {['Manana', 'Tarde', 'Noche'].map(turno => {
-          const modelosTurno = modelos.filter(sol => turnoDeModelo(sol.modelo) === turno);
-          if (modelosTurno.length === 0) return null;
-          return (
-            <div key={turno} style={{ marginBottom: 8 }}>
-              <div style={s.turnoLabel}>Turno {turno}</div>
-              <div className={vistaGrid ? 'nm-grid-cards' : ''} style={!vistaGrid ? { display: 'flex', flexDirection: 'column', gap: 10 } : {}}>
-                {modelosTurno.map(sol => renderSolicitud(sol, false))}
+
+        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <i className="ti ti-calendar" style={{ color: 'var(--gold)', fontSize: 18 }} />
+            <span style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>Descansos de modelos</span>
+          </div>
+          {['Manana', 'Tarde', 'Noche'].map(turno => {
+            const modelosTurno = modelos.filter(sol => turnoDeModelo(sol.modelo) === turno);
+            return (
+              <div key={turno} style={{ marginBottom: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>{TURNO_ICONO[turno]}</span>
+                    <span style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Turno {turno}</span>
+                  </div>
+                  <span style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 20, color: 'var(--text-sub)', fontSize: 10, padding: '3px 10px' }}>{modelosTurno.length} descansos</span>
+                </div>
+                {modelosTurno.length === 0
+                  ? <p style={{ color: 'var(--text-dim)', textAlign: 'center', padding: 12, fontSize: 12 }}>No hay descansos registrados para este turno</p>
+                  : modelosTurno.map(renderModela)
+                }
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
