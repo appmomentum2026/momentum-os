@@ -69,9 +69,10 @@ function FormModelo({ nombre, datos, onChange }) {
 }
 
 function VistaJefe({ cierres }) {
-  const fechasDisponibles = [...new Set(cierres.map(c => c.dia).filter(Boolean))];
+  const fechasDisponibles = [...new Set(cierres.map(c => c.dia).filter(Boolean))].sort((a, b) => b.localeCompare(a));
   const hoy = new Date().toLocaleDateString('es-CO');
   const [fechaSel, setFechaSel] = useState(fechasDisponibles.includes(hoy) ? hoy : (fechasDisponibles[0] || hoy));
+  const [turnoDetalle, setTurnoDetalle] = useState(null);
 
   const cierresDia = cierres.filter(c => c.dia === fechaSel);
 
@@ -79,69 +80,164 @@ function VistaJefe({ cierres }) {
   cierresDia.forEach(c => {
     const turno = c.turno || TURNOS[c.monitor] || '';
     if (!porTurno[turno]) return;
-    (c.modelos || []).forEach(m => {
-      porTurno[turno].push({ ...m, monitor: c.monitor });
-    });
+    (c.modelos || []).forEach(m => porTurno[turno].push({ ...m, monitor: c.monitor }));
   });
 
   const tokensModelo = (m) => PLATAFORMAS.reduce((acc, p) => acc + Number(m[p + '_tokens'] || 0), 0);
+  const totalTokensDia = Object.values(porTurno).flat().reduce((acc, m) => acc + tokensModelo(m), 0);
+  const totalModelosDia = Object.values(porTurno).flat().length;
+  const promedioModelo = totalModelosDia > 0 ? Math.round(totalTokensDia / totalModelosDia) : 0;
+
+  const TURNO_INFO = { Manana: { icono: '🌅', label: 'Turno Mañana' }, Tarde: { icono: '☀️', label: 'Turno Tarde' }, Noche: { icono: '🌙', label: 'Turno Noche' } };
 
   return (
-    <div>
-      <div style={s.form}>
-        <label style={s.label}>Ver cierre del día</label>
-        <select style={s.select} value={fechaSel} onChange={e => setFechaSel(e.target.value)}>
-          {fechasDisponibles.length === 0 && <option value={hoy}>{hoy}</option>}
-          {fechasDisponibles.map(f => <option key={f} value={f}>{f}{f === hoy ? ' (hoy)' : ''}</option>)}
-        </select>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      {/* Header */}
+      
+
+      {/* KPIs + selector fecha */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr', gap: 12 }}>
+        {/* Selector fecha */}
+        <div style={{ background: 'var(--bg2)', borderRadius: 14, padding: '16px 18px', border: '1px solid var(--border2)' }}>
+          <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Ver cierre del día</div>
+          <select style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none' }}
+            value={fechaSel} onChange={e => setFechaSel(e.target.value)}>
+            {fechasDisponibles.length === 0 && <option value={hoy}>{hoy} (hoy)</option>}
+            {fechasDisponibles.map(f => <option key={f} value={f}>{f}{f === hoy ? ' (hoy)' : ''}</option>)}
+          </select>
+        </div>
+
+        {/* Total tokens */}
+        <div style={{ background: 'var(--bg2)', borderRadius: 14, padding: '16px 18px', border: '1px solid var(--border2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 18 }}>🪙</span>
+            <span style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' }}>Total tokens</span>
+          </div>
+          <div style={{ color: 'var(--text)', fontSize: 24, fontWeight: 700 }}>{totalTokensDia.toLocaleString()}</div>
+          <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 2 }}>${(totalTokensDia / 20).toFixed(2)} USD</div>
+        </div>
+
+        {/* Total modelos */}
+        <div style={{ background: 'var(--bg2)', borderRadius: 14, padding: '16px 18px', border: '1px solid var(--border2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 18 }}>👥</span>
+            <span style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' }}>Total modelos</span>
+          </div>
+          <div style={{ color: 'var(--text)', fontSize: 24, fontWeight: 700 }}>{totalModelosDia}</div>
+          <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 2 }}>Activos en el día</div>
+        </div>
+
+        {/* Promedio por modelo */}
+        <div style={{ background: 'var(--bg2)', borderRadius: 14, padding: '16px 18px', border: '1px solid var(--border2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 18 }}>📊</span>
+            <span style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' }}>Promedio por modelo</span>
+          </div>
+          <div style={{ color: 'var(--gold)', fontSize: 24, fontWeight: 700 }}>{promedioModelo.toLocaleString()}</div>
+          <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 2 }}>tokens</div>
+        </div>
       </div>
 
-      {cierresDia.length === 0 && <p style={s.vacia}>No hay cierres registrados este día</p>}
+      {cierresDia.length === 0 && <p style={{ color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 }}>No hay cierres registrados este día</p>}
 
+      {/* Tarjetas por turno */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-      {ORDEN_TURNOS.map(turno => {
-        const modelos = porTurno[turno];
-        if (!modelos || modelos.length === 0) return null;
+        {ORDEN_TURNOS.map(turno => {
+          const modelos = porTurno[turno];
+          if (!modelos || modelos.length === 0) return null;
+          const info = TURNO_INFO[turno];
+          const subtotalTokens = modelos.reduce((acc, m) => acc + tokensModelo(m), 0);
+          const subtotalUsd = (subtotalTokens / 20).toFixed(2);
+          const abierto = turnoDetalle === turno;
 
-        const subtotalTokens = modelos.reduce((acc, m) => acc + tokensModelo(m), 0);
-        const subtotalUsd = (subtotalTokens / 20).toFixed(2);
-
-        return (
-          <div key={turno} style={s.turnoCard}>
-            <div style={s.turnoHeader}>
-              <div style={s.turnoTitulo}>Turno {turno}</div>
-              <div style={s.turnoSubtotal}>
-                <div style={s.turnoSubtotalTokens}>{subtotalTokens.toLocaleString()} tokens</div>
-                <div style={s.turnoSubtotalUsd}>${subtotalUsd} USD</div>
-              </div>
-            </div>
-            <div style={s.turnoMeta}>{modelos.length} modelos · {fechaSel}</div>
-
-            {modelos.map((m, i) => {
-              const tot = tokensModelo(m);
-              return (
-                <div key={m.nombre + i} style={s.modelaRow}>
-                  <div style={s.modelaTop}>
-                    <span style={s.modelaNombre}>{m.nombre}</span>
-                    <span style={s.modelaTotal}>{tot.toLocaleString()} tkns · ${(tot / 20).toFixed(2)}</span>
+          return (
+            <div key={turno} style={{ background: 'var(--bg2)', borderRadius: 16, border: '1px solid var(--border2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              {/* Header turno */}
+              <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 18 }}>{info.icono}</span>
+                    <span style={{ color: 'var(--gold)', fontSize: 15, fontWeight: 700, textTransform: 'uppercase' }}>{info.label}</span>
                   </div>
-                  {PLATAFORMAS.map(p => (m[p + '_tokens'] || m[p + '_usd']) ? (
-                    <div key={p} style={s.platRow}>
-                      <span>{p}</span>
-                      <span>{Number(m[p + '_tokens'] || 0).toLocaleString()} tokens · ${m[p + '_usd'] || 0} USD</span>
-                    </div>
-                  ) : null)}
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>{subtotalTokens.toLocaleString()} tokens</div>
+                    <div style={{ color: 'var(--gold)', fontSize: 12 }}>${subtotalUsd} USD</div>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        );
-      })}
+                <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 6 }}>{modelos.length} modelos · {fechaSel}</div>
+              </div>
+
+              {/* Lista modelos */}
+              <div style={{ flex: 1, padding: '8px 0' }}>
+                {modelos.map((m, i) => {
+                  const tot = tokensModelo(m);
+                  const platsActivas = PLATAFORMAS.filter(p => m[p + '_tokens'] || m[p + '_usd']);
+                  return (
+                    <div key={m.nombre + i} style={{ padding: '10px 18px', borderBottom: i < modelos.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: platsActivas.length > 0 ? 6 : 0 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 16, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>👤</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: 'var(--text)', fontSize: 12, fontWeight: 500 }}>{m.nombre}</div>
+                          {platsActivas.length > 0 && <div style={{ color: 'var(--text-sub)', fontSize: 10 }}>{platsActivas[0]}</div>}
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ color: 'var(--gold)', fontSize: 12, fontWeight: 600 }}>{tot.toLocaleString()} tkns</div>
+                          <div style={{ color: 'var(--text-sub)', fontSize: 11 }}>${(tot / 20).toFixed(2)}</div>
+                        </div>
+                      </div>
+                      {platsActivas.length > 1 && platsActivas.slice(1).map(p => (
+                        <div key={p} style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: 42, fontSize: 11, color: 'var(--text-sub)', marginTop: 3 }}>
+                          <span>{p}</span>
+                          <span style={{ color: 'var(--gold)' }}>{Number(m[p + '_tokens'] || 0).toLocaleString()} tkns</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Ver detalle */}
+              <button style={{ background: 'var(--bg3)', border: 'none', borderTop: '1px solid var(--border)', color: 'var(--text)', padding: '14px 18px', fontSize: 12, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}
+                onClick={() => setTurnoDetalle(abierto ? null : turno)}>
+                <span>{abierto ? 'Ocultar detalle' : 'Ver detalle del turno'}</span>
+                <span style={{ color: 'var(--gold)' }}>{abierto ? '↑' : '→'}</span>
+              </button>
+
+              {/* Detalle expandible */}
+              {abierto && (
+                <div style={{ background: 'var(--bg3)', padding: '14px 18px', borderTop: '1px solid var(--border)' }}>
+                  <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Detalle del turno</div>
+                  {modelos.map((m, i) => {
+                    const tot = tokensModelo(m);
+                    return (
+                      <div key={m.nombre + i} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: i < modelos.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ color: 'var(--text)', fontSize: 12, fontWeight: 600 }}>{m.nombre}</span>
+                          <span style={{ color: 'var(--gold)', fontSize: 12, fontWeight: 600 }}>{tot.toLocaleString()} tkns · ${(tot / 20).toFixed(2)}</span>
+                        </div>
+                        {m.inicio && <div style={{ color: 'var(--text-sub)', fontSize: 11, marginBottom: 4 }}>⏰ {m.inicio} — {m.fin}{m.inicioBreak ? ` · Break: ${m.inicioBreak}-${m.finBreak}` : ''}</div>}
+                        {PLATAFORMAS.map(p => (m[p + '_tokens'] || m[p + '_usd']) ? (
+                          <div key={p} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-sub)', padding: '2px 0' }}>
+                            <span>{p}</span>
+                            <span>{Number(m[p + '_tokens'] || 0).toLocaleString()} tokens · ${m[p + '_usd'] || 0} USD</span>
+                          </div>
+                        ) : null)}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
-export default function CierreTurno({ rol, nombreMonitor, modelasMonitor }) {
+
+  
+      export default function CierreTurno({ rol, nombreMonitor, modelasMonitor }) {
   const [datosModelos, setDatosModelos] = useState({});
   const [cierres, setCierres] = useState([]);
   const [enviando, setEnviando] = useState(false);
