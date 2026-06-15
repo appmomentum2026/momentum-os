@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, functions } from './firebase';
-import { collection, doc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 
 const TURNOS = ['Manana', 'Tarde', 'Noche'];
@@ -9,9 +9,17 @@ export default function GestionMonitores() {
   const [monitores, setMonitores] = useState([]);
   const [modo, setModo] = useState(null);
   const [form, setForm] = useState({ nombre: '', turno: '', clave: '' });
-  const [confirmEliminar, setConfirmEliminar] = useState(null);
   const [guardando, setGuardando] = useState(false);
-  const [vistaGrid, setVistaGrid] = useState(true);
+
+  const eliminar = async (id) => {
+    if (!window.confirm('Seguro que quieres eliminar este monitor?')) return;
+    await deleteDoc(doc(db, 'monitores', id));
+  };
+
+  const editar = (monitor) => {
+    setModo(monitor.id);
+    setForm({ nombre: monitor.nombre || '', turno: monitor.turno || '', clave: '' });
+  };
 
   useEffect(() => {
     const handleEditar = (e) => {
@@ -20,7 +28,7 @@ export default function GestionMonitores() {
     };
     const handleEliminar = (e) => {
       const monitor = monitores.find(m => m.nombre === e.detail);
-      if (monitor) setConfirmEliminar(monitor.id);
+      if (monitor) eliminar(monitor.id);
     };
     document.addEventListener('editarMonitor', handleEditar);
     document.addEventListener('eliminarMonitor', handleEliminar);
@@ -28,7 +36,7 @@ export default function GestionMonitores() {
       document.removeEventListener('editarMonitor', handleEditar);
       document.removeEventListener('eliminarMonitor', handleEliminar);
     };
-  }, [monitores]);
+  }, [monitores]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'monitores'), snap => {
@@ -64,16 +72,6 @@ export default function GestionMonitores() {
       console.error('Error guardando monitor:', err);
     }
     setGuardando(false);
-  };
-
-  const editar = (monitor) => {
-    setModo(monitor.id);
-    setForm({ nombre: monitor.nombre || '', turno: monitor.turno || '', clave: '' });
-  };
-
-  const eliminar = async (id) => {
-    await deleteDoc(doc(db, 'monitores', id));
-    setConfirmEliminar(null);
   };
 
   const s = {
@@ -126,7 +124,6 @@ export default function GestionMonitores() {
 
       {monitores.length === 0 && modo === null && <p style={{ color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 }}>No hay monitores registrados</p>}
 
-      
-          </div>
+    </div>
   );
 }

@@ -12,7 +12,6 @@ import Nomina from './Nomina';
 import Metas from './Metas';
 import ResumenJefe from './ResumenJefe';
 import GestionModelos from './GestionModelos';
-import ImportarModelos from './ImportarModelos';
 import Inventario2 from './Inventario2';
 import Pedidos from './Pedidos';
 import { DiasLibresModelo, DiasLibresMonitor, DiasLibresJefe } from './DiasLibres';
