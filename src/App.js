@@ -380,7 +380,6 @@ function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
       {vista === 'resumen' && <ResumenJefe />}
       {vista === 'sheets' && <GoogleSheets />}
       {vista === 'modelos' && <GestionModelos />}
-      {vista === 'modelos' && <ImportarModelos />}
       {vista === 'monitores' && <ResumenMonitores />}
       {vista === 'monitores' && <GestionMonitores />}
       {vista === 'inventario' && <Inventario2 rol="jefe" />}

@@ -119,6 +119,16 @@ export default function ResumenMonitores() {
                 <div style={s.statValGold}>${datos.totalUsd}</div>
               </div>
             </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+              <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '7px 14px', fontSize: 12, cursor: 'pointer', letterSpacing: 1 }}
+                onClick={() => document.dispatchEvent(new CustomEvent('editarMonitor', { detail: monitor }))}>
+                Editar
+              </button>
+              <button style={{ background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '7px 14px', fontSize: 12, cursor: 'pointer' }}
+                onClick={() => document.dispatchEvent(new CustomEvent('eliminarMonitor', { detail: monitor }))}>
+                Eliminar
+              </button>
+            </div>
           </div>
               );
             })}

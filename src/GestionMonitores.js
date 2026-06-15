@@ -14,6 +14,23 @@ export default function GestionMonitores() {
   const [vistaGrid, setVistaGrid] = useState(true);
 
   useEffect(() => {
+    const handleEditar = (e) => {
+      const monitor = monitores.find(m => m.nombre === e.detail);
+      if (monitor) editar(monitor);
+    };
+    const handleEliminar = (e) => {
+      const monitor = monitores.find(m => m.nombre === e.detail);
+      if (monitor) setConfirmEliminar(monitor.id);
+    };
+    document.addEventListener('editarMonitor', handleEditar);
+    document.addEventListener('eliminarMonitor', handleEliminar);
+    return () => {
+      document.removeEventListener('editarMonitor', handleEditar);
+      document.removeEventListener('eliminarMonitor', handleEliminar);
+    };
+  }, [monitores]);
+
+  useEffect(() => {
     const unsub = onSnapshot(collection(db, 'monitores'), snap => {
       const data = [];
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
@@ -61,7 +78,7 @@ export default function GestionMonitores() {
 
   const s = {
     wrap: { display: 'block' },
-    btnNuevo: { background: 'var(--bg)', border: 'none', borderRadius: 12, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '12px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginBottom: 8 },
+    btnNuevo: { background: 'var(--gold)', border: 'none', borderRadius: 12, color: '#141414', padding: '12px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginBottom: 8, fontWeight: 700 },
     form: { background: 'var(--bg2)', borderRadius: 14, padding: 20, boxShadow: 'var(--shadow-out)', marginBottom: 8 },
     label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
     input: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14 },
@@ -109,46 +126,7 @@ export default function GestionMonitores() {
 
       {monitores.length === 0 && modo === null && <p style={{ color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 }}>No hay monitores registrados</p>}
 
-      {TURNOS.map(turno => {
-        const monitoresTurno = monitores.filter(m => m.turno === turno);
-        if (monitoresTurno.length === 0) return null;
-        return (
-          <div key={turno} style={{ marginBottom: 8 }}>
-            <div style={s.turnoLabel}>Turno {turno}</div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-              <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 3 }}>
-                <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
-                <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
-              </div>
-            </div>
-            <div className={vistaGrid ? 'nm-grid-cards' : ''} style={!vistaGrid ? { display: 'flex', flexDirection: 'column', gap: 10 } : {}}>
-            {monitoresTurno.map(m => (
-              <div key={m.id}>
-                <div style={s.card}>
-                  <div style={s.cardInfo}>
-                    <div style={s.cardNombre}>{m.nombre}</div>
-                    <div style={s.cardSub}>{m.turno} · {(m.modelas || []).length} modelos</div>
-                  </div>
-                  <div style={s.cardBtns}>
-                    <button style={s.btnEditar} onClick={() => editar(m)}>Editar</button>
-                    <button style={s.btnEliminar} onClick={() => setConfirmEliminar(m.id)}>Eliminar</button>
-                  </div>
-                </div>
-                {confirmEliminar === m.id && (
-                  <div style={s.confirmBox}>
-                    <div style={s.confirmText}>Seguro que quieres eliminar a {m.nombre}?</div>
-                    <div style={s.btnRow}>
-                      <button style={{ ...s.btnEliminar, boxShadow: 'var(--shadow-out)' }} onClick={() => eliminar(m.id)}>Si, eliminar</button>
-                      <button style={s.btnCancelar} onClick={() => setConfirmEliminar(null)}>Cancelar</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-            </div>
+      
           </div>
-        );
-      })}
-    </div>
   );
 }
