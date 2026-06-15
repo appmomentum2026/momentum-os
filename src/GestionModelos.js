@@ -16,6 +16,8 @@ const MONITORES_LISTA = [
 
 const FORM_VACIO = { nombreReal: '', nombreModelo: '', monitor: '', turno: '', clave: '', nacimiento: '', correo: '', lovense: '', amazon: '' };
 
+const TURNO_ICONO = { 'Manana': '🌅', 'Tarde': '☀️', 'Noche': '🌙' };
+
 export default function GestionModelos() {
   const [modelos, setModelos] = useState([]);
   const [monitores, setMonitores] = useState([]);
@@ -27,6 +29,7 @@ export default function GestionModelos() {
 const [fotoFile, setFotoFile] = useState(null);
 const [fotoPreview, setFotoPreview] = useState(null);
 const [vistaGrid, setVistaGrid] = useState(true);
+const [busqueda, setBusqueda] = useState('');
 
   useEffect(() => {
     const unsub1 = onSnapshot(collection(db, 'modelos'), snap => {
@@ -222,57 +225,52 @@ const [vistaGrid, setVistaGrid] = useState(true);
 
       {modelos.length === 0 && modo === null && <p style={s.vacio}>No hay modelos registradas</p>}
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-        <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 8, padding: 3 }}>
-          <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
-          <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
+      {modo === null && (
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 10, padding: '9px 14px', flex: 1 }}>
+            <i className="ti ti-search" style={{ color: 'var(--text-dim)', fontSize: 16 }} />
+            <input style={{ background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 13, outline: 'none', flex: 1 }} placeholder="Buscar modelo..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 8, padding: 3 }}>
+            <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
+            <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
+          </div>
         </div>
-      </div>
+      )}
 
       {['Manana', 'Tarde', 'Noche'].map(turno => {
-        const modelosTurno = modelos.filter(m => m.turno === turno);
+        const modelosTurno = modelos.filter(m => m.turno === turno && (m.nombreReal.toLowerCase().includes(busqueda.toLowerCase()) || (m.nombreModelo || '').toLowerCase().includes(busqueda.toLowerCase())));
         if (modelosTurno.length === 0) return null;
         return (
-          <div key={turno} style={{ marginBottom: 8 }}>
-            <div style={s.turnoLabel}>Turno {turno}</div>
-            <div className={vistaGrid ? 'nm-grid-cards' : ''}>
+          <div key={turno} style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <span style={{ fontSize: 22 }}>{TURNO_ICONO[turno]}</span>
+              <span style={{ color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Turno {turno}</span>
+              <span style={{ background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 20, color: 'var(--text-sub)', fontSize: 11, padding: '4px 12px' }}>{modelosTurno.length} modelos</span>
+            </div>
+            <div className={vistaGrid ? 'nm-grid-cards' : ''} style={!vistaGrid ? { display: 'flex', flexDirection: 'column', gap: 10 } : {}}>
             {modelosTurno.map(m => (
-              <div key={m.id} style={{ marginBottom: 12 }}>
-                <div style={s.card} onClick={() => setExpandida(expandida === m.id ? null : m.id)}>
-                  <div style={s.cardInfo}>
-                    <div style={s.cardNombre}>{m.nombreReal}</div>
-                    <div style={s.cardSub}>{m.nombreModelo && `${m.nombreModelo} · `}{m.monitor} · {m.turno}</div>
+              <div key={m.id}>
+                <div style={{ background: 'var(--bg2)', borderRadius: 14, padding: 16, border: '1px solid var(--border2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      {m.fotoURL
+                        ? <img src={m.fotoURL} alt={m.nombreReal} style={{ width: 48, height: 48, borderRadius: 24, objectFit: 'cover', border: '1px solid var(--border2)' }} />
+                        : <div style={{ width: 48, height: 48, borderRadius: 24, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 18 }}>👤</div>
+                      }
+                      <div style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, background: m.activa !== false ? '#4CAF7D' : 'var(--text-dim)', border: '2px solid var(--bg2)' }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>{m.nombreReal}</div>
+                      <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>{m.nombreModelo ? `${m.nombreModelo} · ` : ''}{m.monitor}</div>
+                      <span style={{ display: 'inline-block', marginTop: 6, background: 'rgba(201,146,74,0.15)', color: 'var(--gold)', fontSize: 10, padding: '2px 10px', borderRadius: 20, fontWeight: 500 }}>{m.turno}</span>
+                    </div>
                   </div>
-                  <div style={s.cardBtns}>
-                    <button style={s.btnEditar} onClick={e => { e.stopPropagation(); editar(m); }}>Editar</button>
-                    <button style={s.btnEliminar} onClick={e => { e.stopPropagation(); setConfirmEliminar(m.id); }}>Eliminar</button>
+                  <div style={{ display: 'flex', gap: 8, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                    <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '7px 12px', fontSize: 12, cursor: 'pointer' }} onClick={() => editar(m)}>✎ Editar</button>
+                    <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '7px 12px', fontSize: 12, cursor: 'pointer' }} onClick={() => setConfirmEliminar(m.id)}>🗑 Eliminar</button>
                   </div>
                 </div>
-                {expandida === m.id && (
-                  <div style={s.detalle}>
-                    {m.fotoURL && (
-                      <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                        <img src={m.fotoURL} alt="foto" style={{ width: 80, height: 80, borderRadius: 40, objectFit: 'cover', border: '2px solid var(--gold)' }} />
-                      </div>
-                    )}
-                    <div style={s.detalleRow}>
-                      <span style={s.detalleLabel}>Nombre real</span>
-                      <span style={s.detalleValor}>{m.nombreReal}</span>
-                    </div>
-                    <div style={s.detalleRow}>
-                      <span style={s.detalleLabel}>Nombre modelo</span>
-                      <span style={s.detalleValor}>{m.nombreModelo || 'Sin definir'}</span>
-                    </div>
-                    <div style={s.detalleRow}>
-                      <span style={s.detalleLabel}>Monitor</span>
-                      <span style={s.detalleValor}>{m.monitor}</span>
-                    </div>
-                    <div style={{ ...s.detalleRow, borderBottom: 'none' }}>
-                      <span style={s.detalleLabel}>Turno</span>
-                      <span style={s.detalleValor}>{m.turno}</span>
-                    </div>
-                  </div>
-                )}
                 {confirmEliminar === m.id && (
                   <div style={s.confirmBox}>
                     <div style={s.confirmText}>Seguro que quieres eliminar a {m.nombreReal}?</div>
