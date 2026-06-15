@@ -185,7 +185,7 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
   padding: 8px 14px; border-radius: 20px;
   border: 1px solid var(--border);
   background: transparent;
-  color: var(--text-sub); font-size: 11px; letter-spacing: 1px;
+  color: var(--text); font-size: 11px; letter-spacing: 1px;
   text-transform: uppercase; cursor: pointer;
   display: flex; align-items: center; gap: 6px;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
@@ -452,8 +452,8 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
   flex-shrink: 0;
 }
 
-.nm-sidebar-title { color: var(--text); font-size: 13px; font-weight: 600; }
-.nm-sidebar-sub { color: var(--text-sub); font-size: 10px; }
+.nm-sidebar-title { color: var(--text); font-size: 16px; font-weight: 700; }
+.nm-sidebar-sub { color: var(--gold); font-size: 13px; font-weight: 600; }
 
 .nm-side-btn {
   display: flex;

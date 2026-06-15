@@ -289,6 +289,18 @@ export default function Metas({ rol, nombreModelo }) {
     return unsub;
   }, []);
 
+  const [cierres, setCierres] = useState([]);
+  const quincena = getQuincena(0);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'cierres'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setCierres(data);
+    });
+    return unsub;
+  }, []);
+
   const guardarMeta = async (modelo, valor) => {
     if (!valor) return;
     await setDoc(doc(db, 'metas', modelo), { tokens: Number(valor), actualizado: new Date().toISOString() });
@@ -296,7 +308,12 @@ export default function Metas({ rol, nombreModelo }) {
   };
 
   if (rol === 'jefe') {
-    const renderModelo = (modelo) => (
+
+    const renderModelo = (modelo) => {
+      const { total } = tokensEnRango(cierres, modelo, quincena.inicio, quincena.fin);
+      const meta = metas[modelo]?.tokens || 0;
+      const pct = meta > 0 ? Math.min(100, Math.round((total / meta) * 100)) : 0;
+      return (
       <div key={modelo} style={s.card}>
         <div style={s.fila}>
           <div style={s.nombre}>{modelo}</div>
@@ -307,9 +324,20 @@ export default function Metas({ rol, nombreModelo }) {
             <button style={s.btnGuardar} onClick={() => guardarMeta(modelo, editando[modelo])}>OK</button>
           </div>
         </div>
-        {metas[modelo] && <div style={s.metaActual}>Meta actual: {metas[modelo].tokens.toLocaleString()} tokens</div>}
+        {meta > 0 && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 12 }}>
+              <span style={{ color: 'var(--text-sub)' }}>{total.toLocaleString()} / {meta.toLocaleString()} tokens</span>
+              <span style={{ color: pct >= 100 ? '#4CAF7D' : 'var(--gold)' }}>{pct}%</span>
+            </div>
+            <div style={s.barraWrap}>
+              <div style={{ ...s.barraFill, width: `${pct}%`, background: pct >= 100 ? '#4CAF7D' : 'var(--gold)' }}></div>
+            </div>
+          </>
+        )}
       </div>
     );
+    };
 
     return (
       <div style={s.wrap}>

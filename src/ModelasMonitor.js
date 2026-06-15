@@ -169,6 +169,7 @@ export default function ModelasMonitor({ monitorData }) {
         <div style={s.vacio}>No tienes modelos asignadas</div>
       )}
 
+      <div className="nm-grid-cards">
       {misModelos.map(m => (
         <div key={m.id} style={s.card}>
           {editando === m.id ? (
@@ -235,6 +236,7 @@ export default function ModelasMonitor({ monitorData }) {
           )}
         </div>
       ))}
+      </div>
     </div>
   );
 }

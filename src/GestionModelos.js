@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { db } from './firebase';
+import { db, storage } from './firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, doc, deleteDoc, updateDoc, onSnapshot, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from './firebase';
@@ -23,6 +24,8 @@ export default function GestionModelos() {
   const [paginas, setPaginas] = useState([]);
   const [confirmEliminar, setConfirmEliminar] = useState(null);
   const [expandida, setExpandida] = useState(null);
+const [fotoFile, setFotoFile] = useState(null);
+const [fotoPreview, setFotoPreview] = useState(null);
 
   useEffect(() => {
     const unsub1 = onSnapshot(collection(db, 'modelos'), snap => {
@@ -42,6 +45,12 @@ export default function GestionModelos() {
   const guardar = async () => {
     if (!form.nombreReal || !form.monitor) return;
     const id = modo === 'nuevo' ? Date.now().toString() : modo;
+    let fotoURL = form.fotoURL || '';
+    if (fotoFile) {
+      const storageRef = ref(storage, `fotos/${id}`);
+      await uploadBytes(storageRef, fotoFile);
+      fotoURL = await getDownloadURL(storageRef);
+    }
     const modeloActual = modo !== 'nuevo' ? modelos.find(m => m.id === modo) : null;
 
     const guardarUsuario = httpsCallable(functions, 'guardarUsuario');
@@ -59,7 +68,8 @@ export default function GestionModelos() {
         correo: form.correo || '',
         lovense: form.lovense || '',
         amazon: form.amazon || '',
-        paginas: paginas
+        paginas: paginas,
+        fotoURL: fotoURL
       }
     });
 
@@ -100,8 +110,11 @@ export default function GestionModelos() {
       nacimiento: modelo.nacimiento || '',
       correo: modelo.correo || '',
       lovense: modelo.lovense || '',
-      amazon: modelo.amazon || ''
+      amazon: modelo.amazon || '',
+      fotoURL: modelo.fotoURL || ''
     });
+    setFotoFile(null);
+    setFotoPreview(null);
     setPaginas(modelo.paginas || []);
   };
 
@@ -178,6 +191,17 @@ export default function GestionModelos() {
           <input style={s.input} placeholder="Usuario / Clave" value={form.lovense || ''} onChange={e => setForm(prev => ({ ...prev, lovense: e.target.value }))} />
           <label style={s.label}>Accesos Amazon</label>
           <input style={s.input} placeholder="Usuario / Clave" value={form.amazon || ''} onChange={e => setForm(prev => ({ ...prev, amazon: e.target.value }))} />
+          <label style={s.label}>Foto</label>
+          <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
+            {(fotoPreview || form.fotoURL) && (
+              <img src={fotoPreview || form.fotoURL} alt="foto" style={{ width: 60, height: 60, borderRadius: 30, objectFit: 'cover', border: '2px solid var(--gold)' }} />
+            )}
+            <input type="file" accept="image/*" style={{ color: 'var(--text-sub)', fontSize: 12 }}
+              onChange={e => {
+                const file = e.target.files[0];
+                if (file) { setFotoFile(file); setFotoPreview(URL.createObjectURL(file)); }
+              }} />
+          </div>
           <label style={s.label}>Páginas</label>
           {paginas.map((p, i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 6, marginBottom: 8 }}>
@@ -218,6 +242,11 @@ export default function GestionModelos() {
                 </div>
                 {expandida === m.id && (
                   <div style={s.detalle}>
+                    {m.fotoURL && (
+                      <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                        <img src={m.fotoURL} alt="foto" style={{ width: 80, height: 80, borderRadius: 40, objectFit: 'cover', border: '2px solid var(--gold)' }} />
+                      </div>
+                    )}
                     <div style={s.detalleRow}>
                       <span style={s.detalleLabel}>Nombre real</span>
                       <span style={s.detalleValor}>{m.nombreReal}</span>

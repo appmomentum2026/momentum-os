@@ -177,7 +177,7 @@ export default function Inventario2({ rol, nombreModelo }) {
           if (prods.length === 0) return null;
           return (
             <div key={cat}>
-              <div style={{ color: 'var(--text)', fontSize: 15, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, marginTop: 16 }}>{cat}</div>
+              <div style={{ color: 'var(--gold)', fontSize: 20, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12, marginTop: 20, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>{cat}</div>
               <div className="nm-grid-cards">
                 {prods.map(p => (
                   <div key={p.id} style={s.card}>
@@ -188,7 +188,7 @@ export default function Inventario2({ rol, nombreModelo }) {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>Disponibles: {p.stock}</div>
-                      <button style={s.btnPedir} onClick={() => setSeleccionando(seleccionando === p.id ? null : p.id)}>
+                      <button style={{ ...s.btnPedir, padding: '12px 28px', fontSize: 15, borderRadius: 12, boxShadow: '0 2px 8px rgba(201,146,74,0.4)' }} onClick={() => setSeleccionando(seleccionando === p.id ? null : p.id)}>
                         Pedir
                       </button>
                     </div>
