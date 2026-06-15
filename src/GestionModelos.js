@@ -25,7 +25,6 @@ export default function GestionModelos() {
   const [form, setForm] = useState(FORM_VACIO);
   const [paginas, setPaginas] = useState([]);
   const [confirmEliminar, setConfirmEliminar] = useState(null);
-  const [expandida, setExpandida] = useState(null);
 const [fotoFile, setFotoFile] = useState(null);
 const [fotoPreview, setFotoPreview] = useState(null);
 const [vistaGrid, setVistaGrid] = useState(true);
