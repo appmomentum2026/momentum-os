@@ -26,6 +26,7 @@ export default function GestionModelos() {
   const [expandida, setExpandida] = useState(null);
 const [fotoFile, setFotoFile] = useState(null);
 const [fotoPreview, setFotoPreview] = useState(null);
+const [vistaGrid, setVistaGrid] = useState(true);
 
   useEffect(() => {
     const unsub1 = onSnapshot(collection(db, 'modelos'), snap => {
@@ -221,13 +222,20 @@ const [fotoPreview, setFotoPreview] = useState(null);
 
       {modelos.length === 0 && modo === null && <p style={s.vacio}>No hay modelos registradas</p>}
 
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 3 }}>
+          <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
+          <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
+        </div>
+      </div>
+
       {['Manana', 'Tarde', 'Noche'].map(turno => {
         const modelosTurno = modelos.filter(m => m.turno === turno);
         if (modelosTurno.length === 0) return null;
         return (
           <div key={turno} style={{ marginBottom: 8 }}>
             <div style={s.turnoLabel}>Turno {turno}</div>
-            <div className="nm-grid-cards">
+            <div className={vistaGrid ? 'nm-grid-cards' : ''}>
             {modelosTurno.map(m => (
               <div key={m.id} style={{ marginBottom: 12 }}>
                 <div style={s.card} onClick={() => setExpandida(expandida === m.id ? null : m.id)}>

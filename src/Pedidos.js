@@ -40,6 +40,7 @@ const ESTADOS_STYLE = {
 export default function Pedidos({ rol }) {
   const [pedidos, setPedidos] = useState([]);
   const [filtro, setFiltro] = useState('todos');
+  const [vistaGrid, setVistaGrid] = useState(true);
 
   useEffect(() => {
     const q = query(collection(db, 'pedidos'), orderBy('fecha', 'desc'));
@@ -74,7 +75,13 @@ export default function Pedidos({ rol }) {
 
       {pedidosFiltrados.length === 0 && <p style={s.vacio}>No hay pedidos</p>}
 
-      <div className="nm-grid-cards">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 3 }}>
+          <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
+          <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
+        </div>
+      </div>
+      <div className={vistaGrid ? 'nm-grid-cards' : ''} style={!vistaGrid ? { display: 'flex', flexDirection: 'column', gap: 10 } : {}}>
       {pedidosFiltrados.map(p => {
         const estadoStyle = ESTADOS_STYLE[p.estado] || ESTADOS_STYLE.pendiente;
         return (

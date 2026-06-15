@@ -70,6 +70,7 @@ export default function ModelasMonitor({ monitorData }) {
   const [formEdit, setFormEdit] = useState(FORM_VACIO);
   const [paginasEdit, setPaginasEdit] = useState([]);
   const [confirmando, setConfirmando] = useState(null);
+  const [vistaGrid, setVistaGrid] = useState(true);
 
   const modelasMonitor = monitorData?.modelas || [];
 
@@ -169,7 +170,14 @@ export default function ModelasMonitor({ monitorData }) {
         <div style={s.vacio}>No tienes modelos asignadas</div>
       )}
 
-      <div className="nm-grid-cards">
+      {misModelos.length > 0 && <>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 3 }}>
+          <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
+          <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
+        </div>
+      </div>
+      <div className={vistaGrid ? 'nm-grid-cards' : ''}>
       {misModelos.map(m => (
         <div key={m.id} style={s.card}>
           {editando === m.id ? (
@@ -237,6 +245,7 @@ export default function ModelasMonitor({ monitorData }) {
         </div>
       ))}
       </div>
+      </>}
     </div>
   );
 }
