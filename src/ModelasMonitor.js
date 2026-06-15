@@ -6,7 +6,7 @@ const FORM_VACIO = { nombreReal: '', nombreModelo: '', clave: '', nacimiento: ''
 
 const s = {
   btnNuevo: { background: 'var(--bg)', border: 'none', borderRadius: 12, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '12px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginBottom: 12 },
-  card: { background: 'var(--bg2)', borderRadius: 14, padding: 18, border: '1px solid var(--border)', marginBottom: 10 },
+  card: { background: 'var(--bg2)', borderRadius: 14, padding: 18, border: '1px solid var(--border2)', marginBottom: 10 },
   nombre: { color: 'var(--gold)', fontSize: 17, fontWeight: 700, marginBottom: 2 },
   nombreModelo: { color: 'var(--text-sub)', fontSize: 12, letterSpacing: 1, marginBottom: 12 },
   secTit: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 12, marginBottom: 6 },
@@ -172,7 +172,7 @@ export default function ModelasMonitor({ monitorData }) {
 
       {misModelos.length > 0 && <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-        <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 3 }}>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 8, padding: 3 }}>
           <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
           <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
         </div>

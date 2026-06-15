@@ -28,20 +28,20 @@ const MODELOS_TODAS = Object.values(MODELOS_POR_TURNO).flat();
 
 const s = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 10 },
-  totalCard: { background: 'var(--bg2)', borderRadius: 14, padding: 16, border: '1px solid var(--border)', marginBottom: 6 },
+  totalCard: { background: 'var(--bg2)', borderRadius: 14, padding: 16, border: '1px solid var(--border2)', marginBottom: 6 },
   totalLabel: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 },
   totalValor: { color: 'var(--gold)', fontSize: 28, fontWeight: 500 },
   totalSub: { color: 'var(--text-dim)', fontSize: 12, marginTop: 4 },
-  card: { background: 'var(--bg2)', borderRadius: 12, padding: 14, border: '1px solid var(--border)' },
+  card: { background: 'var(--bg2)', borderRadius: 12, padding: 14, border: '1px solid var(--border2)' },
   nombre: { color: 'var(--gold)', fontSize: 13, fontWeight: 500, marginBottom: 10 },
   fila: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' },
   filaLabel: { color: 'var(--text-sub)', fontSize: 12 },
   filaValor: { color: 'var(--text)', fontSize: 12 },
   badge: { padding: '3px 10px', borderRadius: 20, fontSize: 11, letterSpacing: 1, fontWeight: 500 },
-  bigCard: { background: 'var(--bg2)', borderRadius: 14, padding: 20, border: '1px solid var(--border)' },
+  bigCard: { background: 'var(--bg2)', borderRadius: 14, padding: 20, border: '1px solid var(--border2)' },
   titulo: { color: 'var(--gold)', fontSize: 14, fontWeight: 500, marginBottom: 16 },
   statsRow: { display: 'flex', gap: 10, marginBottom: 6 },
-  statBox: { flex: 1, background: 'var(--bg2)', borderRadius: 12, padding: 14, border: '1px solid var(--border)' },
+  statBox: { flex: 1, background: 'var(--bg2)', borderRadius: 12, padding: 14, border: '1px solid var(--border2)' },
   statLabel: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
   statVal: { color: 'var(--text)', fontSize: 20, fontWeight: 500 },
   rankRow: { marginBottom: 12 },
@@ -91,6 +91,7 @@ function getBadgeStyle(porcentaje) {
 export default function ResumenJefe() {
   const [cierres, setCierres] = useState([]);
   const [asistencia, setAsistencia] = useState({});
+  const [vistaGrid, setVistaGrid] = useState(true);
   const quincena = getQuincena();
 
   useEffect(() => {
@@ -218,7 +219,13 @@ export default function ResumenJefe() {
                 {tokensTurno.toLocaleString()} tokens · <span style={{ color: 'var(--gold)' }}>${totalTurno.toFixed(2)} USD</span>
               </div>
             </div>
-            <div className="nm-grid-cards">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+              <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 3 }}>
+                <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
+                <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
+              </div>
+            </div>
+            <div className={vistaGrid ? 'nm-grid-cards' : ''} style={!vistaGrid ? { display: 'flex', flexDirection: 'column', gap: 10 } : {}}>
               {modelosTurno.map(m => {
                 const badgeStyle = getBadgeStyle(m.porcentaje);
                 return (

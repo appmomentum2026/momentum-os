@@ -24,7 +24,7 @@ const s = {
   btnNo: { padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(192,97,74,0.3)', background: 'rgba(192,97,74,0.1)', color: '#C0614A', fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer' },
   btnActivo: { opacity: 1, outline: '1px solid currentColor' },
   btnInactivo: { opacity: 0.35 },
-  select: { background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--gold)', padding: '7px 10px', fontSize: 12 },
+  select: { background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--gold)', padding: '7px 10px', fontSize: 12 },
   badge: { padding: '4px 12px', borderRadius: 20, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
   hora: { color: 'var(--text-dim)', fontSize: 12 },
   vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 32, fontSize: 13 }

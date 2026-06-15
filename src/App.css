@@ -17,8 +17,8 @@ body.oscuro {
   --text: #E8E0D4;
   --text-sub: #7A7268;
   --text-dim: #4A4540;
-  --border: rgba(255,255,255,0.07);
-  --border2: rgba(255,255,255,0.12);
+  --border: rgba(255,255,255,0.13);
+  --border2: rgba(255,255,255,0.22);
   --green: #4CAF7D;
   --red: #C0614A;
   background: #141414;
@@ -45,8 +45,8 @@ body.claro {
   --text: #1A1714;
   --text-sub: #7A7268;
   --text-dim: #AAA49C;
-  --border: rgba(0,0,0,0.08);
-  --border2: rgba(0,0,0,0.15);
+  --border: rgba(0,0,0,0.13);
+  --border2: rgba(0,0,0,0.22);
   --green: #2D7A52;
   --red: #A03D2A;
   background: #F0EDE8;
@@ -141,6 +141,7 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
 }
 
 .nm-btn-entrar:hover { opacity: 0.9; }
+.nm-btn-entrar:active { transform: scale(0.97); }
 
 .nm-btn-volver {
   background: transparent; border: none;
@@ -206,7 +207,7 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
 .nm-card {
   background: var(--bg2);
   border-radius: 14px; padding: 14px 16px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border2);
   margin-bottom: 10px;
 }
 
@@ -589,3 +590,4 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
 @media (max-width: 768px) {
   .nm-panel-widgets { display: none; }
 }
+button:active { transform: scale(0.97); transition: transform 0.1s; }

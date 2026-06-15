@@ -11,7 +11,7 @@ const s = {
   wrap: { display: 'block' },
   // Tarjetas resumen
   resumenGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 },
-  resumenCard: { background: 'var(--bg2)', borderRadius: 14, padding: 16, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 14 },
+  resumenCard: { background: 'var(--bg2)', borderRadius: 14, padding: 16, border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', gap: 14 },
   resumenIcono: { width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 },
   resumenVal: { color: 'var(--text)', fontSize: 22, fontWeight: 700, lineHeight: 1.2 },
   resumenLabel: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 },
@@ -23,9 +23,9 @@ const s = {
   toolbar: { display: 'flex', gap: 10, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' },
   searchBox: { display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 10, padding: '8px 14px', flex: 1, minWidth: 180 },
   searchInput: { background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 13, outline: 'none', flex: 1 },
-  filtroBtn: { background: 'transparent', border: '1px solid var(--border)', borderRadius: 20, color: 'var(--text-sub)', padding: '7px 14px', fontSize: 12, letterSpacing: 1, cursor: 'pointer' },
+  filtroBtn: { background: 'transparent', border: '1px solid var(--border2)', borderRadius: 20, color: 'var(--text-sub)', padding: '7px 14px', fontSize: 12, letterSpacing: 1, cursor: 'pointer' },
   filtroActivo: { background: 'var(--gold)', borderColor: 'var(--gold)', color: '#141414', fontWeight: 600 },
-  toggleVista: { display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 3 },
+  toggleVista: { display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 8, padding: 3 },
   toggleBtn: { background: 'transparent', border: 'none', borderRadius: 6, color: 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 },
   toggleBtnActivo: { background: 'var(--bg3)', color: 'var(--gold)' },
   // Cards
@@ -35,7 +35,7 @@ const s = {
   cardCategoria: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
   cardPrecio: { color: 'var(--gold)', fontSize: 14, fontWeight: 600 },
   // Lista
-  listaCard: { background: 'var(--bg2)', borderRadius: 12, padding: '12px 16px', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6 },
+  listaCard: { background: 'var(--bg2)', borderRadius: 12, padding: '12px 16px', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6 },
   // Barra de stock
   barraWrap: { background: 'var(--bg3)', borderRadius: 20, height: 6, marginTop: 8, overflow: 'hidden' },
   barraFill: { height: '100%', borderRadius: 20, transition: 'width 0.4s' },
@@ -435,7 +435,7 @@ export default function Inventario2({ rol, nombreModelo }) {
           <button style={{ ...s.btnEliminar, padding: '4px 10px' }} onClick={() => setConfirmando(p.id)}>✕</button>
         </div>
         {confirmando === p.id && (
-          <div style={{ position: 'absolute', background: 'var(--bg2)', borderRadius: 10, padding: 10, border: '1px solid var(--border)', display: 'flex', gap: 8 }}>
+          <div style={{ position: 'absolute', background: 'var(--bg2)', borderRadius: 10, padding: 10, border: '1px solid var(--border2)', display: 'flex', gap: 8 }}>
             <button style={s.btnConfirmar} onClick={() => eliminar(p.id)}>¿Confirmar?</button>
             <button style={s.btnCancelar} onClick={() => setConfirmando(null)}>No</button>
           </div>

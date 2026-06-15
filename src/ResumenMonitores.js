@@ -19,7 +19,7 @@ const ICONO_TURNO = { 'Manana': 'sun', 'Tarde': 'sunset', 'Noche': 'moon' };
 
 const s = {
   wrap: { display: 'block' },
-  card: { background: 'var(--bg2)', borderRadius: 14, padding: 18, border: '1px solid var(--border)' },
+  card: { background: 'var(--bg2)', borderRadius: 14, padding: 18, border: '1px solid var(--border2)' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
   nombreRow: { display: 'flex', alignItems: 'center', gap: 10 },
   icono: { width: 38, height: 38, borderRadius: '50%', background: 'var(--gold-dim)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 18 },

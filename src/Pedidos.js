@@ -16,7 +16,7 @@ function getQuincena() {
 }
 const s = {
   wrap: { display: 'block' },
-  card: { background: 'var(--bg2)', borderRadius: 12, padding: 16, border: '1px solid var(--border)' },
+  card: { background: 'var(--bg2)', borderRadius: 12, padding: 16, border: '1px solid var(--border2)' },
   cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   producto: { color: 'var(--gold)', fontSize: 13, fontWeight: 500 },
   fila: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' },
@@ -24,10 +24,10 @@ const s = {
   filaValor: { color: 'var(--text)', fontSize: 12 },
   badge: { padding: '3px 10px', borderRadius: 20, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 500 },
   btnRow: { display: 'flex', gap: 8, marginTop: 10 },
-  btn: { background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 14px', fontSize: 12, letterSpacing: 1, cursor: 'pointer' },
+  btn: { background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, padding: '7px 14px', fontSize: 12, letterSpacing: 1, cursor: 'pointer' },
   vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 },
   filtros: { display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' },
-  filtroBtn: { background: 'transparent', border: '1px solid var(--border)', borderRadius: 20, color: 'var(--text-sub)', padding: '7px 14px', fontSize: 12, letterSpacing: 1, cursor: 'pointer' },
+  filtroBtn: { background: 'transparent', border: '1px solid var(--border2)', borderRadius: 20, color: 'var(--text-sub)', padding: '7px 14px', fontSize: 12, letterSpacing: 1, cursor: 'pointer' },
   filtroActivo: { background: 'var(--gold)', borderColor: 'var(--gold)', color: '#141414', fontWeight: 500 }
 };
 
@@ -76,7 +76,7 @@ export default function Pedidos({ rol }) {
       {pedidosFiltrados.length === 0 && <p style={s.vacio}>No hay pedidos</p>}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-        <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 3 }}>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 8, padding: 3 }}>
           <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
           <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
         </div>

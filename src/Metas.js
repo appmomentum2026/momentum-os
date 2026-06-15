@@ -28,13 +28,13 @@ const MODELOS_POR_TURNO = {
 const s = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
   grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  card: { background: 'var(--bg2)', borderRadius: 12, padding: 14, border: '1px solid var(--border)' },
+  card: { background: 'var(--bg2)', borderRadius: 12, padding: 14, border: '1px solid var(--border2)' },
   fila: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   nombre: { color: 'var(--text)', fontSize: 13, flex: 1 },
-  input: { background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--gold)', padding: '8px 12px', fontSize: 13, width: 120, outline: 'none', textAlign: 'right' },
+  input: { background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--gold)', padding: '8px 12px', fontSize: 13, width: 120, outline: 'none', textAlign: 'right' },
   btnGuardar: { background: 'var(--gold)', border: 'none', borderRadius: 8, color: '#141414', padding: '8px 14px', fontSize: 12, letterSpacing: 1, cursor: 'pointer', fontWeight: 500 },
   metaActual: { color: 'var(--text-dim)', fontSize: 12, marginTop: 6 },
-  bigCard: { background: 'var(--bg2)', borderRadius: 14, padding: 20, border: '1px solid var(--border)' },
+  bigCard: { background: 'var(--bg2)', borderRadius: 14, padding: 20, border: '1px solid var(--border2)' },
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
   bigVal: { color: 'var(--gold)', fontSize: 32, fontWeight: 500, marginBottom: 4 },
   titulo: { color: 'var(--gold)', fontSize: 14, fontWeight: 500, marginBottom: 14 },
@@ -308,47 +308,67 @@ export default function Metas({ rol, nombreModelo }) {
   };
 
   if (rol === 'jefe') {
+    const TURNO_INFO = {
+      'Manana': { hora: '8am - 2pm', icono: '🌅' },
+      'Tarde':  { hora: '2pm - 8pm', icono: '☀️' },
+      'Noche':  { hora: '8pm - 2am', icono: '🌙' },
+    };
 
     const renderModelo = (modelo) => {
       const { total } = tokensEnRango(cierres, modelo, quincena.inicio, quincena.fin);
       const meta = metas[modelo]?.tokens || 0;
       const pct = meta > 0 ? Math.min(100, Math.round((total / meta) * 100)) : 0;
       return (
-      <div key={modelo} style={s.card}>
-        <div style={s.fila}>
-          <div style={s.nombre}>{modelo}</div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input style={s.input} type="number" placeholder={metas[modelo]?.tokens || 'Meta'}
+        <div key={modelo} style={{ background: 'var(--bg2)', borderRadius: 12, padding: '10px 14px', border: '1px solid var(--border2)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ flex: 1, color: 'var(--text)', fontSize: 12, fontWeight: 500 }}>{modelo}</div>
+            <input style={{ ...s.input, width: 90, marginBottom: 0, fontSize: 12, padding: '6px 10px' }} type="number"
+              placeholder={metas[modelo]?.tokens || 'Meta'}
               value={editando[modelo] || ''}
               onChange={e => setEditando(prev => ({ ...prev, [modelo]: e.target.value }))} />
-            <button style={s.btnGuardar} onClick={() => guardarMeta(modelo, editando[modelo])}>OK</button>
+            <button style={{ ...s.btnGuardar, padding: '6px 12px', fontSize: 12, width: 'auto', flex: 'none' }} onClick={() => guardarMeta(modelo, editando[modelo])}>OK</button>
           </div>
+          {meta > 0 && (
+            <>
+              <div style={s.barraWrap}>
+                <div style={{ ...s.barraFill, width: `${pct}%`, background: pct >= 100 ? '#4CAF7D' : 'var(--gold)' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>{total.toLocaleString()} / {meta.toLocaleString()} tokens</span>
+                {pct >= 100
+                  ? <span style={{ background: 'rgba(76,175,125,0.15)', color: '#4CAF7D', fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>● Completada</span>
+                  : <span style={{ color: 'var(--gold)', fontSize: 11, fontWeight: 600 }}>{pct}%</span>
+                }
+              </div>
+            </>
+          )}
         </div>
-        {meta > 0 && (
-          <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 12 }}>
-              <span style={{ color: 'var(--text-sub)' }}>{total.toLocaleString()} / {meta.toLocaleString()} tokens</span>
-              <span style={{ color: pct >= 100 ? '#4CAF7D' : 'var(--gold)' }}>{pct}%</span>
-            </div>
-            <div style={s.barraWrap}>
-              <div style={{ ...s.barraFill, width: `${pct}%`, background: pct >= 100 ? '#4CAF7D' : 'var(--gold)' }}></div>
-            </div>
-          </>
-        )}
-      </div>
-    );
+      );
     };
 
     return (
       <div style={s.wrap}>
-        {Object.entries(MODELOS_POR_TURNO).map(([turno, modelos]) => (
-          <div key={turno} style={{ marginBottom: 8 }}>
-            <div style={s.turnoLabel}>Turno {turno}</div>
-            <div className="nm-grid-cards">
-              {modelos.map(renderModelo)}
+        {Object.entries(MODELOS_POR_TURNO).map(([turno, modelos]) => {
+          const info = TURNO_INFO[turno] || {};
+          const totalTokensTurno = modelos.reduce((acc, m) => acc + (tokensEnRango(cierres, m, quincena.inicio, quincena.fin).total), 0);
+          const totalMetaTurno = modelos.reduce((acc, m) => acc + (metas[m]?.tokens || 0), 0);
+          return (
+            <div key={turno} style={{ marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, padding: '10px 16px', background: 'var(--bg2)', borderRadius: 12, border: '1px solid var(--border2)' }}>
+                <span style={{ fontSize: 18 }}>{info.icono}</span>
+                <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Turno {turno}</div>
+                <div style={{ color: 'var(--text-sub)', fontSize: 11 }}>({info.hora})</div>
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>👥 {modelos.length} modelos</span>
+                  <span style={{ color: 'var(--gold)', fontSize: 11, fontWeight: 500 }}>🪙 {totalTokensTurno.toLocaleString()}{totalMetaTurno > 0 ? ` / ${totalMetaTurno.toLocaleString()}` : ''} tokens</span>
+                </div>
+              </div>
+              <div className="nm-grid-cards">
+                {modelos.map(renderModelo)}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   }

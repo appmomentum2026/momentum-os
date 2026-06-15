@@ -12,10 +12,10 @@ const COLORES = {
 };
 
 const s = {
-  form: { background: 'var(--bg2)', borderRadius: 14, padding: 20, marginBottom: 24, border: '1px solid var(--border)' },
+  form: { background: 'var(--bg2)', borderRadius: 14, padding: 20, marginBottom: 24, border: '1px solid var(--border2)' },
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, display: 'block' },
-  select: { width: '100%', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--gold)', padding: '12px 14px', fontSize: 13, marginBottom: 16, outline: 'none' },
-  textarea: { width: '100%', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', padding: '12px 14px', fontSize: 13, marginBottom: 16, minHeight: 80, resize: 'vertical', outline: 'none' },
+  select: { width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--gold)', padding: '12px 14px', fontSize: 13, marginBottom: 16, outline: 'none' },
+  textarea: { width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--text)', padding: '12px 14px', fontSize: 13, marginBottom: 16, minHeight: 80, resize: 'vertical', outline: 'none' },
   btnEnviar: { background: 'var(--gold)', border: 'none', borderRadius: 8, color: '#141414', padding: '12px 24px', fontSize: 13, fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', width: '100%' },
   lista: { display: 'flex', flexDirection: 'column', gap: 10 },
   card: { borderRadius: 12, padding: 16, background: 'var(--bg3)', border: '1px solid var(--border2)', borderLeft: '3px solid', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' },
@@ -26,7 +26,7 @@ const s = {
   cardFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)' },
   btnResolver: { background: 'rgba(76,175,125,0.12)', border: '1px solid rgba(76,175,125,0.3)', borderRadius: 8, color: '#4CAF7D', padding: '6px 14px', fontSize: 12, letterSpacing: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 },
   tabs: { display: 'flex', gap: 8, marginBottom: 16 },
-  tab: { background: 'transparent', border: '1px solid var(--border)', borderRadius: 20, color: 'var(--text-sub)', padding: '7px 16px', fontSize: 12, letterSpacing: 1, cursor: 'pointer' },
+  tab: { background: 'transparent', border: '1px solid var(--border2)', borderRadius: 20, color: 'var(--text-sub)', padding: '7px 16px', fontSize: 12, letterSpacing: 1, cursor: 'pointer' },
   tabActiva: { background: 'var(--gold)', borderColor: 'var(--gold)', color: '#141414', fontWeight: 500 }
 };
 

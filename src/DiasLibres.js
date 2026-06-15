@@ -233,6 +233,7 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
 
 export function DiasLibresJefe() {
   const [solicitudes, setSolicitudes] = useState([]);
+  const [vistaGrid, setVistaGrid] = useState(true);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'diasLibres'), snap => {
@@ -277,15 +278,21 @@ export function DiasLibresJefe() {
         {monitores.map(sol => renderSolicitud(sol, true))}
       </div>
       <div style={s.card}>
-        <div style={s.titulo}>Descansos de modelos</div>
+        <div style={{ ...s.titulo, fontSize: 18, fontWeight: 700 }}>Descansos de modelos</div>
         {modelos.length === 0 && <p style={s.vacio}>No hay solicitudes de modelos</p>}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+          <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 8, padding: 3 }}>
+            <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
+            <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
+          </div>
+        </div>
         {['Manana', 'Tarde', 'Noche'].map(turno => {
           const modelosTurno = modelos.filter(sol => turnoDeModelo(sol.modelo) === turno);
           if (modelosTurno.length === 0) return null;
           return (
             <div key={turno} style={{ marginBottom: 8 }}>
               <div style={s.turnoLabel}>Turno {turno}</div>
-              <div className="nm-grid-cards">
+              <div className={vistaGrid ? 'nm-grid-cards' : ''} style={!vistaGrid ? { display: 'flex', flexDirection: 'column', gap: 10 } : {}}>
                 {modelosTurno.map(sol => renderSolicitud(sol, false))}
               </div>
             </div>

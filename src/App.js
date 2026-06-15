@@ -34,15 +34,23 @@ const ESTADOS = {
 function MapaHabitaciones({ rol }) {
   const [habitaciones, setHabitaciones] = useState({});
   const [menuAbierto, setMenuAbierto] = useState(null);
+  const [asistencia, setAsistencia] = useState({});
+
+  const hoy = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     signInAnonymously(auth).catch(err => console.error("Auth anónimo falló:", err));
-    const unsub = onSnapshot(collection(db, 'habitaciones'), snap => {
+    const unsub1 = onSnapshot(collection(db, 'habitaciones'), snap => {
       const data = {};
       snap.forEach(d => { data[d.id] = d.data(); });
       setHabitaciones(data);
     });
-    return unsub;
+    const unsub2 = onSnapshot(collection(db, 'asistencia'), snap => {
+      const data = {};
+      snap.forEach(d => { data[d.id] = d.data(); });
+      setAsistencia(data);
+    });
+    return () => { unsub1(); unsub2(); };
   }, []);
 
   const cambiarEstado = async (num, estado) => {
@@ -50,8 +58,29 @@ function MapaHabitaciones({ rol }) {
     setMenuAbierto(null);
   };
 
+  const asistenciaHoy = Object.values(asistencia).filter(a => a.fecha === hoy);
+  const presentes = asistenciaHoy.filter(a => a.presente === true).length;
+  const ausentes = asistenciaHoy.filter(a => a.presente === false).length;
+  const enLinea = Object.values(habitaciones).filter(h => h.estado === 'ocupada').length;
+
   return (
     <div>
+      {rol === 'jefe' && asistenciaHoy.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+          <div style={{ background: 'var(--bg2)', borderRadius: 12, padding: '12px 16px', border: '1px solid var(--border2)' }}>
+            <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Presentes hoy</div>
+            <div style={{ color: '#4CAF7D', fontSize: 24, fontWeight: 600 }}>{presentes}</div>
+          </div>
+          <div style={{ background: 'var(--bg2)', borderRadius: 12, padding: '12px 16px', border: '1px solid var(--border2)' }}>
+            <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Ausentes hoy</div>
+            <div style={{ color: '#d85a30', fontSize: 24, fontWeight: 600 }}>{ausentes}</div>
+          </div>
+          <div style={{ background: 'var(--bg2)', borderRadius: 12, padding: '12px 16px', border: '1px solid var(--border2)' }}>
+            <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>En línea ahora</div>
+            <div style={{ color: 'var(--gold)', fontSize: 24, fontWeight: 600 }}>{enLinea}</div>
+          </div>
+        </div>
+      )}
       <div className="nm-leyenda">
         {Object.entries(ESTADOS).map(([key, val]) => (
           <div key={key} className="nm-leyenda-item">

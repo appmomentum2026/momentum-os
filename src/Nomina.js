@@ -5,7 +5,7 @@ import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 const s = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
   grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  card: { background: 'var(--bg2)', borderRadius: 14, padding: 20, border: '1px solid var(--border)' },
+  card: { background: 'var(--bg2)', borderRadius: 14, padding: 20, border: '1px solid var(--border2)' },
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
   valor: { color: 'var(--gold)', fontSize: 28, fontWeight: 500 },
   fila: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' },

@@ -11,6 +11,7 @@ export default function GestionMonitores() {
   const [form, setForm] = useState({ nombre: '', turno: '', clave: '' });
   const [confirmEliminar, setConfirmEliminar] = useState(null);
   const [guardando, setGuardando] = useState(false);
+  const [vistaGrid, setVistaGrid] = useState(true);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'monitores'), snap => {
@@ -114,6 +115,13 @@ export default function GestionMonitores() {
         return (
           <div key={turno} style={{ marginBottom: 8 }}>
             <div style={s.turnoLabel}>Turno {turno}</div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+              <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 3 }}>
+                <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
+                <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
+              </div>
+            </div>
+            <div className={vistaGrid ? 'nm-grid-cards' : ''} style={!vistaGrid ? { display: 'flex', flexDirection: 'column', gap: 10 } : {}}>
             {monitoresTurno.map(m => (
               <div key={m.id}>
                 <div style={s.card}>
@@ -137,6 +145,7 @@ export default function GestionMonitores() {
                 )}
               </div>
             ))}
+            </div>
           </div>
         );
       })}
