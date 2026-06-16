@@ -142,8 +142,7 @@ export default function ResumenJefe() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-        <div></div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 10, padding: '8px 14px' }}>
           <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>📅</span>
           <span style={{ color: 'var(--text)', fontSize: 12 }}>{quincena.label}</span>

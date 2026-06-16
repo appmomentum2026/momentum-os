@@ -138,7 +138,7 @@ function VistaJefe({ cierres }) {
       
 
       {/* KPIs + selector fecha */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
         {/* Selector fecha */}
         <div style={{ background: 'var(--bg2)', borderRadius: 14, padding: '16px 18px', border: '1px solid var(--border2)' }}>
           <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Ver cierre del día</div>
@@ -170,7 +170,7 @@ function VistaJefe({ cierres }) {
         </div>
 
         {/* Promedio por modelo */}
-        <div style={{ background: 'var(--bg2)', borderRadius: 14, padding: '16px 18px', border: '1px solid var(--border2)' }}>
+        <div className="nm-hide-mobile" style={{ background: 'var(--bg2)', borderRadius: 14, padding: '16px 18px', border: '1px solid var(--border2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <span style={{ fontSize: 18 }}>📊</span>
             <span style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' }}>Promedio por modelo</span>
@@ -183,7 +183,7 @@ function VistaJefe({ cierres }) {
       {cierresDia.length === 0 && <p style={{ color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 }}>No hay cierres registrados este día</p>}
 
       {/* Tarjetas por turno */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }} className="nm-cierres-grid">
         {ORDEN_TURNOS.map(turno => {
           const modelos = porTurno[turno];
           if (!modelos || modelos.length === 0) return null;
@@ -359,4 +359,7 @@ function VistaJefe({ cierres }) {
       </button>
     </div>
   );
+  @media (max-width: 600px) {
+  .nm-cierres-grid { grid-template-columns: 1fr !important; }
+}
 }
