@@ -159,10 +159,16 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
 .nm-wrap { 
   background: var(--bg); 
   min-height: 100vh; 
-  padding: 1.25rem;
+  padding: 1rem;
   max-width: 900px;
   margin: 0 auto;
   overflow-x: hidden;
+}
+
+@media (max-width: 480px) {
+  .nm-wrap {
+    padding: 0.75rem;
+  }
 }
 
 .nm-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
