@@ -201,7 +201,7 @@ export default function ResumenJefe() {
       {/* Ranking */}
       {ranking.length > 0 && (
         <div style={{ background: 'var(--bg2)', borderRadius: 14, padding: '16px 20px', border: '1px solid var(--border2)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 22 }}>🏆</span>
               <div>
