@@ -351,13 +351,13 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
 }
 
 .nm-bottom-btn i {
-  font-size: 24px;
+  font-size: 27px;
   color: var(--text-sub);
   transition: color 0.15s;
 }
 
 .nm-bottom-btn span {
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--text-sub);
