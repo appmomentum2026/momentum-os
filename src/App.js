@@ -267,7 +267,7 @@ function Login({ onLogin, temaOscuro, toggleTema }) {
     <div className="nm-login-wrap">
       <div className="nm-logo-ring">
         <div className="nm-logo-inner">
-          <img src="/momentum_logo.png" alt="Momentum" style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: '50%' }} />
+          <img src="/logo.jpeg" alt="Momentum" style={{ width: 80, height: 80, objectFit: 'cover' }} />
         </div>
       </div>
       <div className="nm-title">Momentum</div>
