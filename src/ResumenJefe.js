@@ -158,7 +158,7 @@ export default function ResumenJefe() {
       </div>
 
       {/* KPI row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
 
         {/* Total a pagar - card dorada */}
         <div style={{ background: 'linear-gradient(135deg, #C9924A 0%, #8B6230 100%)', borderRadius: 16, padding: '24px 20px', position: 'relative', overflow: 'hidden', gridColumn: '1' }}>
@@ -179,7 +179,7 @@ export default function ResumenJefe() {
         </div>
 
         {/* Proyección */}
-        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '24px 20px', border: '1px solid var(--border2)' }}>
+        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '24px 20px', border: '1px solid var(--border2)', display: 'none' }} className="nm-hide-mobile">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ fontSize: 20 }}>📈</span>
             <span style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' }}>Proyección quincena</span>
@@ -217,8 +217,8 @@ export default function ResumenJefe() {
                 )}
               </div>
             </div>
-            <button style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--text)', padding: '8px 14px', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => setRankingAbierto(r => !r)}>
-              {rankingAbierto ? 'Ocultar ranking' : 'Ver ranking completo'}
+            <button style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--text)', padding: '8px 10px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }} onClick={() => setRankingAbierto(r => !r)}>
+              {rankingAbierto ? 'Ocultar' : 'Ver ranking'}
             </button>
           </div>
           {rankingAbierto && (
