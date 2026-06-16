@@ -346,18 +346,18 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px 6px;
+  padding: 10px 6px;
   flex: 1;
 }
 
 .nm-bottom-btn i {
-  font-size: 40px;
+  font-size: 50px;
   color: var(--text-sub);
   transition: color 0.15s;
 }
 
 .nm-bottom-btn span {
-  font-size: 17px;
+  font-size: 18px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--text-sub);
