@@ -362,4 +362,3 @@ function VistaJefe({ cierres }) {
   @media (max-width: 600px) {
   .nm-cierres-grid { grid-template-columns: 1fr !important; }
 }
-}
