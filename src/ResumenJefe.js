@@ -143,10 +143,7 @@ export default function ResumenJefe() {
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-        <div>
-          <div style={{ color: 'var(--text)', fontSize: 28, fontWeight: 700 }}>Hola, Jefe 👋</div>
-          <div style={{ color: 'var(--text-sub)', fontSize: 13, marginTop: 4 }}>Aquí tienes el resumen de tu quincena y equipo.</div>
-        </div>
+        <div></div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 10, padding: '8px 14px' }}>
           <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>📅</span>
           <span style={{ color: 'var(--text)', fontSize: 12 }}>{quincena.label}</span>
