@@ -250,7 +250,7 @@ export default function Inventario2({ rol, nombreModelo }) {
     <div style={s.wrap}>
 
       {/* Tarjetas resumen */}
-      <div style={s.resumenGrid}>
+      <div style={s.resumenGrid} className="nm-hide-mobile">
         <div style={s.resumenCard}>
           <div style={{ ...s.resumenIcono, background: 'rgba(201,146,74,0.15)' }}>📦</div>
           <div>

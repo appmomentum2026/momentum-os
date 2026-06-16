@@ -297,7 +297,7 @@ export function DiasLibresJefe() {
     <div>
       <div style={{ color: 'var(--text)', fontSize: 26, fontWeight: 700, marginBottom: 20 }}>Días libres</div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 16, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 16, alignItems: 'start' }} className="nm-dias-grid">
 
         <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
