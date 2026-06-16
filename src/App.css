@@ -162,6 +162,7 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
   padding: 1.25rem;
   max-width: 900px;
   margin: 0 auto;
+  overflow-x: hidden;
 }
 
 .nm-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
@@ -223,8 +224,12 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
 
 .nm-hab-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 
+@media (max-width: 480px) {
+  .nm-hab-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+}
+
 .nm-hab {
-  border-radius: 16px; padding: 20px 10px;
+  border-radius: 16px; padding: 12px 6px;
   background: var(--bg2);
   border: 1px solid var(--border);
   display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer;
@@ -591,3 +596,7 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
   .nm-panel-widgets { display: none; }
 }
 button:active { transform: scale(0.97); transition: transform 0.1s; }
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}

@@ -16,6 +16,7 @@ const MONITORES = {
 const TURNOS = { 'Daniela': 'Manana', 'Ramon': 'Manana', 'Santiago': 'Tarde', 'Monica': 'Tarde', 'Juan': 'Noche', 'Cesar': 'Noche' };
 
 const ICONO_TURNO = { 'Manana': 'sun', 'Tarde': 'sunset', 'Noche': 'moon' };
+const TURNO_EMOJI = { 'Manana': '🌅', 'Tarde': '☀️', 'Noche': '🌙' };
 
 const s = {
   wrap: { display: 'block' },
@@ -89,7 +90,10 @@ export default function ResumenMonitores() {
         if (monitoresTurno.length === 0) return null;
         return (
           <div key={turnoActual} style={{ marginBottom: 8 }}>
-            <div style={s.turnoLabel}>Turno {turnoActual}</div>
+            <div style={{ ...s.turnoLabel, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 20 }}>{TURNO_EMOJI[turnoActual]}</span>
+              <span>Turno {turnoActual}</span>
+            </div>
             <div className="nm-grid-cards">
             {monitoresTurno.map(monitor => {
               const datos = calcularMonitor(monitor);
