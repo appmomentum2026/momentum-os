@@ -364,8 +364,8 @@ function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
   return (
     <NavLayout
       todos={items}
-      principales={items.slice(0, 4)}
-      masItems={items.slice(4)}
+      principales={items.slice(0, 3)}
+      masItems={items.slice(3)}
       vista={vista} setVista={setVista}
       titulo="Jefe" sub="Panel de control" icono="crown"
       seccionLabel={seccionLabel}
@@ -415,8 +415,8 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
   return (
     <NavLayout
       todos={items}
-      principales={items.slice(0, 4)}
-      masItems={items.slice(4)}
+      principales={items.slice(0, 3)}
+      masItems={items.slice(3)}
       vista={vista} setVista={setVista}
       titulo="Monitor" sub={`${monitorData?.nombre || 'Monitor'} — ${monitorData?.turno || ''}`} icono="device-desktop"
       seccionLabel={seccionLabel}
@@ -457,8 +457,8 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
   return (
     <NavLayout
       todos={items}
-      principales={items}
-      masItems={[]}
+      principales={items.slice(0, 3)}
+      masItems={items.slice(3)}
       vista={vista} setVista={setVista}
       titulo="Mi panel" sub={modelaData?.nombreReal || 'Momentum Studio'} icono="star"
       seccionLabel={seccionLabel}
