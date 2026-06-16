@@ -606,3 +606,9 @@ html, body {
   overflow-x: hidden;
   max-width: 100vw;
 }
+@media (min-width: 601px) {
+  .nm-hide-mobile { display: block !important; }
+}
+@media (max-width: 600px) {
+  .nm-cierres-grid { grid-template-columns: 1fr !important; }
+}
