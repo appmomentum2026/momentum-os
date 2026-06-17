@@ -97,21 +97,23 @@ export function DiasLibresModelo({ nombreModelo }) {
   };
 
   return (
-    <div style={s.wrap}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {enviado && <div style={s.exito}>Solicitud enviada correctamente</div>}
-      <div style={s.card}>
-        <div style={s.titulo}>Mis dias de descanso</div>
+
+      <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <i className="ti ti-calendar" style={{ color: 'var(--gold)', fontSize: 18 }} />
+          <span style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>Mis días de descanso</span>
+        </div>
+
         {solicitud?.estado === 'aprobado' ? (
-          <div>
-            <div style={s.fila}>
-              <div style={s.filaLabel}>Dia 1</div>
-              <div style={s.filaValor}>{solicitud.fecha1}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>👤</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>{nombreModelo}</div>
+              <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 2 }}>{solicitud.fecha1}{solicitud.fecha2 ? ` — ${solicitud.fecha2}` : ''}</div>
             </div>
-            {solicitud.fecha2 && <div style={s.fila}><div style={s.filaLabel}>Dia 2</div><div style={s.filaValor}>{solicitud.fecha2}</div></div>}
-            <div style={{ ...s.fila, borderBottom: 'none' }}>
-              <div style={s.filaLabel}>Estado</div>
-              <div style={{ ...s.badge, background: '#1d9e7522', color: '#1d9e75' }}>Aprobado</div>
-            </div>
+            <span style={{ ...s.badge, background: ESTADO_COLOR.aprobado.bg, color: ESTADO_COLOR.aprobado.color }}>aprobado</span>
           </div>
         ) : (
           <div>
@@ -178,54 +180,72 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
   };
 
   return (
-    <div style={s.wrap}>
-      <div style={s.card}>
-        <div style={s.titulo}>Mis dias libres</div>
-        {enviado && <div style={s.exito}>Solicitud enviada</div>}
-        {miSolicitud?.estado === 'aprobado' ? (
-          <div>
-            <div style={s.fila}><div style={s.filaLabel}>Dia 1</div><div style={s.filaValor}>{miSolicitud.fecha1}</div></div>
-            {miSolicitud.fecha2 && <div style={s.fila}><div style={s.filaLabel}>Dia 2</div><div style={s.filaValor}>{miSolicitud.fecha2}</div></div>}
-            <div style={{ ...s.fila, borderBottom: 'none' }}>
-              <div style={s.filaLabel}>Estado</div>
-              <div style={{ ...s.badge, background: '#1d9e7522', color: '#1d9e75' }}>Aprobado</div>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <div style={{ color: 'var(--text-sub)', fontSize: 13, marginBottom: 16 }}>
-              {miSolicitud ? 'Puedes cambiar las fechas hasta que el jefe las apruebe.' : 'Tienes 2 dias libres esta quincena.'}
-              {miSolicitud && <span style={{ ...s.badge, background: ESTADO_COLOR[miSolicitud.estado]?.bg, color: ESTADO_COLOR[miSolicitud.estado]?.color, marginLeft: 8 }}>{miSolicitud.estado}</span>}
-            </div>
-            <label style={s.label}>Dia libre 1</label>
-            <input style={s.input} type="date" value={fecha1 || miSolicitud?.fecha1 || ''} onChange={e => setFecha1(e.target.value)} />
-            <label style={s.label}>Dia libre 2 (opcional)</label>
-            <input style={s.input} type="date" value={fecha2 || miSolicitud?.fecha2 || ''} onChange={e => setFecha2(e.target.value)} />
-            <button style={s.btnEnviar} onClick={enviarSolicitud}>
-              {miSolicitud ? 'Actualizar dias libres' : 'Solicitar dias libres'}
-            </button>
-          </div>
-        )}
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      <div style={s.card}>
-        <div style={s.titulo}>Descansos de mis modelos</div>
-        {solicitudesModelas.length === 0 && <p style={s.vacio}>Ninguna modelo ha solicitado descanso</p>}
-        {solicitudesModelas.map(sol => (
-          <div key={sol.id} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
-            <div style={s.nombre}>{sol.modelo}</div>
-            <div style={s.sub}>Dia 1: {sol.fecha1}{sol.fecha2 && ` · Dia 2: ${sol.fecha2}`}</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-              <div style={{ ...s.badge, background: ESTADO_COLOR[sol.estado]?.bg, color: ESTADO_COLOR[sol.estado]?.color }}>{sol.estado}</div>
-              {sol.estado === 'pendiente' && (
-                <div style={s.btnRow}>
-                  <button style={{ ...s.btn, color: '#1d9e75' }} onClick={() => aprobarModela(sol, 'aprobado')}>Aprobar</button>
-                  <button style={{ ...s.btn, color: '#d85a30' }} onClick={() => aprobarModela(sol, 'rechazado')}>Rechazar</button>
-                </div>
-              )}
-            </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }} className="nm-dias-grid">
+
+        {/* Mis dias libres */}
+        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <i className="ti ti-calendar" style={{ color: 'var(--gold)', fontSize: 18 }} />
+            <span style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>Mis días libres</span>
           </div>
-        ))}
+          {enviado && <div style={s.exito}>Solicitud enviada</div>}
+          {miSolicitud?.estado === 'aprobado' ? (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 15, fontWeight: 600, flexShrink: 0 }}>{nombreMonitor.charAt(0)}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>{nombreMonitor}</div>
+                  <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 2 }}>{miSolicitud.fecha1}{miSolicitud.fecha2 ? ` — ${miSolicitud.fecha2}` : ''}</div>
+                </div>
+                <span style={{ ...s.badge, background: ESTADO_COLOR.aprobado.bg, color: ESTADO_COLOR.aprobado.color }}>aprobado</span>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{ color: 'var(--text-sub)', fontSize: 13, marginBottom: 16 }}>
+                {miSolicitud ? 'Puedes cambiar las fechas hasta que el jefe las apruebe.' : 'Tienes 2 dias libres esta quincena.'}
+                {miSolicitud && <span style={{ ...s.badge, background: ESTADO_COLOR[miSolicitud.estado]?.bg, color: ESTADO_COLOR[miSolicitud.estado]?.color, marginLeft: 8 }}>{miSolicitud.estado}</span>}
+              </div>
+              <label style={s.label}>Dia libre 1</label>
+              <input style={s.input} type="date" value={fecha1 || miSolicitud?.fecha1 || ''} onChange={e => setFecha1(e.target.value)} />
+              <label style={s.label}>Dia libre 2 (opcional)</label>
+              <input style={s.input} type="date" value={fecha2 || miSolicitud?.fecha2 || ''} onChange={e => setFecha2(e.target.value)} />
+              <button style={s.btnEnviar} onClick={enviarSolicitud}>
+                {miSolicitud ? 'Actualizar dias libres' : 'Solicitar dias libres'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Descansos de mis modelos */}
+        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <i className="ti ti-calendar" style={{ color: 'var(--gold)', fontSize: 18 }} />
+            <span style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>Descansos de mis modelos</span>
+          </div>
+          {solicitudesModelas.length === 0 && <p style={s.vacio}>Ninguna modelo ha solicitado descanso</p>}
+          {solicitudesModelas.map(sol => {
+            const ec = ESTADO_COLOR[sol.estado] || ESTADO_COLOR.pendiente;
+            return (
+              <div key={sol.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 18, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 14, flexShrink: 0 }}>👤</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: 'var(--text)', fontSize: 12, fontWeight: 500 }}>{sol.modelo}</div>
+                  <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>{sol.fecha1}{sol.fecha2 ? ` — ${sol.fecha2}` : ''}</div>
+                  {sol.estado === 'pendiente' && (
+                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                      <button style={{ ...s.btn, color: '#1d9e75', padding: '5px 10px' }} onClick={() => aprobarModela(sol, 'aprobado')}>Aprobar</button>
+                      <button style={{ ...s.btn, color: '#d85a30', padding: '5px 10px' }} onClick={() => aprobarModela(sol, 'rechazado')}>Rechazar</button>
+                    </div>
+                  )}
+                </div>
+                <span style={{ ...s.badge, background: ec.bg, color: ec.color, flexShrink: 0 }}>{sol.estado}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

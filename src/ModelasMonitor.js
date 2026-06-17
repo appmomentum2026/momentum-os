@@ -5,7 +5,7 @@ import { collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, arrayUnion, 
 const FORM_VACIO = { nombreReal: '', nombreModelo: '', clave: '', nacimiento: '', correo: '', lovense: '', amazon: '' };
 
 const s = {
-  btnNuevo: { background: 'var(--bg)', border: 'none', borderRadius: 12, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '12px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginBottom: 12 },
+  btnNuevo: { background: 'var(--gold)', border: 'none', borderRadius: 12, color: '#141414', padding: '12px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginBottom: 12, fontWeight: 700 },
   card: { background: 'var(--bg2)', borderRadius: 14, padding: 18, border: '1px solid var(--border2)', marginBottom: 10 },
   nombre: { color: 'var(--gold)', fontSize: 17, fontWeight: 700, marginBottom: 2 },
   nombreModelo: { color: 'var(--text-sub)', fontSize: 12, letterSpacing: 1, marginBottom: 12 },
@@ -190,9 +190,22 @@ export default function ModelasMonitor({ monitorData }) {
             </>
           ) : (
             <>
-              <div style={s.nombre}>{m.nombreReal}</div>
-              {m.nombreModelo && <div style={s.nombreModelo}>{m.nombreModelo}</div>}
+              {/* Header con avatar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  {m.fotoURL
+                    ? <img src={m.fotoURL} alt={m.nombreReal} style={{ width: 48, height: 48, borderRadius: 24, objectFit: 'cover', border: '1px solid var(--border2)' }} />
+                    : <div style={{ width: 48, height: 48, borderRadius: 24, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 18 }}>👤</div>
+                  }
+                  <div style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, background: '#4CAF7D', border: '2px solid var(--bg2)' }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>{m.nombreReal}</div>
+                  {m.nombreModelo && <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>{m.nombreModelo}</div>}
+                </div>
+              </div>
 
+              {/* Info */}
               <div style={s.fila}>
                 <span style={s.filaLabel}>Nacimiento</span>
                 <span style={s.filaValor}>{m.nacimiento || '—'}</span>
@@ -229,15 +242,16 @@ export default function ModelasMonitor({ monitorData }) {
                 </>
               )}
 
+              {/* Botones */}
               <div style={s.accionRow}>
-                <button style={s.btnEditar} onClick={() => iniciarEdicion(m)}>Editar</button>
+                <button style={s.btnEditar} onClick={() => iniciarEdicion(m)}>✎ Editar</button>
                 {confirmando === m.id ? (
                   <>
                     <button style={s.btnConfirmar} onClick={() => eliminar(m.id)}>¿Confirmar?</button>
                     <button style={s.btnCancelar} onClick={() => setConfirmando(null)}>No</button>
                   </>
                 ) : (
-                  <button style={s.btnEliminar} onClick={() => setConfirmando(m.id)}>Eliminar</button>
+                  <button style={s.btnEliminar} onClick={() => setConfirmando(m.id)}>🗑 Eliminar</button>
                 )}
               </div>
             </>
