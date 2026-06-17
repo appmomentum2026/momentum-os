@@ -619,3 +619,6 @@ html, body {
 @media (max-width: 600px) {
   .nm-dias-grid { grid-template-columns: 1fr !important; }
 }
+@media (max-width: 600px) {
+  .nm-resumen-inventario { display: none !important; }
+}
