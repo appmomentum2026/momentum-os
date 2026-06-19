@@ -441,7 +441,6 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
   const items = [
     { id: 'mapa', label: 'Habitaciones', icon: 'layout-grid' },
     { id: 'nomina', label: 'Mi quincena', icon: 'coin' },
-    { id: 'metas', label: 'Mi meta', icon: 'target' },
     { id: 'tienda', label: 'Tienda', icon: 'shopping-cart' },
     { id: 'descanso', label: 'Descansos', icon: 'calendar' },
   ];
