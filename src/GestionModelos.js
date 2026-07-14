@@ -29,6 +29,7 @@ export default function GestionModelos() {
   const [fotoPreview, setFotoPreview] = useState(null);
   const [vistaGrid, setVistaGrid] = useState(true);
   const [busqueda, setBusqueda] = useState('');
+const [filtroMonitor, setFiltroMonitor] = useState({});
   const [editando, setEditando] = useState(null);
   const [formEdit, setFormEdit] = useState(FORM_VACIO);
   const [paginasEdit, setPaginasEdit] = useState([]);
@@ -205,7 +206,7 @@ export default function GestionModelos() {
     cardBtns: { display: 'flex', gap: 8 },
     btnEditar: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--text-sub)', padding: '6px 12px', fontSize: 12, cursor: 'pointer' },
     btnEliminar: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '6px 12px', fontSize: 12, cursor: 'pointer' },
-    confirmBox: { background: 'var(--bg)', borderRadius: 14, padding: 16, boxShadow: 'var(--shadow-in)', marginTop: 8 },
+    confirmBox: { background: 'var(--bg3)', borderRadius: 14, padding: 16, border: '1px solid rgba(216,90,48,0.45)', marginTop: 8 },
     confirmText: { color: 'var(--text-sub)', fontSize: 13, marginBottom: 12 },
     vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 },
     detalle: { background: 'var(--bg)', borderRadius: '0 0 14px 14px', padding: '12px 16px', boxShadow: 'var(--shadow-in)', marginTop: -4 },
@@ -282,7 +283,7 @@ export default function GestionModelos() {
       {modelos.length === 0 && modo === null && <p style={s.vacio}>No hay modelos registradas</p>}
 
       {modo === null && (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 4, alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 10, padding: '9px 14px', flex: 1 }}>
             <i className="ti ti-search" style={{ color: 'var(--text-dim)', fontSize: 16 }} />
             <input style={{ background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 13, outline: 'none', flex: 1 }} placeholder="Buscar modelo..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
@@ -295,14 +296,22 @@ export default function GestionModelos() {
       )}
 
       {['Manana', 'Tarde', 'Noche'].map(turno => {
-        const modelosTurno = modelos.filter(m => m.turno === turno && (m.nombreReal.toLowerCase().includes(busqueda.toLowerCase()) || (m.nombreModelo || '').toLowerCase().includes(busqueda.toLowerCase())));
+        const modelosTurno = modelos.filter(m => m.turno === turno && (!filtroMonitor[turno] || m.monitor === filtroMonitor[turno]) && (m.nombreReal.toLowerCase().includes(busqueda.toLowerCase()) || (m.nombreModelo || '').toLowerCase().includes(busqueda.toLowerCase())));
         if (modelosTurno.length === 0) return null;
         return (
-          <div key={turno} style={{ marginBottom: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <span style={{ fontSize: 22 }}>{TURNO_ICONO[turno]}</span>
-              <span style={{ color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Turno {turno}</span>
+          <div key={turno} style={{ marginBottom: 16, marginTop: 48 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, paddingBottom: 10, borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 18 }}>{TURNO_ICONO[turno]}</span>
+              <span style={{ color: 'var(--gold)', fontSize: 15, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>Turno {turno}</span>
               <span style={{ background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 20, color: 'var(--text-sub)', fontSize: 11, padding: '4px 12px' }}>{modelosTurno.length} modelos</span>
+              <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+                <button style={{ background: !filtroMonitor[turno] ? 'var(--gold)' : 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 20, color: !filtroMonitor[turno] ? '#141414' : 'var(--text-sub)', fontSize: 11, padding: '5px 14px', cursor: 'pointer', fontWeight: !filtroMonitor[turno] ? 700 : 400 }}
+                  onClick={() => setFiltroMonitor(prev => ({ ...prev, [turno]: null }))}>Todos</button>
+                {MONITORES_LISTA.filter(mon => mon.turno === turno).map(mon => (
+                  <button key={mon.nombre} style={{ background: filtroMonitor[turno] === mon.nombre ? 'var(--gold)' : 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 20, color: filtroMonitor[turno] === mon.nombre ? '#141414' : 'var(--text-sub)', fontSize: 11, padding: '5px 14px', cursor: 'pointer', fontWeight: filtroMonitor[turno] === mon.nombre ? 700 : 400 }}
+                    onClick={() => setFiltroMonitor(prev => ({ ...prev, [turno]: mon.nombre }))}>{mon.nombre}</button>
+                ))}
+              </div>
             </div>
             <div className={vistaGrid ? 'nm-grid-cards' : ''} style={!vistaGrid ? { display: 'flex', flexDirection: 'column', gap: 10 } : {}}>
             {modelosTurno.map(m => (
