@@ -3,27 +3,6 @@ import { db } from './firebase';
 import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 
-const MODELOS_POR_TURNO = {
-  'Manana': [
-    'Ashly Naibel Burgos Machado', 'Ana Sofia Ospina Ortega', 'Tatiana Andrea Rios Hurtado',
-    'Luz Magnolia Salazar Garcia', 'Vanessa Arroyave', 'Valentina Osorno Alvarez',
-    'Sara Arango Zuleta', 'Valentina Zapata Azcuntar', 'Alejandra Rojas Vargas',
-    'Maye Catalina Insuasty Saldariaga', 'Juliana Ospina Jimenez', 'Liliana Castillo Salgado',
-    'Nicoll Pulgarin Nohava', 'Alison Daniela Zapata Estrada', 'Evelyn Tamayo Zapata'
-  ],
-  'Tarde': [
-    'Valentina Marquez Pino', 'Susana Pelaez', 'Ivonne Camila Zuluaga Prieto',
-    'Evelin Saday Ricardo Solis', 'Luisa Fernanda Osorio Jimenez',
-    'Natalia Hernandez Llano', 'Maria Camila Correa Munoz', 'Nataly Cardenas Moreno',
-    'Dayannis Tobon Acosta', 'Diana Luz Agamez Gonzalez', 'Asoryana Ramos Briseno', 'Yesmi Diaz Ruiz'
-  ],
-  'Noche': [
-    'Andrea Carolina Gomez Rodelo', 'Viviana Marcela Zambrano Mosquera', 'Sofia del Pilar Herrera Celis',
-    'Angie Marcela Villa Carmona', 'Isabela Gutierrez Rivera', 'Alexa Rivera Montoya',
-    'Yeimy Viviana Osorio Rojas', 'Maria Jose Lopez Mejia', 'Sara Paulina Mejia Marin',
-    'Luisa Fernanda Rodriguez Calderon'
-  ]
-};
 
 const s = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
@@ -279,12 +258,26 @@ function ProyeccionModelo({ nombreModelo, meta }) {
 export default function Metas({ rol, nombreModelo }) {
   const [metas, setMetas] = useState({});
   const [editando, setEditando] = useState({});
+  const [modelosDB, setModelosDB] = useState([]);
+  const [monitoresDB, setMonitoresDB] = useState([]);
+  const [filtroMonitor, setFiltroMonitor] = useState({});
+  const [vistaGrid, setVistaGrid] = useState(true);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'metas'), snap => {
       const data = {};
       snap.forEach(d => { data[d.id] = d.data(); });
       setMetas(data);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'modelos'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      data.sort((a, b) => a.nombreReal.localeCompare(b.nombreReal));
+      setModelosDB(data.filter(m => m.activa !== false));
     });
     return unsub;
   }, []);
@@ -297,6 +290,15 @@ export default function Metas({ rol, nombreModelo }) {
       const data = [];
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
       setCierres(data);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'monitores'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setMonitoresDB(data);
     });
     return unsub;
   }, []);
@@ -346,25 +348,56 @@ export default function Metas({ rol, nombreModelo }) {
       );
     };
 
+    const turnoData = { 'Manana': [], 'Tarde': [], 'Noche': [] };
+    modelosDB.forEach(m => { if (turnoData[m.turno]) turnoData[m.turno].push(m); });
+
     return (
       <div style={s.wrap}>
-        {Object.entries(MODELOS_POR_TURNO).map(([turno, modelos]) => {
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+          <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 8, padding: 3 }}>
+            <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
+            <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
+          </div>
+        </div>
+        {['Manana', 'Tarde', 'Noche'].map(turno => {
+          const modelosTurno = turnoData[turno];
+          if (modelosTurno.length === 0) return null;
+          const monitoresTurno = monitoresDB.filter(mon => mon.turno === turno);
+          const modelosFiltrados = filtroMonitor[turno]
+            ? modelosTurno.filter(m => m.monitor === filtroMonitor[turno])
+            : modelosTurno;
           const info = TURNO_INFO[turno] || {};
-          const totalTokensTurno = modelos.reduce((acc, m) => acc + (tokensEnRango(cierres, m, quincena.inicio, quincena.fin).total), 0);
-          const totalMetaTurno = modelos.reduce((acc, m) => acc + (metas[m]?.tokens || 0), 0);
+          const totalTokensTurno = modelosFiltrados.reduce((acc, m) => acc + (tokensEnRango(cierres, m.nombreReal, quincena.inicio, quincena.fin).total), 0);
+          const totalMetaTurno = modelosFiltrados.reduce((acc, m) => acc + (metas[m.nombreReal]?.tokens || 0), 0);
           return (
             <div key={turno} style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, padding: '10px 16px', background: 'var(--bg2)', borderRadius: 12, border: '1px solid var(--border2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, padding: '10px 16px', background: 'var(--bg2)', borderRadius: 12, border: '1px solid var(--border2)', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 18 }}>{info.icono}</span>
                 <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Turno {turno}</div>
                 <div style={{ color: 'var(--text-sub)', fontSize: 11 }}>({info.hora})</div>
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>👥 {modelos.length} modelos</span>
+                  <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>👥 {modelosFiltrados.length} modelos</span>
                   <span style={{ color: 'var(--gold)', fontSize: 11, fontWeight: 500 }}>🪙 {totalTokensTurno.toLocaleString()}{totalMetaTurno > 0 ? ` / ${totalMetaTurno.toLocaleString()}` : ''} tokens</span>
                 </div>
               </div>
-              <div className="nm-grid-cards">
-                {modelos.map(renderModelo)}
+              {monitoresTurno.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+                  <button
+                    style={{ background: !filtroMonitor[turno] ? 'var(--gold)' : 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 20, color: !filtroMonitor[turno] ? '#141414' : 'var(--text-sub)', fontSize: 11, padding: '5px 14px', cursor: 'pointer', fontWeight: !filtroMonitor[turno] ? 700 : 400 }}
+                    onClick={() => setFiltroMonitor(prev => ({ ...prev, [turno]: null }))}>
+                    Todos los monitores
+                  </button>
+                  {monitoresTurno.map(mon => (
+                    <button key={mon.nombre}
+                      style={{ background: filtroMonitor[turno] === mon.nombre ? 'var(--gold)' : 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 20, color: filtroMonitor[turno] === mon.nombre ? '#141414' : 'var(--text-sub)', fontSize: 11, padding: '5px 14px', cursor: 'pointer', fontWeight: filtroMonitor[turno] === mon.nombre ? 700 : 400 }}
+                      onClick={() => setFiltroMonitor(prev => ({ ...prev, [turno]: mon.nombre }))}>
+                      {mon.nombre}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className={vistaGrid ? 'nm-grid-cards' : ''} style={!vistaGrid ? { display: 'flex', flexDirection: 'column', gap: 8 } : {}}>
+                {modelosFiltrados.map(m => renderModelo(m.nombreReal))}
               </div>
             </div>
           );

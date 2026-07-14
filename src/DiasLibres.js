@@ -2,34 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
 import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
-const MODELOS_POR_TURNO = {
-  'Manana': [
-    'Ashly Naibel Burgos Machado', 'Ana Sofia Ospina Ortega', 'Tatiana Andrea Rios Hurtado',
-    'Luz Magnolia Salazar Garcia', 'Vanessa Arroyave', 'Valentina Osorno Alvarez',
-    'Sara Arango Zuleta', 'Valentina Zapata Azcuntar', 'Alejandra Rojas Vargas',
-    'Maye Catalina Insuasty Saldariaga', 'Juliana Ospina Jimenez', 'Liliana Castillo Salgado',
-    'Nicoll Pulgarin Nohava', 'Alison Daniela Zapata Estrada', 'Evelyn Tamayo Zapata'
-  ],
-  'Tarde': [
-    'Valentina Marquez Pino', 'Susana Pelaez', 'Ivonne Camila Zuluaga Prieto',
-    'Evelin Saday Ricardo Solis', 'Luisa Fernanda Osorio Jimenez',
-    'Natalia Hernandez Llano', 'Maria Camila Correa Munoz', 'Nataly Cardenas Moreno',
-    'Dayannis Tobon Acosta', 'Diana Luz Agamez Gonzalez', 'Asoryana Ramos Briseno', 'Yesmi Diaz Ruiz'
-  ],
-  'Noche': [
-    'Andrea Carolina Gomez Rodelo', 'Viviana Marcela Zambrano Mosquera', 'Sofia del Pilar Herrera Celis',
-    'Angie Marcela Villa Carmona', 'Isabela Gutierrez Rivera', 'Alexa Rivera Montoya',
-    'Yeimy Viviana Osorio Rojas', 'Maria Jose Lopez Mejia', 'Sara Paulina Mejia Marin',
-    'Luisa Fernanda Rodriguez Calderon'
-  ]
-};
 
-function turnoDeModelo(nombre) {
-  for (const [turno, lista] of Object.entries(MODELOS_POR_TURNO)) {
-    if (lista.includes(nombre)) return turno;
-  }
-  return 'Sin turno';
-}
 const QUINCENA_ACTUAL = () => {
   const hoy = new Date();
   const dia = hoy.getDate();
@@ -153,7 +126,7 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
       const data = [];
       snap.forEach(d => {
         const item = { id: d.id, ...d.data() };
-        if (item.tipo === 'modelo' && modelasMonitor.includes(item.modelo)) data.push(item);
+        if (item.tipo === 'modelo' && modelasMonitor.includes(item.modelo) && item.quincena === QUINCENA_ACTUAL()) data.push(item);
       });
       setSolicitudesModelas(data);
     });
@@ -253,22 +226,34 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
 
 export function DiasLibresJefe() {
   const [solicitudes, setSolicitudes] = useState([]);
+  const [modelosDB, setModelosDB] = useState([]);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'diasLibres'), snap => {
+    const unsub1 = onSnapshot(collection(db, 'diasLibres'), snap => {
       const data = [];
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
       setSolicitudes(data);
     });
-    return unsub;
+    const unsub2 = onSnapshot(collection(db, 'modelos'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setModelosDB(data);
+    });
+    return () => { unsub1(); unsub2(); };
   }, []);
+
+  const turnoDeModelo = (nombre) => {
+    const m = modelosDB.find(m => m.nombreReal === nombre);
+    return m?.turno || 'Sin turno';
+  };
 
   const cambiarEstado = async (sol, estado) => {
     await setDoc(doc(db, 'diasLibres', sol.id), { ...sol, estado });
   };
 
-  const monitores = solicitudes.filter(s => s.tipo === 'monitor');
-  const modelos = solicitudes.filter(s => s.tipo === 'modelo');
+  const quincenaActual = QUINCENA_ACTUAL();
+  const monitores = solicitudes.filter(s => s.tipo === 'monitor' && s.quincena === quincenaActual);
+  const modelos = solicitudes.filter(s => s.tipo === 'modelo' && s.quincena === quincenaActual);
 
   const TURNO_ICONO = { 'Manana': '🌅', 'Tarde': '☀️', 'Noche': '🌙' };
   const inicial = (nombre) => (nombre || '?').charAt(0).toUpperCase();

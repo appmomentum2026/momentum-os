@@ -80,7 +80,7 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
 .nm-logo-inner {
   width: 80px; height: 80px;
   border-radius: 50%;
-  background: var(--bg3);
+  background: #ffffff;
   border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
   font-size: 26px; font-weight: 500;

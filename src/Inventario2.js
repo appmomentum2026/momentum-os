@@ -74,7 +74,7 @@ const s = {
 export default function Inventario2({ rol, nombreModelo }) {
   const [productos, setProductos] = useState([]);
   const [modo, setModo] = useState(null);
-  const [form, setForm] = useState({ nombre: '', categoria: '', precio: '', stock: '' });
+  const [form, setForm] = useState({ nombre: '', categoria: '', precio: '', stock: '', costo: '' });
   const [pedidoEnviado, setPedidoEnviado] = useState(null);
   const [seleccionando, setSeleccionando] = useState(null);
   const [imagenArchivo, setImagenArchivo] = useState(null);
@@ -112,10 +112,11 @@ export default function Inventario2({ rol, nombreModelo }) {
     await setDoc(doc(db, 'inventario', id), {
       nombre: form.nombre, categoria: form.categoria,
       precio: Number(form.precio), stock: Number(form.stock),
-      stockMinimo: STOCK_MINIMO, imagen: urlImagen
+      stockMinimo: STOCK_MINIMO, imagen: urlImagen,
+      costo: Number(form.costo || 0)
     });
     setModo(null);
-    setForm({ nombre: '', categoria: '', precio: '', stock: '' });
+    setForm({ nombre: '', categoria: '', precio: '', stock: '', costo: '' });
     setImagenArchivo(null); setImagenPreview(null); setSubiendo(false);
   };
 
@@ -142,7 +143,8 @@ export default function Inventario2({ rol, nombreModelo }) {
     const p = productos.find(x => x.id === editando);
     await setDoc(doc(db, 'inventario', editando), {
       ...p, nombre: formEdit.nombre, categoria: formEdit.categoria,
-      precio: Number(formEdit.precio), stock: Number(formEdit.stock)
+      precio: Number(formEdit.precio), stock: Number(formEdit.stock),
+      costo: Number(formEdit.costo || 0)
     });
     setEditando(null); setFormEdit({});
   };
@@ -324,8 +326,10 @@ export default function Inventario2({ rol, nombreModelo }) {
             <option value="">Seleccionar</option>
             {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          <label style={s.label}>Precio (pesos)</label>
+          <label style={s.label}>Precio de venta (COP)</label>
           <input style={s.input} type="number" placeholder="Ej: 25000" value={form.precio} onChange={e => setForm(p => ({ ...p, precio: e.target.value }))} />
+          <label style={s.label}>Costo de compra (COP/unidad)</label>
+          <input style={s.input} type="number" placeholder="Ej: 15000" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: e.target.value }))} />
           <label style={s.label}>Stock inicial</label>
           <input style={s.input} type="number" placeholder="Ej: 10" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value }))} />
           <label style={s.label}>Imagen del producto</label>
@@ -395,7 +399,7 @@ export default function Inventario2({ rol, nombreModelo }) {
               <button style={{ ...s.btnStk, fontSize: 12, width: 'auto', padding: '0 10px' }} onClick={() => ajustarStock(p, 10)}>+10</button>
             </div>
             <div style={s.accionRow}>
-              <button style={s.btnEditar} onClick={() => { setEditando(p.id); setFormEdit({ nombre: p.nombre, categoria: p.categoria, precio: p.precio, stock: p.stock }); }}>Editar</button>
+              <button style={s.btnEditar} onClick={() => { setEditando(p.id); setFormEdit({ nombre: p.nombre, categoria: p.categoria, precio: p.precio, stock: p.stock, costo: p.costo || 0 }); }}>Editar</button>
               {confirmando === p.id ? (
                 <>
                   <button style={s.btnConfirmar} onClick={() => eliminar(p.id)}>¿Confirmar?</button>
@@ -431,7 +435,7 @@ export default function Inventario2({ rol, nombreModelo }) {
           <button style={s.btnStk} onClick={() => ajustarStock(p, -1)}>−</button>
           <span style={{ ...s.stockNum, fontSize: 13 }}>{p.stock}</span>
           <button style={{ ...s.btnStk, color: '#1d9e75' }} onClick={() => ajustarStock(p, 1)}>+</button>
-          <button style={{ ...s.btnEditar, padding: '4px 10px' }} onClick={() => { setEditando(p.id); setFormEdit({ nombre: p.nombre, categoria: p.categoria, precio: p.precio, stock: p.stock }); }}>Editar</button>
+          <button style={{ ...s.btnEditar, padding: '4px 10px' }} onClick={() => { setEditando(p.id); setFormEdit({ nombre: p.nombre, categoria: p.categoria, precio: p.precio, stock: p.stock, costo: p.costo || 0 }); }}>Editar</button>
           <button style={{ ...s.btnEliminar, padding: '4px 10px' }} onClick={() => setConfirmando(p.id)}>✕</button>
         </div>
         {confirmando === p.id && (
@@ -453,8 +457,10 @@ export default function Inventario2({ rol, nombreModelo }) {
         <select style={s.select} value={formEdit.categoria || ''} onChange={e => setFormEdit(f => ({ ...f, categoria: e.target.value }))}>
           {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
-        <label style={s.label}>Precio</label>
+        <label style={s.label}>Precio de venta (COP)</label>
         <input style={s.input} type="number" value={formEdit.precio || ''} onChange={e => setFormEdit(f => ({ ...f, precio: e.target.value }))} />
+        <label style={s.label}>Costo de compra (COP/unidad)</label>
+        <input style={s.input} type="number" value={formEdit.costo || ''} onChange={e => setFormEdit(f => ({ ...f, costo: e.target.value }))} />
         <label style={s.label}>Stock</label>
         <input style={s.input} type="number" value={formEdit.stock || ''} onChange={e => setFormEdit(f => ({ ...f, stock: e.target.value }))} />
         <div style={{ display: 'flex', gap: 10 }}>

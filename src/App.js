@@ -21,6 +21,7 @@ import ResumenMonitores from './ResumenMonitores';
 import ModelasMonitor from './ModelasMonitor';
 import GoogleSheets from './GoogleSheets';
 import PanelWidgets from './PanelWidgets';
+import Finanzas from './Finanzas';
 
 
 const HABITACIONES = Array.from({ length: 16 }, (_, i) => i + 1);
@@ -357,7 +358,7 @@ function Login({ onLogin, temaOscuro, toggleTema }) {
     <div className="nm-login-wrap">
       <div className="nm-logo-ring">
         <div className="nm-logo-inner">
-          <img src="/logo.jpeg" alt="Momentum" style={{ width: 80, height: 80, objectFit: 'cover' }} />
+          <img src="/logo.jpeg" alt="Momentum" style={{ width: 74, height: 74, objectFit: 'contain' }} />
         </div>
       </div>
       <div className="nm-title">Momentum</div>
@@ -427,6 +428,7 @@ function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
   const items = [
     { id: 'mapa', label: 'Mapa', icon: 'layout-grid' },
     { id: 'resumen', label: 'Nómina', icon: 'report-money' },
+    { id: 'finanzas', label: 'Finanzas', icon: 'chart-bar' },
     { id: 'cierre', label: 'Cierres', icon: 'clipboard-check' },
     { id: 'metas', label: 'Metas', icon: 'target' },
     { id: 'inventario', label: 'Inventario', icon: 'package' },
@@ -444,6 +446,7 @@ function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
     vista === 'cierre' ? 'Cierres de turno' :
     vista === 'metas' ? 'Metas por modelo' :
     vista === 'resumen' ? 'Resumen quincenal' :
+    vista === 'finanzas' ? 'Finanzas del estudio' :
     vista === 'sheets' ? 'Google Sheets — Nómina' :
     vista === 'modelos' ? 'Gestion de modelos' :
     vista === 'monitores' ? 'Gestion de monitores' :
@@ -467,6 +470,7 @@ function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
       {vista === 'cierre' && <CierreTurno rol="jefe" />}
       {vista === 'metas' && <Metas rol="jefe" />}
       {vista === 'resumen' && <ResumenJefe />}
+      {vista === 'finanzas' && <Finanzas />}
       {vista === 'sheets' && <GoogleSheets />}
       {vista === 'modelos' && <GestionModelos />}
       {vista === 'monitores' && <ResumenMonitores />}

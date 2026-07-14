@@ -4,17 +4,6 @@ import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 const MOTIVOS = ['No contesto', 'Permiso', 'Incapacidad', 'Otro'];
 
-const MONITORES = {
-  'Daniela': ['Ashly Naibel Burgos Machado', 'Ana Sofia Ospina Ortega', 'Tatiana Andrea Rios Hurtado', 'Luz Magnolia Salazar Garcia', 'Vanessa Arroyave', 'Valentina Osorno Alvarez', 'Sara Arango Zuleta', 'Valentina Zapata Azcuntar'],
-  'Ramon': ['Alejandra Rojas Vargas', 'Maye Catalina Insuasty Saldariaga', 'Juliana Ospina Jimenez', 'Liliana Castillo Salgado', 'Nicoll Pulgarin Nohava', 'Alison Daniela Zapata Estrada', 'Evelyn Tamayo Zapata'],
-  'Santiago': ['Valentina Marquez Pino', 'Susana Pelaez', 'Ivonne Camila Zuluaga Prieto', 'Evelin Saday Ricardo Solis', 'Luisa Fernanda Osorio Jimenez'],
-  'Monica': ['Natalia Hernandez Llano', 'Maria Camila Correa Munoz', 'Nataly Cardenas Moreno', 'Dayannis Tobon Acosta', 'Diana Luz Agamez Gonzalez', 'Asoryana Ramos Briseno', 'Yesmi Diaz Ruiz'],
-  'Juan': ['Andrea Carolina Gomez Rodelo', 'Viviana Marcela Zambrano Mosquera', 'Sofia del Pilar Herrera Celis', 'Angie Marcela Villa Carmona', 'Isabela Gutierrez Rivera', 'Alexa Rivera Montoya'],
-  'Cesar': ['Yeimy Viviana Osorio Rojas', 'Maria Jose Lopez Mejia', 'Sara Paulina Mejia Marin', 'Luisa Fernanda Rodriguez Calderon']
-};
-
-const TODAS_MODELOS = Object.values(MONITORES).flat();
-
 const s = {
   tabla: { width: '100%', borderCollapse: 'collapse' },
   th: { textAlign: 'left', color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', paddingBottom: 12, borderBottom: '1px solid var(--border)' },
@@ -32,15 +21,22 @@ const s = {
 
 export default function Asistencia({ rol, nombreMonitor, modelasMonitor }) {
   const [asistencia, setAsistencia] = useState({});
+  const [modelosDB, setModelosDB] = useState([]);
   const hoy = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'asistencia'), snap => {
+    const unsub1 = onSnapshot(collection(db, 'asistencia'), snap => {
       const data = {};
       snap.forEach(d => { data[d.id] = d.data(); });
       setAsistencia(data);
     });
-    return unsub;
+    const unsub2 = onSnapshot(collection(db, 'modelos'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      data.sort((a, b) => a.nombreReal.localeCompare(b.nombreReal));
+      setModelosDB(data.filter(m => m.activa !== false));
+    });
+    return () => { unsub1(); unsub2(); };
   }, []);
 
   const marcar = async (modelo, presente, motivo = '') => {
@@ -55,10 +51,9 @@ export default function Asistencia({ rol, nombreMonitor, modelasMonitor }) {
 
   const getReg = (modelo) => asistencia[`${hoy}_${modelo}`] || null;
 
-  // Si es monitor, solo sus modelos (vienen de Firebase). Si es jefe, todas.
   const modelosAMostrar = (rol === 'monitor' && modelasMonitor && modelasMonitor.length > 0)
     ? modelasMonitor
-    : TODAS_MODELOS;
+    : modelosDB.map(m => m.nombreReal);
 
   if (modelosAMostrar.length === 0) {
     return <div style={s.vacio}>No hay modelos asignadas a este monitor</div>;

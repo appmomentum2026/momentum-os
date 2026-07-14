@@ -51,7 +51,7 @@ const s = {
   platRow: { display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-sub)', padding: '3px 0' },
 };
 
-function FormModelo({ nombre, datos, onChange }) {
+function FormModelo({ nombre, datos, onChange, fotoURL }) {
   const totalTokens = PLATAFORMAS.reduce((acc, p) => acc + Number(datos[p + '_tokens'] || 0), 0);
   const totalUsd = (totalTokens / 20).toFixed(2);
   const completada = totalTokens > 0;
@@ -60,7 +60,7 @@ function FormModelo({ nombre, datos, onChange }) {
     <div style={s.modeloCard}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         <div style={{ width: 38, height: 38, borderRadius: 19, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 16, flexShrink: 0 }}>
-          {datos.fotoURL ? <img src={datos.fotoURL} alt={nombre} style={{ width: 38, height: 38, borderRadius: 19, objectFit: 'cover' }} /> : '👤'}
+          {fotoURL ? <img src={fotoURL} alt={nombre} style={{ width: 38, height: 38, borderRadius: 19, objectFit: 'cover' }} /> : '👤'}
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>{nombre}</div>
@@ -282,7 +282,7 @@ function VistaJefe({ cierres }) {
   const [datosModelos, setDatosModelos] = useState({});
   const [cierres, setCierres] = useState([]);
   const [enviando, setEnviando] = useState(false);
-  
+  const [modelosDB, setModelosDB] = useState([]);
 
   useEffect(() => {
     const q = query(collection(db, 'cierres'), orderBy('fecha', 'desc'));
@@ -290,6 +290,15 @@ function VistaJefe({ cierres }) {
       const data = [];
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
       setCierres(data);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'modelos'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setModelosDB(data);
     });
     return unsub;
   }, []);
@@ -351,7 +360,8 @@ function VistaJefe({ cierres }) {
       <div className="nm-grid-cards">
         {misModelos.map(nombre => (
           <FormModelo key={nombre} nombre={nombre} datos={datosModelos[nombre] || {}}
-            onChange={(campo, valor) => actualizarModelo(nombre, campo, valor)} />
+            onChange={(campo, valor) => actualizarModelo(nombre, campo, valor)}
+            fotoURL={modelosDB.find(m => m.nombreReal === nombre)?.fotoURL || ''} />
         ))}
       </div>
       <button style={s.btnEnviar} onClick={enviarCierre} disabled={enviando}>

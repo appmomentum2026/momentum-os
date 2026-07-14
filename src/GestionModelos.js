@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db, storage } from './firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, doc, deleteDoc, updateDoc, onSnapshot, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, doc, deleteField, updateDoc, onSnapshot, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from './firebase';
 
@@ -21,7 +21,7 @@ const TURNO_ICONO = { 'Manana': '🌅', 'Tarde': '☀️', 'Noche': '🌙' };
 export default function GestionModelos() {
   const [modelos, setModelos] = useState([]);
   const [monitores, setMonitores] = useState([]);
-  const [modo, setModo] = useState(null); // null | 'nuevo'
+  const [modo, setModo] = useState(null);
   const [form, setForm] = useState(FORM_VACIO);
   const [paginas, setPaginas] = useState([]);
   const [confirmEliminar, setConfirmEliminar] = useState(null);
@@ -29,7 +29,8 @@ export default function GestionModelos() {
   const [fotoPreview, setFotoPreview] = useState(null);
   const [vistaGrid, setVistaGrid] = useState(true);
   const [busqueda, setBusqueda] = useState('');
-const [filtroMonitor, setFiltroMonitor] = useState({});
+  const [filtroMonitor, setFiltroMonitor] = useState({});
+  const [vistaRetiradas, setVistaRetiradas] = useState(false);
   const [editando, setEditando] = useState(null);
   const [formEdit, setFormEdit] = useState(FORM_VACIO);
   const [paginasEdit, setPaginasEdit] = useState([]);
@@ -171,12 +172,21 @@ const [filtroMonitor, setFiltroMonitor] = useState({});
 
   const eliminar = async (id) => {
     const modelo = modelos.find(m => m.id === id);
-    await deleteDoc(doc(db, 'modelos', id));
+    await updateDoc(doc(db, 'modelos', id), { activa: false, fechaRetiro: new Date().toISOString() });
     if (modelo) {
       const monDoc = monitores.find(m => m.nombre === modelo.monitor);
       if (monDoc) await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayRemove(modelo.nombreReal) });
     }
     setConfirmEliminar(null);
+  };
+
+  const restaurar = async (id) => {
+    const modelo = modelos.find(m => m.id === id);
+    await updateDoc(doc(db, 'modelos', id), { activa: true, fechaRetiro: deleteField() });
+    if (modelo) {
+      const monDoc = monitores.find(m => m.nombre === modelo.monitor);
+      if (monDoc) await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayUnion(modelo.nombreReal) });
+    }
   };
 
   const seleccionarMonitor = (nombre) => {
@@ -189,6 +199,8 @@ const [filtroMonitor, setFiltroMonitor] = useState({});
     setFormEdit(prev => ({ ...prev, monitor: nombre, turno: m?.turno || '' }));
   };
 
+  const retiradas = modelos.filter(m => m.activa === false);
+
   const s = {
     wrap: { display: 'block' },
     btnNuevo: { background: 'var(--gold)', border: 'none', borderRadius: 12, color: '#141414', padding: '12px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginBottom: 8, fontWeight: 700 },
@@ -199,21 +211,15 @@ const [filtroMonitor, setFiltroMonitor] = useState({});
     btnRow: { display: 'flex', gap: 10 },
     btnGuardar: { flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '10px', fontSize: 13, letterSpacing: 1, cursor: 'pointer' },
     btnCancelar: { background: 'transparent', border: 'none', color: 'var(--text-sub)', padding: '10px', fontSize: 13, cursor: 'pointer' },
-    card: { background: 'var(--bg2)', borderRadius: 14, padding: 16, boxShadow: 'var(--shadow-out)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' },
-    cardInfo: { flex: 1 },
-    cardNombre: { color: 'var(--gold)', fontSize: 13, fontWeight: 500, marginBottom: 4 },
-    cardSub: { color: 'var(--text-sub)', fontSize: 12 },
-    cardBtns: { display: 'flex', gap: 8 },
     btnEditar: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--text-sub)', padding: '6px 12px', fontSize: 12, cursor: 'pointer' },
     btnEliminar: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '6px 12px', fontSize: 12, cursor: 'pointer' },
     confirmBox: { background: 'var(--bg3)', borderRadius: 14, padding: 16, border: '1px solid rgba(216,90,48,0.45)', marginTop: 8 },
     confirmText: { color: 'var(--text-sub)', fontSize: 13, marginBottom: 12 },
     vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 },
-    detalle: { background: 'var(--bg)', borderRadius: '0 0 14px 14px', padding: '12px 16px', boxShadow: 'var(--shadow-in)', marginTop: -4 },
-    detalleRow: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' },
-    detalleLabel: { color: 'var(--text-sub)', fontSize: 12 },
-    detalleValor: { color: 'var(--text)', fontSize: 12 },
-    turnoLabel: { color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, marginTop: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' }
+    turnoLabel: { color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, marginTop: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' },
+    tabla: { width: '100%', borderCollapse: 'collapse' },
+    th: { textAlign: 'left', color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', padding: '10px 12px', borderBottom: '1px solid var(--border2)', whiteSpace: 'nowrap' },
+    td: { padding: '10px 12px', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text)', userSelect: 'text' },
   };
 
   return (
@@ -280,23 +286,76 @@ const [filtroMonitor, setFiltroMonitor] = useState({});
         </div>
       )}
 
-      {modelos.length === 0 && modo === null && <p style={s.vacio}>No hay modelos registradas</p>}
+      {modelos.filter(m => m.activa !== false).length === 0 && modo === null && !vistaRetiradas && (
+        <p style={s.vacio}>No hay modelos registradas</p>
+      )}
 
       {modo === null && (
         <div style={{ display: 'flex', gap: 10, marginBottom: 4, alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 10, padding: '9px 14px', flex: 1 }}>
-            <i className="ti ti-search" style={{ color: 'var(--text-dim)', fontSize: 16 }} />
-            <input style={{ background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 13, outline: 'none', flex: 1 }} placeholder="Buscar modelo..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
-          </div>
-          <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 8, padding: 3 }}>
-            <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
-            <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
-          </div>
+          {!vistaRetiradas && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 10, padding: '9px 14px', flex: 1 }}>
+              <i className="ti ti-search" style={{ color: 'var(--text-dim)', fontSize: 16 }} />
+              <input style={{ background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 13, outline: 'none', flex: 1 }} placeholder="Buscar modelo..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+            </div>
+          )}
+          {!vistaRetiradas && (
+            <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 8, padding: 3 }}>
+              <button style={{ background: vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(true)}>⊞</button>
+              <button style={{ background: !vistaGrid ? 'var(--bg3)' : 'transparent', border: 'none', borderRadius: 6, color: !vistaGrid ? 'var(--gold)' : 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setVistaGrid(false)}>☰</button>
+            </div>
+          )}
+          <button
+            style={{ background: vistaRetiradas ? 'rgba(216,90,48,0.1)' : 'var(--bg2)', border: vistaRetiradas ? '1px solid rgba(216,90,48,0.5)' : '1px solid var(--border2)', borderRadius: 8, color: vistaRetiradas ? '#d85a30' : 'var(--text-sub)', padding: '8px 12px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
+            onClick={() => setVistaRetiradas(v => !v)}>
+            {vistaRetiradas ? '← Volver a activas' : 'Retiradas'}
+            {retiradas.length > 0 && <span style={{ background: '#d85a30', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>{retiradas.length}</span>}
+          </button>
         </div>
       )}
 
-      {['Manana', 'Tarde', 'Noche'].map(turno => {
-        const modelosTurno = modelos.filter(m => m.turno === turno && (!filtroMonitor[turno] || m.monitor === filtroMonitor[turno]) && (m.nombreReal.toLowerCase().includes(busqueda.toLowerCase()) || (m.nombreModelo || '').toLowerCase().includes(busqueda.toLowerCase())));
+      {vistaRetiradas && modo === null && (
+        <div style={{ background: 'var(--bg2)', borderRadius: 14, border: '1px solid var(--border2)', overflow: 'hidden', marginTop: 8 }}>
+          {retiradas.length === 0 ? (
+            <p style={s.vacio}>No hay modelos retiradas</p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={s.tabla}>
+                <thead>
+                  <tr>
+                    <th style={s.th}>Nombre real</th>
+                    <th style={s.th}>Nombre modelo</th>
+                    <th style={s.th}>Monitor</th>
+                    <th style={s.th}>Turno</th>
+                    <th style={s.th}>Correo</th>
+                    <th style={s.th}>Nacimiento</th>
+                    <th style={s.th}>Fecha retiro</th>
+                    <th style={s.th}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {retiradas.map(m => (
+                    <tr key={m.id}>
+                      <td style={s.td}>{m.nombreReal}</td>
+                      <td style={s.td}>{m.nombreModelo || '—'}</td>
+                      <td style={s.td}>{m.monitor}</td>
+                      <td style={s.td}>{m.turno}</td>
+                      <td style={s.td}>{m.correo || '—'}</td>
+                      <td style={s.td}>{m.nacimiento || '—'}</td>
+                      <td style={s.td}>{m.fechaRetiro ? m.fechaRetiro.split('T')[0] : '—'}</td>
+                      <td style={s.td}>
+                        <button style={{ background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#4CAF7D', padding: '6px 12px', fontSize: 12, cursor: 'pointer' }} onClick={() => restaurar(m.id)}>Restaurar</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!vistaRetiradas && ['Manana', 'Tarde', 'Noche'].map(turno => {
+        const modelosTurno = modelos.filter(m => m.activa !== false && m.turno === turno && (!filtroMonitor[turno] || m.monitor === filtroMonitor[turno]) && (m.nombreReal.toLowerCase().includes(busqueda.toLowerCase()) || (m.nombreModelo || '').toLowerCase().includes(busqueda.toLowerCase())));
         if (modelosTurno.length === 0) return null;
         return (
           <div key={turno} style={{ marginBottom: 16, marginTop: 48 }}>
@@ -379,7 +438,7 @@ const [filtroMonitor, setFiltroMonitor] = useState({});
                             ? <img src={m.fotoURL} alt={m.nombreReal} style={{ width: 48, height: 48, borderRadius: 24, objectFit: 'cover', border: '1px solid var(--border2)' }} />
                             : <div style={{ width: 48, height: 48, borderRadius: 24, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 18 }}>👤</div>
                           }
-                          <div style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, background: m.activa !== false ? '#4CAF7D' : 'var(--text-dim)', border: '2px solid var(--bg2)' }} />
+                          <div style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, background: '#4CAF7D', border: '2px solid var(--bg2)' }} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>{m.nombreReal}</div>
@@ -389,16 +448,16 @@ const [filtroMonitor, setFiltroMonitor] = useState({});
                       </div>
                       <div style={{ display: 'flex', gap: 8, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
                         <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '7px 12px', fontSize: 12, cursor: 'pointer' }} onClick={() => editar(m)}>✎ Editar</button>
-                        <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '7px 12px', fontSize: 12, cursor: 'pointer' }} onClick={() => setConfirmEliminar(m.id)}>🗑 Eliminar</button>
+                        <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '7px 12px', fontSize: 12, cursor: 'pointer' }} onClick={() => setConfirmEliminar(m.id)}>Retirar</button>
                       </div>
                     </>
                   )}
                 </div>
                 {confirmEliminar === m.id && (
                   <div style={s.confirmBox}>
-                    <div style={s.confirmText}>Seguro que quieres eliminar a {m.nombreReal}?</div>
+                    <div style={s.confirmText}>¿Retirar a {m.nombreReal}? Se puede restaurar después.</div>
                     <div style={s.btnRow}>
-                      <button style={{ ...s.btnEliminar, boxShadow: 'var(--shadow-out)' }} onClick={() => eliminar(m.id)}>Si, eliminar</button>
+                      <button style={{ ...s.btnEliminar, boxShadow: 'var(--shadow-out)' }} onClick={() => eliminar(m.id)}>Sí, retirar</button>
                       <button style={s.btnCancelar} onClick={() => setConfirmEliminar(null)}>Cancelar</button>
                     </div>
                   </div>

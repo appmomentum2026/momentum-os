@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
-import { collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, onSnapshot, arrayRemove, arrayUnion } from 'firebase/firestore';
 
 const FORM_VACIO = { nombreReal: '', nombreModelo: '', clave: '', nacimiento: '', correo: '', lovense: '', amazon: '' };
 
@@ -63,13 +63,9 @@ function FormCampos({ form, setForm, paginas, setPaginas }) {
 
 export default function ModelasMonitor({ monitorData }) {
   const [modelos, setModelos] = useState([]);
-  const [creando, setCreando] = useState(false);
-  const [formNuevo, setFormNuevo] = useState(FORM_VACIO);
-  const [paginasNuevo, setPaginasNuevo] = useState([]);
   const [editando, setEditando] = useState(null);
   const [formEdit, setFormEdit] = useState(FORM_VACIO);
   const [paginasEdit, setPaginasEdit] = useState([]);
-  const [confirmando, setConfirmando] = useState(null);
   const [vistaGrid, setVistaGrid] = useState(true);
 
   const modelasMonitor = monitorData?.modelas || [];
@@ -86,35 +82,10 @@ export default function ModelasMonitor({ monitorData }) {
 
   const misModelos = modelos.filter(m => modelasMonitor.includes(m.nombreReal));
 
-  const crear = async () => {
-    if (!formNuevo.nombreReal) return;
-    const id = Date.now().toString();
-    await setDoc(doc(db, 'modelos', id), {
-      nombreReal: formNuevo.nombreReal,
-      nombreModelo: formNuevo.nombreModelo,
-      clave: formNuevo.clave || '',
-      monitor: monitorData?.nombre || '',
-      turno: monitorData?.turno || '',
-      activa: true,
-      nacimiento: formNuevo.nacimiento || '',
-      correo: formNuevo.correo || '',
-      lovense: formNuevo.lovense || '',
-      amazon: formNuevo.amazon || '',
-      paginas: paginasNuevo
-    });
-    if (monitorData?.id) {
-      await updateDoc(doc(db, 'monitores', monitorData.id), { modelas: arrayUnion(formNuevo.nombreReal) });
-    }
-    setCreando(false);
-    setFormNuevo(FORM_VACIO);
-    setPaginasNuevo([]);
-  };
-
   const iniciarEdicion = (m) => {
     setEditando(m.id);
     setFormEdit({ nombreReal: m.nombreReal, nombreModelo: m.nombreModelo || '', clave: m.clave || '', nacimiento: m.nacimiento || '', correo: m.correo || '', lovense: m.lovense || '', amazon: m.amazon || '' });
     setPaginasEdit(m.paginas || []);
-    setConfirmando(null);
   };
 
   const guardarEdicion = async () => {
@@ -141,32 +112,9 @@ export default function ModelasMonitor({ monitorData }) {
     setPaginasEdit([]);
   };
 
-  const eliminar = async (id) => {
-    const modelo = modelos.find(m => m.id === id);
-    await deleteDoc(doc(db, 'modelos', id));
-    if (monitorData?.id && modelo) {
-      await updateDoc(doc(db, 'monitores', monitorData.id), { modelas: arrayRemove(modelo.nombreReal) });
-    }
-    setConfirmando(null);
-  };
-
   return (
     <div>
-      {!creando && (
-        <button style={s.btnNuevo} onClick={() => setCreando(true)}>+ Nueva modelo</button>
-      )}
-
-      {creando && (
-        <div style={s.card}>
-          <FormCampos form={formNuevo} setForm={setFormNuevo} paginas={paginasNuevo} setPaginas={setPaginasNuevo} />
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button style={s.btnGuardar} onClick={crear}>Guardar</button>
-            <button style={s.btnCancelar} onClick={() => { setCreando(false); setFormNuevo(FORM_VACIO); setPaginasNuevo([]); }}>Cancelar</button>
-          </div>
-        </div>
-      )}
-
-      {misModelos.length === 0 && !creando && (
+      {misModelos.length === 0 && (
         <div style={s.vacio}>No tienes modelos asignadas</div>
       )}
 
@@ -245,14 +193,6 @@ export default function ModelasMonitor({ monitorData }) {
               {/* Botones */}
               <div style={s.accionRow}>
                 <button style={s.btnEditar} onClick={() => iniciarEdicion(m)}>✎ Editar</button>
-                {confirmando === m.id ? (
-                  <>
-                    <button style={s.btnConfirmar} onClick={() => eliminar(m.id)}>¿Confirmar?</button>
-                    <button style={s.btnCancelar} onClick={() => setConfirmando(null)}>No</button>
-                  </>
-                ) : (
-                  <button style={s.btnEliminar} onClick={() => setConfirmando(m.id)}>🗑 Eliminar</button>
-                )}
               </div>
             </>
           )}
