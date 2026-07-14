@@ -16,24 +16,13 @@ export default function GestionMonitores() {
     await deleteDoc(doc(db, 'monitores', id));
   };
 
-  const editar = (monitor) => {
-    setModo(monitor.id);
-    setForm({ nombre: monitor.nombre || '', turno: monitor.turno || '', clave: '' });
-  };
-
   useEffect(() => {
-    const handleEditar = (e) => {
-      const monitor = monitores.find(m => m.nombre === e.detail);
-      if (monitor) editar(monitor);
-    };
     const handleEliminar = (e) => {
       const monitor = monitores.find(m => m.nombre === e.detail);
       if (monitor) eliminar(monitor.id);
     };
-    document.addEventListener('editarMonitor', handleEditar);
     document.addEventListener('eliminarMonitor', handleEliminar);
     return () => {
-      document.removeEventListener('editarMonitor', handleEditar);
       document.removeEventListener('eliminarMonitor', handleEliminar);
     };
   }, [monitores]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -51,8 +40,7 @@ export default function GestionMonitores() {
   const guardar = async () => {
     if (!form.nombre || !form.turno) return;
     setGuardando(true);
-    const id = modo === 'nuevo' ? form.nombre.toLowerCase().replace(/\s+/g, '_') : modo;
-    const monitorActual = modo !== 'nuevo' ? monitores.find(m => m.id === modo) : null;
+    const id = form.nombre.toLowerCase().replace(/\s+/g, '_');
 
     try {
       const guardarUsuario = httpsCallable(functions, 'guardarUsuario');
@@ -63,7 +51,7 @@ export default function GestionMonitores() {
         datos: {
           nombre: form.nombre,
           turno: form.turno,
-          modelas: monitorActual?.modelas || []
+          modelas: []
         }
       });
       setModo(null);
@@ -104,7 +92,7 @@ export default function GestionMonitores() {
         </button>
       )}
 
-      {modo !== null && (
+      {modo === 'nuevo' && (
         <div style={s.form}>
           <label style={s.label}>Nombre del monitor</label>
           <input style={s.input} placeholder="Nombre" value={form.nombre} onChange={e => setForm(prev => ({ ...prev, nombre: e.target.value }))} />
@@ -113,7 +101,7 @@ export default function GestionMonitores() {
             <option value="">Seleccionar turno</option>
             {TURNOS.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
-          <label style={s.label}>Clave de acceso {modo !== 'nuevo' && '(dejar vacío para no cambiar)'}</label>
+          <label style={s.label}>Clave de acceso</label>
           <input style={s.input} placeholder="Clave" value={form.clave} onChange={e => setForm(prev => ({ ...prev, clave: e.target.value }))} />
           <div style={s.btnRow}>
             <button style={s.btnGuardar} onClick={guardar} disabled={guardando}>{guardando ? 'Guardando...' : 'Guardar'}</button>

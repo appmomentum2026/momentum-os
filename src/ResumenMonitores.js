@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { db } from './firebase';
+import { db, functions } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 
 const PLATAFORMAS = ['Stripchat', 'Camsoda', 'Chaturbate', 'Streamate'];
 
@@ -14,6 +15,7 @@ const MONITORES = {
 };
 
 const TURNOS = { 'Daniela': 'Manana', 'Ramon': 'Manana', 'Santiago': 'Tarde', 'Monica': 'Tarde', 'Juan': 'Noche', 'Cesar': 'Noche' };
+const TURNOS_LISTA = ['Manana', 'Tarde', 'Noche'];
 
 const ICONO_TURNO = { 'Manana': 'sun', 'Tarde': 'sunset', 'Noche': 'moon' };
 const TURNO_EMOJI = { 'Manana': '🌅', 'Tarde': '☀️', 'Noche': '🌙' };
@@ -32,6 +34,12 @@ const s = {
   statVal: { color: 'var(--text)', fontSize: 17, fontWeight: 500 },
   statValGold: { color: 'var(--gold)', fontSize: 17, fontWeight: 500 },
   turnoLabel: { color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, marginTop: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' },
+  label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
+  input: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14, boxSizing: 'border-box' },
+  select: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14, boxSizing: 'border-box' },
+  btnRow: { display: 'flex', gap: 10 },
+  btnGuardar: { flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '10px', fontSize: 13, letterSpacing: 1, cursor: 'pointer' },
+  btnCancelar: { background: 'transparent', border: 'none', color: 'var(--text-sub)', padding: '10px', fontSize: 13, cursor: 'pointer' },
 };
 
 function getQuincena() {
@@ -49,16 +57,60 @@ function getQuincena() {
 
 export default function ResumenMonitores() {
   const [cierres, setCierres] = useState([]);
+  const [monitoresDB, setMonitoresDB] = useState([]);
+  const [editando, setEditando] = useState(null);
+  const [formEdit, setFormEdit] = useState({ nombre: '', turno: '', clave: '' });
+  const [guardando, setGuardando] = useState(false);
   const quincena = getQuincena();
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'cierres'), snap => {
+    const unsub1 = onSnapshot(collection(db, 'cierres'), snap => {
       const data = [];
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
       setCierres(data);
     });
-    return unsub;
+    const unsub2 = onSnapshot(collection(db, 'monitores'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setMonitoresDB(data);
+    });
+    return () => { unsub1(); unsub2(); };
   }, []);
+
+  const iniciarEdicion = (nombreMonitor) => {
+    const monitorDB = monitoresDB.find(m => m.nombre === nombreMonitor);
+    setEditando(nombreMonitor);
+    setFormEdit({
+      nombre: monitorDB?.nombre || nombreMonitor,
+      turno: monitorDB?.turno || TURNOS[nombreMonitor] || '',
+      clave: ''
+    });
+  };
+
+  const guardarEdicion = async () => {
+    if (!formEdit.nombre || !formEdit.turno) return;
+    const monitorDB = monitoresDB.find(m => m.nombre === editando);
+    if (!monitorDB) return;
+    setGuardando(true);
+    try {
+      const guardarUsuario = httpsCallable(functions, 'guardarUsuario');
+      await guardarUsuario({
+        coleccion: 'monitores',
+        id: monitorDB.id,
+        clave: formEdit.clave || '',
+        datos: {
+          nombre: formEdit.nombre,
+          turno: formEdit.turno,
+          modelas: monitorDB.modelas || []
+        }
+      });
+      setEditando(null);
+      setFormEdit({ nombre: '', turno: '', clave: '' });
+    } catch (err) {
+      console.error('Error guardando monitor:', err);
+    }
+    setGuardando(false);
+  };
 
   const calcularMonitor = (nombreMonitor) => {
     const susModelos = MONITORES[nombreMonitor] || [];
@@ -81,11 +133,9 @@ export default function ResumenMonitores() {
     return { numModelos: susModelos.length, totalTokens, totalUsd };
   };
 
-  const ORDEN = ['Manana', 'Tarde', 'Noche'];
-
   return (
     <div style={s.wrap}>
-      {ORDEN.map(turnoActual => {
+      {TURNOS_LISTA.map(turnoActual => {
         const monitoresTurno = Object.keys(MONITORES).filter(m => TURNOS[m] === turnoActual);
         if (monitoresTurno.length === 0) return null;
         return (
@@ -99,41 +149,61 @@ export default function ResumenMonitores() {
               const datos = calcularMonitor(monitor);
               const turno = TURNOS[monitor];
               return (
-          <div key={monitor} style={s.card}>
-            <div style={s.header}>
-              <div style={s.nombreRow}>
-                <div style={s.icono}><i className={`ti ti-${ICONO_TURNO[turno] || 'user'}`} aria-hidden="true"></i></div>
-                <div>
-                  <div style={s.nombre}>{monitor}</div>
-                  <div style={s.turno}>Turno {turno}</div>
+                <div key={monitor} style={s.card}>
+                  {editando === monitor ? (
+                    <div className="nm-form-inline">
+                      <label style={s.label}>Nombre del monitor</label>
+                      <input style={s.input} placeholder="Nombre" value={formEdit.nombre} onChange={e => setFormEdit(prev => ({ ...prev, nombre: e.target.value }))} />
+                      <label style={s.label}>Turno</label>
+                      <select style={s.select} value={formEdit.turno} onChange={e => setFormEdit(prev => ({ ...prev, turno: e.target.value }))}>
+                        <option value="">Seleccionar turno</option>
+                        {TURNOS_LISTA.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                      <label style={s.label}>Clave de acceso (dejar vacío para no cambiar)</label>
+                      <input style={s.input} placeholder="Clave" type="password" value={formEdit.clave} onChange={e => setFormEdit(prev => ({ ...prev, clave: e.target.value }))} />
+                      <div style={s.btnRow}>
+                        <button style={s.btnGuardar} onClick={guardarEdicion} disabled={guardando}>{guardando ? 'Guardando...' : 'Guardar'}</button>
+                        <button style={s.btnCancelar} onClick={() => setEditando(null)}>Cancelar</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={s.header}>
+                        <div style={s.nombreRow}>
+                          <div style={s.icono}><i className={`ti ti-${ICONO_TURNO[turno] || 'user'}`} aria-hidden="true"></i></div>
+                          <div>
+                            <div style={s.nombre}>{monitor}</div>
+                            <div style={s.turno}>Turno {turno}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div style={s.statsRow}>
+                        <div style={s.statBox}>
+                          <div style={s.statLabel}>Modelos</div>
+                          <div style={s.statVal}>{datos.numModelos}</div>
+                        </div>
+                        <div style={s.statBox}>
+                          <div style={s.statLabel}>Tokens</div>
+                          <div style={s.statVal}>{datos.totalTokens.toLocaleString()}</div>
+                        </div>
+                        <div style={s.statBox}>
+                          <div style={s.statLabel}>Facturación</div>
+                          <div style={s.statValGold}>${datos.totalUsd}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                        <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '7px 14px', fontSize: 12, cursor: 'pointer', letterSpacing: 1 }}
+                          onClick={() => iniciarEdicion(monitor)}>
+                          Editar
+                        </button>
+                        <button style={{ background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '7px 14px', fontSize: 12, cursor: 'pointer' }}
+                          onClick={() => document.dispatchEvent(new CustomEvent('eliminarMonitor', { detail: monitor }))}>
+                          Eliminar
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
-            </div>
-            <div style={s.statsRow}>
-              <div style={s.statBox}>
-                <div style={s.statLabel}>Modelos</div>
-                <div style={s.statVal}>{datos.numModelos}</div>
-              </div>
-              <div style={s.statBox}>
-                <div style={s.statLabel}>Tokens</div>
-                <div style={s.statVal}>{datos.totalTokens.toLocaleString()}</div>
-              </div>
-              <div style={s.statBox}>
-                <div style={s.statLabel}>Facturación</div>
-                <div style={s.statValGold}>${datos.totalUsd}</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-              <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '7px 14px', fontSize: 12, cursor: 'pointer', letterSpacing: 1 }}
-                onClick={() => document.dispatchEvent(new CustomEvent('editarMonitor', { detail: monitor }))}>
-                Editar
-              </button>
-              <button style={{ background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '7px 14px', fontSize: 12, cursor: 'pointer' }}
-                onClick={() => document.dispatchEvent(new CustomEvent('eliminarMonitor', { detail: monitor }))}>
-                Eliminar
-              </button>
-            </div>
-          </div>
               );
             })}
             </div>
