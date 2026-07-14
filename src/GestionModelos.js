@@ -244,7 +244,7 @@ export default function GestionModelos() {
           <label style={s.label}>Clave de acceso</label>
           <input style={s.input} placeholder="Clave para la modelo" value={form.clave || ''} onChange={e => setForm(prev => ({ ...prev, clave: e.target.value }))} />
           <label style={s.label}>Fecha de nacimiento</label>
-          <input style={s.input} placeholder="DD/MM/AAAA" value={form.nacimiento || ''} onChange={e => setForm(prev => ({ ...prev, nacimiento: e.target.value }))} />
+          <input style={s.input} type="date" value={form.nacimiento || ''} onChange={e => setForm(prev => ({ ...prev, nacimiento: e.target.value }))} />
           <label style={s.label}>Correo electrónico</label>
           <input style={s.input} type="email" placeholder="correo@ejemplo.com" value={form.correo || ''} onChange={e => setForm(prev => ({ ...prev, correo: e.target.value }))} />
           <label style={s.label}>Accesos Lovense</label>
@@ -329,7 +329,7 @@ export default function GestionModelos() {
                       <label style={s.label}>Clave de acceso</label>
                       <input style={s.input} placeholder="Clave para la modelo" value={formEdit.clave || ''} onChange={e => setFormEdit(prev => ({ ...prev, clave: e.target.value }))} />
                       <label style={s.label}>Fecha de nacimiento</label>
-                      <input style={s.input} placeholder="DD/MM/AAAA" value={formEdit.nacimiento || ''} onChange={e => setFormEdit(prev => ({ ...prev, nacimiento: e.target.value }))} />
+                      <input style={s.input} type="date" value={formEdit.nacimiento || ''} onChange={e => setFormEdit(prev => ({ ...prev, nacimiento: e.target.value }))} />
                       <label style={s.label}>Correo electrónico</label>
                       <input style={s.input} type="email" placeholder="correo@ejemplo.com" value={formEdit.correo || ''} onChange={e => setFormEdit(prev => ({ ...prev, correo: e.target.value }))} />
                       <label style={s.label}>Accesos Lovense</label>

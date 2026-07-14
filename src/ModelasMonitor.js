@@ -40,7 +40,7 @@ function FormCampos({ form, setForm, paginas, setPaginas }) {
       <label style={s.label}>Clave de acceso</label>
       <input style={s.input} placeholder="Clave de login" value={form.clave} onChange={e => setForm(f => ({ ...f, clave: e.target.value }))} />
       <label style={s.label}>Fecha de nacimiento</label>
-      <input style={s.input} placeholder="DD/MM/AAAA" value={form.nacimiento} onChange={e => setForm(f => ({ ...f, nacimiento: e.target.value }))} />
+      <input style={s.input} type="date" value={form.nacimiento} onChange={e => setForm(f => ({ ...f, nacimiento: e.target.value }))} />
       <label style={s.label}>Correo electrónico</label>
       <input style={s.input} type="email" placeholder="correo@ejemplo.com" value={form.correo} onChange={e => setForm(f => ({ ...f, correo: e.target.value }))} />
       <label style={s.label}>Accesos Lovense</label>
