@@ -21,14 +21,19 @@ const TURNO_ICONO = { 'Manana': '🌅', 'Tarde': '☀️', 'Noche': '🌙' };
 export default function GestionModelos() {
   const [modelos, setModelos] = useState([]);
   const [monitores, setMonitores] = useState([]);
-  const [modo, setModo] = useState(null);
+  const [modo, setModo] = useState(null); // null | 'nuevo'
   const [form, setForm] = useState(FORM_VACIO);
   const [paginas, setPaginas] = useState([]);
   const [confirmEliminar, setConfirmEliminar] = useState(null);
-const [fotoFile, setFotoFile] = useState(null);
-const [fotoPreview, setFotoPreview] = useState(null);
-const [vistaGrid, setVistaGrid] = useState(true);
-const [busqueda, setBusqueda] = useState('');
+  const [fotoFile, setFotoFile] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState(null);
+  const [vistaGrid, setVistaGrid] = useState(true);
+  const [busqueda, setBusqueda] = useState('');
+  const [editando, setEditando] = useState(null);
+  const [formEdit, setFormEdit] = useState(FORM_VACIO);
+  const [paginasEdit, setPaginasEdit] = useState([]);
+  const [fotoFileEdit, setFotoFileEdit] = useState(null);
+  const [fotoPreviewEdit, setFotoPreviewEdit] = useState(null);
 
   useEffect(() => {
     const unsub1 = onSnapshot(collection(db, 'modelos'), snap => {
@@ -47,14 +52,13 @@ const [busqueda, setBusqueda] = useState('');
 
   const guardar = async () => {
     if (!form.nombreReal || !form.monitor) return;
-    const id = modo === 'nuevo' ? Date.now().toString() : modo;
-    let fotoURL = form.fotoURL || '';
+    const id = Date.now().toString();
+    let fotoURL = '';
     if (fotoFile) {
       const storageRef = ref(storage, `fotos/${id}`);
       await uploadBytes(storageRef, fotoFile);
       fotoURL = await getDownloadURL(storageRef);
     }
-    const modeloActual = modo !== 'nuevo' ? modelos.find(m => m.id === modo) : null;
 
     const guardarUsuario = httpsCallable(functions, 'guardarUsuario');
     await guardarUsuario({
@@ -77,35 +81,76 @@ const [busqueda, setBusqueda] = useState('');
       }
     });
 
-    // Sincronizar con la colección monitores
-    if (modo === 'nuevo') {
-      const monDoc = monitores.find(m => m.nombre === form.monitor);
-      if (monDoc) await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayUnion(form.nombreReal) });
-    } else if (modeloActual) {
-      const oldMonitor = modeloActual.monitor;
-      const oldNombreReal = modeloActual.nombreReal;
-      if (oldMonitor !== form.monitor) {
-        const oldMon = monitores.find(m => m.nombre === oldMonitor);
-        if (oldMon) await updateDoc(doc(db, 'monitores', oldMon.id), { modelas: arrayRemove(oldNombreReal) });
-        const newMon = monitores.find(m => m.nombre === form.monitor);
-        if (newMon) await updateDoc(doc(db, 'monitores', newMon.id), { modelas: arrayUnion(form.nombreReal) });
-      } else if (oldNombreReal !== form.nombreReal) {
-        const monDoc = monitores.find(m => m.nombre === form.monitor);
-        if (monDoc) {
-          await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayRemove(oldNombreReal) });
-          await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayUnion(form.nombreReal) });
-        }
-      }
-    }
+    const monDoc = monitores.find(m => m.nombre === form.monitor);
+    if (monDoc) await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayUnion(form.nombreReal) });
 
     setModo(null);
     setForm(FORM_VACIO);
     setPaginas([]);
+    setFotoFile(null);
+    setFotoPreview(null);
+  };
+
+  const guardarEdicion = async () => {
+    if (!formEdit.nombreReal || !formEdit.monitor) return;
+    const id = editando;
+    let fotoURL = formEdit.fotoURL || '';
+    if (fotoFileEdit) {
+      const storageRef = ref(storage, `fotos/${id}`);
+      await uploadBytes(storageRef, fotoFileEdit);
+      fotoURL = await getDownloadURL(storageRef);
+    }
+    const modeloActual = modelos.find(m => m.id === editando);
+
+    const guardarUsuario = httpsCallable(functions, 'guardarUsuario');
+    await guardarUsuario({
+      coleccion: 'modelos',
+      id: id,
+      clave: formEdit.clave || '',
+      datos: {
+        nombreReal: formEdit.nombreReal,
+        nombreModelo: formEdit.nombreModelo,
+        monitor: formEdit.monitor,
+        turno: formEdit.turno,
+        activa: true,
+        nacimiento: formEdit.nacimiento || '',
+        correo: formEdit.correo || '',
+        lovense: formEdit.lovense || '',
+        amazon: formEdit.amazon || '',
+        habitacion: formEdit.habitacion || '',
+        paginas: paginasEdit,
+        fotoURL: fotoURL
+      }
+    });
+
+    if (modeloActual) {
+      const oldMonitor = modeloActual.monitor;
+      const oldNombreReal = modeloActual.nombreReal;
+      if (oldMonitor !== formEdit.monitor) {
+        const oldMon = monitores.find(m => m.nombre === oldMonitor);
+        if (oldMon) await updateDoc(doc(db, 'monitores', oldMon.id), { modelas: arrayRemove(oldNombreReal) });
+        const newMon = monitores.find(m => m.nombre === formEdit.monitor);
+        if (newMon) await updateDoc(doc(db, 'monitores', newMon.id), { modelas: arrayUnion(formEdit.nombreReal) });
+      } else if (oldNombreReal !== formEdit.nombreReal) {
+        const monDoc = monitores.find(m => m.nombre === formEdit.monitor);
+        if (monDoc) {
+          await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayRemove(oldNombreReal) });
+          await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayUnion(formEdit.nombreReal) });
+        }
+      }
+    }
+
+    setEditando(null);
+    setFormEdit(FORM_VACIO);
+    setPaginasEdit([]);
+    setFotoFileEdit(null);
+    setFotoPreviewEdit(null);
   };
 
   const editar = (modelo) => {
-    setModo(modelo.id);
-    setForm({
+    setModo(null);
+    setEditando(modelo.id);
+    setFormEdit({
       nombreReal: modelo.nombreReal,
       nombreModelo: modelo.nombreModelo || '',
       monitor: modelo.monitor,
@@ -118,9 +163,9 @@ const [busqueda, setBusqueda] = useState('');
       habitacion: modelo.habitacion || '',
       fotoURL: modelo.fotoURL || ''
     });
-    setFotoFile(null);
-    setFotoPreview(null);
-    setPaginas(modelo.paginas || []);
+    setFotoFileEdit(null);
+    setFotoPreviewEdit(null);
+    setPaginasEdit(modelo.paginas || []);
   };
 
   const eliminar = async (id) => {
@@ -138,13 +183,18 @@ const [busqueda, setBusqueda] = useState('');
     setForm(prev => ({ ...prev, monitor: nombre, turno: m?.turno || '' }));
   };
 
+  const seleccionarMonitorEdit = (nombre) => {
+    const m = MONITORES_LISTA.find(m => m.nombre === nombre);
+    setFormEdit(prev => ({ ...prev, monitor: nombre, turno: m?.turno || '' }));
+  };
+
   const s = {
     wrap: { display: 'block' },
     btnNuevo: { background: 'var(--gold)', border: 'none', borderRadius: 12, color: '#141414', padding: '12px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginBottom: 8, fontWeight: 700 },
     form: { background: 'var(--bg2)', borderRadius: 14, padding: 20, boxShadow: 'var(--shadow-out)', marginBottom: 8 },
     label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
-    input: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14 },
-    select: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14 },
+    input: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14, boxSizing: 'border-box' },
+    select: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14, boxSizing: 'border-box' },
     btnRow: { display: 'flex', gap: 10 },
     btnGuardar: { flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '10px', fontSize: 13, letterSpacing: 1, cursor: 'pointer' },
     btnCancelar: { background: 'transparent', border: 'none', color: 'var(--text-sub)', padding: '10px', fontSize: 13, cursor: 'pointer' },
@@ -168,12 +218,12 @@ const [busqueda, setBusqueda] = useState('');
   return (
     <div style={s.wrap}>
       {modo === null && (
-        <button style={s.btnNuevo} onClick={() => { setModo('nuevo'); setForm({ nombreReal: '', nombreModelo: '', monitor: '', turno: '', clave: '' }); }}>
+        <button style={s.btnNuevo} onClick={() => { setModo('nuevo'); setEditando(null); setForm({ nombreReal: '', nombreModelo: '', monitor: '', turno: '', clave: '' }); }}>
           + Agregar modelo
         </button>
       )}
 
-      {modo !== null && (
+      {modo === 'nuevo' && (
         <div style={s.form}>
           <label style={s.label}>Nombre real</label>
           <input style={s.input} placeholder="Nombre completo" value={form.nombreReal} onChange={e => setForm(prev => ({ ...prev, nombreReal: e.target.value }))} />
@@ -224,7 +274,7 @@ const [busqueda, setBusqueda] = useState('');
           <button style={{ ...s.btnCancelar, color: 'var(--gold)', marginBottom: 14, display: 'block' }} onClick={() => setPaginas(ps => [...ps, { nombre: '', usuario: '', clave: '' }])}>+ Agregar página</button>
           <div style={s.btnRow}>
             <button style={s.btnGuardar} onClick={guardar}>Guardar</button>
-            <button style={s.btnCancelar} onClick={() => { setModo(null); setPaginas([]); }}>Cancelar</button>
+            <button style={s.btnCancelar} onClick={() => { setModo(null); setPaginas([]); setFotoFile(null); setFotoPreview(null); }}>Cancelar</button>
           </div>
         </div>
       )}
@@ -257,25 +307,83 @@ const [busqueda, setBusqueda] = useState('');
             <div className={vistaGrid ? 'nm-grid-cards' : ''} style={!vistaGrid ? { display: 'flex', flexDirection: 'column', gap: 10 } : {}}>
             {modelosTurno.map(m => (
               <div key={m.id}>
-                <div style={{ background: 'var(--bg2)', borderRadius: 14, padding: 16, border: '1px solid var(--border2)' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-                    <div style={{ position: 'relative', flexShrink: 0 }}>
-                      {m.fotoURL
-                        ? <img src={m.fotoURL} alt={m.nombreReal} style={{ width: 48, height: 48, borderRadius: 24, objectFit: 'cover', border: '1px solid var(--border2)' }} />
-                        : <div style={{ width: 48, height: 48, borderRadius: 24, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 18 }}>👤</div>
-                      }
-                      <div style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, background: m.activa !== false ? '#4CAF7D' : 'var(--text-dim)', border: '2px solid var(--bg2)' }} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>{m.nombreReal}</div>
-                      <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>{m.nombreModelo ? `${m.nombreModelo} · ` : ''}{m.monitor}</div>
-                      <span style={{ display: 'inline-block', marginTop: 6, background: 'rgba(201,146,74,0.15)', color: 'var(--gold)', fontSize: 10, padding: '2px 10px', borderRadius: 20, fontWeight: 500 }}>{m.turno}</span>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-                    <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '7px 12px', fontSize: 12, cursor: 'pointer' }} onClick={() => editar(m)}>✎ Editar</button>
-                    <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '7px 12px', fontSize: 12, cursor: 'pointer' }} onClick={() => setConfirmEliminar(m.id)}>🗑 Eliminar</button>
-                  </div>
+                <div className={editando === m.id ? 'nm-form-inline' : ''} style={{ background: 'var(--bg2)', borderRadius: 14, padding: 16, border: '1px solid var(--border2)' }}>
+                  {editando === m.id ? (
+                    <>
+                      <label style={s.label}>Nombre real</label>
+                      <input style={s.input} placeholder="Nombre completo" value={formEdit.nombreReal} onChange={e => setFormEdit(prev => ({ ...prev, nombreReal: e.target.value }))} />
+                      <label style={s.label}>Nombre de modelo</label>
+                      <input style={s.input} placeholder="Nombre artistico" value={formEdit.nombreModelo} onChange={e => setFormEdit(prev => ({ ...prev, nombreModelo: e.target.value }))} />
+                      <label style={s.label}>Monitor</label>
+                      <select style={s.select} value={formEdit.monitor} onChange={e => seleccionarMonitorEdit(e.target.value)}>
+                        <option value="">Seleccionar monitor</option>
+                        {MONITORES_LISTA.map(mon => <option key={mon.nombre} value={mon.nombre}>{mon.nombre} — {mon.turno}</option>)}
+                      </select>
+                      <label style={s.label}>Turno</label>
+                      <input style={{ ...s.input, color: 'var(--text-sub)' }} value={formEdit.turno} readOnly placeholder="Se asigna con el monitor" />
+                      <label style={s.label}>Habitación asignada</label>
+                      <select style={s.select} value={formEdit.habitacion || ''} onChange={e => setFormEdit(prev => ({ ...prev, habitacion: e.target.value }))}>
+                        <option value="">Sin habitación</option>
+                        {Array.from({ length: 16 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Habitación {n}</option>)}
+                      </select>
+                      <label style={s.label}>Clave de acceso</label>
+                      <input style={s.input} placeholder="Clave para la modelo" value={formEdit.clave || ''} onChange={e => setFormEdit(prev => ({ ...prev, clave: e.target.value }))} />
+                      <label style={s.label}>Fecha de nacimiento</label>
+                      <input style={s.input} placeholder="DD/MM/AAAA" value={formEdit.nacimiento || ''} onChange={e => setFormEdit(prev => ({ ...prev, nacimiento: e.target.value }))} />
+                      <label style={s.label}>Correo electrónico</label>
+                      <input style={s.input} type="email" placeholder="correo@ejemplo.com" value={formEdit.correo || ''} onChange={e => setFormEdit(prev => ({ ...prev, correo: e.target.value }))} />
+                      <label style={s.label}>Accesos Lovense</label>
+                      <input style={s.input} placeholder="Usuario / Clave" value={formEdit.lovense || ''} onChange={e => setFormEdit(prev => ({ ...prev, lovense: e.target.value }))} />
+                      <label style={s.label}>Accesos Amazon</label>
+                      <input style={s.input} placeholder="Usuario / Clave" value={formEdit.amazon || ''} onChange={e => setFormEdit(prev => ({ ...prev, amazon: e.target.value }))} />
+                      <label style={s.label}>Foto</label>
+                      <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
+                        {(fotoPreviewEdit || formEdit.fotoURL) && (
+                          <img src={fotoPreviewEdit || formEdit.fotoURL} alt="foto" style={{ width: 60, height: 60, borderRadius: 30, objectFit: 'cover', border: '2px solid var(--gold)' }} />
+                        )}
+                        <input type="file" accept="image/*" style={{ color: 'var(--text-sub)', fontSize: 12 }}
+                          onChange={e => {
+                            const file = e.target.files[0];
+                            if (file) { setFotoFileEdit(file); setFotoPreviewEdit(URL.createObjectURL(file)); }
+                          }} />
+                      </div>
+                      <label style={s.label}>Páginas</label>
+                      {paginasEdit.map((p, i) => (
+                        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 6, marginBottom: 8 }}>
+                          <input style={{ ...s.input, marginBottom: 0 }} placeholder="Plataforma" value={p.nombre} onChange={e => setPaginasEdit(ps => ps.map((x, idx) => idx === i ? { ...x, nombre: e.target.value } : x))} />
+                          <input style={{ ...s.input, marginBottom: 0 }} placeholder="Usuario" value={p.usuario} onChange={e => setPaginasEdit(ps => ps.map((x, idx) => idx === i ? { ...x, usuario: e.target.value } : x))} />
+                          <input style={{ ...s.input, marginBottom: 0 }} placeholder="Clave" value={p.clave} onChange={e => setPaginasEdit(ps => ps.map((x, idx) => idx === i ? { ...x, clave: e.target.value } : x))} />
+                          <button style={{ background: 'transparent', border: 'none', color: '#d85a30', cursor: 'pointer', fontSize: 16, padding: '0 4px' }} onClick={() => setPaginasEdit(ps => ps.filter((_, idx) => idx !== i))}>✕</button>
+                        </div>
+                      ))}
+                      <button style={{ ...s.btnCancelar, color: 'var(--gold)', marginBottom: 14, display: 'block' }} onClick={() => setPaginasEdit(ps => [...ps, { nombre: '', usuario: '', clave: '' }])}>+ Agregar página</button>
+                      <div style={s.btnRow}>
+                        <button style={s.btnGuardar} onClick={guardarEdicion}>Guardar</button>
+                        <button style={s.btnCancelar} onClick={() => { setEditando(null); setPaginasEdit([]); setFotoFileEdit(null); setFotoPreviewEdit(null); }}>Cancelar</button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          {m.fotoURL
+                            ? <img src={m.fotoURL} alt={m.nombreReal} style={{ width: 48, height: 48, borderRadius: 24, objectFit: 'cover', border: '1px solid var(--border2)' }} />
+                            : <div style={{ width: 48, height: 48, borderRadius: 24, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 18 }}>👤</div>
+                          }
+                          <div style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, background: m.activa !== false ? '#4CAF7D' : 'var(--text-dim)', border: '2px solid var(--bg2)' }} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>{m.nombreReal}</div>
+                          <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>{m.nombreModelo ? `${m.nombreModelo} · ` : ''}{m.monitor}</div>
+                          <span style={{ display: 'inline-block', marginTop: 6, background: 'rgba(201,146,74,0.15)', color: 'var(--gold)', fontSize: 10, padding: '2px 10px', borderRadius: 20, fontWeight: 500 }}>{m.turno}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                        <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '7px 12px', fontSize: 12, cursor: 'pointer' }} onClick={() => editar(m)}>✎ Editar</button>
+                        <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '7px 12px', fontSize: 12, cursor: 'pointer' }} onClick={() => setConfirmEliminar(m.id)}>🗑 Eliminar</button>
+                      </div>
+                    </>
+                  )}
                 </div>
                 {confirmEliminar === m.id && (
                   <div style={s.confirmBox}>

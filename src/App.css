@@ -622,3 +622,11 @@ html, body {
 @media (max-width: 600px) {
   .nm-resumen-inventario { display: none !important; }
 }
+@keyframes nm-abrir {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.nm-form-inline {
+  animation: nm-abrir 0.25s ease-out;
+}
