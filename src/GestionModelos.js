@@ -14,7 +14,7 @@ const MONITORES_LISTA = [
   { nombre: 'Cesar', turno: 'Noche' }
 ];
 
-const FORM_VACIO = { nombreReal: '', nombreModelo: '', monitor: '', turno: '', clave: '', nacimiento: '', correo: '', lovense: '', amazon: '' };
+const FORM_VACIO = { nombreReal: '', nombreModelo: '', monitor: '', turno: '', clave: '', nacimiento: '', correo: '', lovense: '', amazon: '', habitacion: '' };
 
 const TURNO_ICONO = { 'Manana': '🌅', 'Tarde': '☀️', 'Noche': '🌙' };
 
@@ -71,6 +71,7 @@ const [busqueda, setBusqueda] = useState('');
         correo: form.correo || '',
         lovense: form.lovense || '',
         amazon: form.amazon || '',
+        habitacion: form.habitacion || '',
         paginas: paginas,
         fotoURL: fotoURL
       }
@@ -114,6 +115,7 @@ const [busqueda, setBusqueda] = useState('');
       correo: modelo.correo || '',
       lovense: modelo.lovense || '',
       amazon: modelo.amazon || '',
+      habitacion: modelo.habitacion || '',
       fotoURL: modelo.fotoURL || ''
     });
     setFotoFile(null);
@@ -184,6 +186,11 @@ const [busqueda, setBusqueda] = useState('');
           </select>
           <label style={s.label}>Turno</label>
           <input style={{ ...s.input, color: 'var(--text-sub)' }} value={form.turno} readOnly placeholder="Se asigna con el monitor" />
+          <label style={s.label}>Habitación asignada</label>
+          <select style={s.select} value={form.habitacion || ''} onChange={e => setForm(prev => ({ ...prev, habitacion: e.target.value }))}>
+            <option value="">Sin habitación</option>
+            {Array.from({ length: 16 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Habitación {n}</option>)}
+          </select>
           <label style={s.label}>Clave de acceso</label>
           <input style={s.input} placeholder="Clave para la modelo" value={form.clave || ''} onChange={e => setForm(prev => ({ ...prev, clave: e.target.value }))} />
           <label style={s.label}>Fecha de nacimiento</label>

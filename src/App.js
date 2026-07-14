@@ -34,6 +34,7 @@ function MapaHabitaciones({ rol }) {
   const [habitaciones, setHabitaciones] = useState({});
   const [menuAbierto, setMenuAbierto] = useState(null);
   const [asistencia, setAsistencia] = useState({});
+  const [modelos, setModelos] = useState([]);
 
   const hoy = new Date().toISOString().split('T')[0];
 
@@ -49,7 +50,12 @@ function MapaHabitaciones({ rol }) {
       snap.forEach(d => { data[d.id] = d.data(); });
       setAsistencia(data);
     });
-    return () => { unsub1(); unsub2(); };
+    const unsub3 = onSnapshot(collection(db, 'modelos'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setModelos(data);
+    });
+    return () => { unsub1(); unsub2(); unsub3(); };
   }, []);
 
   const cambiarEstado = async (num, estado) => {
@@ -62,8 +68,42 @@ function MapaHabitaciones({ rol }) {
   const ausentes = asistenciaHoy.filter(a => a.presente === false).length;
   const enLinea = Object.values(habitaciones).filter(h => h.estado === 'ocupada').length;
 
+  // Modelo presente hoy en cada habitación
+  const modeloEnHabitacion = (num) => {
+    const modelo = modelos.find(m => String(m.habitacion) === String(num));
+    if (!modelo) return null;
+    const reg = asistencia[`${hoy}_${modelo.nombreReal}`];
+    if (reg?.presente !== true) return null;
+    return modelo;
+  };
+
+  // Stats para la dona
+  const totalHabs = HABITACIONES.length;
+  const libres = HABITACIONES.filter(n => (habitaciones[n]?.estado || 'libre') === 'libre').length;
+  const ocupadas = HABITACIONES.filter(n => habitaciones[n]?.estado === 'ocupada').length;
+  const fuera = HABITACIONES.filter(n => habitaciones[n]?.estado === 'fuera').length;
+  const pctOcupacion = totalHabs > 0 ? Math.round((ocupadas / totalHabs) * 100) : 0;
+
+  // Colores de fondo con contraste por estado
+  const FONDOS = {
+    libre: { bg: 'rgba(76,175,125,0.12)', borde: 'rgba(76,175,125,0.4)' },
+    ocupada: { bg: 'rgba(192,97,74,0.14)', borde: 'rgba(192,97,74,0.45)' },
+    fuera: { bg: 'rgba(120,120,140,0.12)', borde: 'rgba(120,120,140,0.35)' }
+  };
+
+  const LABELS = { libre: 'Libre', ocupada: 'Ocupada', fuera: 'Mantenimiento' };
+
+  // Dona SVG
+  const R = 40;
+  const CIRC = 2 * Math.PI * R;
+  const segLibre = (libres / totalHabs) * CIRC;
+  const segOcupada = (ocupadas / totalHabs) * CIRC;
+  const segFuera = (fuera / totalHabs) * CIRC;
+
   return (
     <div>
+      
+
       {rol === 'jefe' && asistenciaHoy.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
           <div style={{ background: 'var(--bg2)', borderRadius: 12, padding: '12px 16px', border: '1px solid var(--border2)' }}>
@@ -80,46 +120,96 @@ function MapaHabitaciones({ rol }) {
           </div>
         </div>
       )}
+
       <div className="nm-leyenda">
         {Object.entries(ESTADOS).map(([key, val]) => (
           <div key={key} className="nm-leyenda-item">
             <i className={`ti ti-${val.icono}`} style={{ color: val.color, fontSize: 15 }} aria-hidden="true"></i>
-            {val.label}
+            {LABELS[key]}
           </div>
         ))}
       </div>
-      <div className="nm-hab-grid">
-        {HABITACIONES.map(num => {
-          const estado = habitaciones[num]?.estado || 'libre';
-          const info = ESTADOS[estado];
-          const abierto = menuAbierto === num;
-          return (
-            <div key={num} className={`nm-hab${abierto ? ' abierto' : ''}`}
-              onClick={() => rol === 'monitor' && setMenuAbierto(abierto ? null : num)}>
-              <div className="nm-hab-num">{num}</div>
-              <div className="nm-hab-icono" style={{ color: info.color }}>
-                <i className={`ti ti-${info.icono}`} aria-hidden="true"></i>
+
+      <div style={{ display: 'grid', gridTemplateColumns: rol === 'jefe' ? '1fr 220px' : '1fr', gap: 16, alignItems: 'start' }} className="nm-mapa-layout">
+
+        <div className="nm-hab-grid">
+          {HABITACIONES.map(num => {
+            const estado = habitaciones[num]?.estado || 'libre';
+            const info = ESTADOS[estado];
+            const fondo = FONDOS[estado];
+            const abierto = menuAbierto === num;
+            const modelo = estado === 'ocupada' ? modeloEnHabitacion(num) : null;
+            return (
+              <div key={num} className={`nm-hab${abierto ? ' abierto' : ''}`}
+                style={{ background: fondo.bg, border: `1px solid ${fondo.borde}` }}
+                onClick={() => rol === 'monitor' && setMenuAbierto(abierto ? null : num)}>
+                <div className="nm-hab-num">{num}</div>
+                {modelo && modelo.fotoURL ? (
+                  <img src={modelo.fotoURL} alt={modelo.nombreReal}
+                    style={{ width: 34, height: 34, borderRadius: 17, objectFit: 'cover', border: `2px solid ${info.color}`, margin: '2px auto' }} />
+                ) : (
+                  <div className="nm-hab-icono" style={{ color: info.color }}>
+                    <i className={`ti ti-${info.icono}`} aria-hidden="true"></i>
+                  </div>
+                )}
+                <div className="nm-hab-label" style={{ color: info.color }}>{LABELS[estado]}</div>
+                {rol === 'monitor' && abierto && (
+                  <div className="nm-menu-flotante">
+                    {Object.entries(ESTADOS).map(([key, val]) => (
+                      <button key={key}
+                        onClick={e => { e.stopPropagation(); cambiarEstado(num, key); }}
+                        className="nm-menu-btn" style={{ background: val.color }}>
+                        {LABELS[key]}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="nm-hab-label" style={{ color: info.color }}>{info.label}</div>
-              {rol === 'monitor' && abierto && (
-                <div className="nm-menu-flotante">
-                  {Object.entries(ESTADOS).map(([key, val]) => (
-                    <button key={key}
-                      onClick={e => { e.stopPropagation(); cambiarEstado(num, key); }}
-                      className="nm-menu-btn" style={{ background: val.color }}>
-                      {val.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+            );
+          })}
+        </div>
+
+        {rol === 'jefe' && (
+          <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 18, border: '1px solid var(--border2)' }} className="nm-hide-mobile">
+            <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>Nivel de ocupación</div>
+            <div style={{ position: 'relative', width: 120, height: 120, margin: '0 auto 14px' }}>
+              <svg width="120" height="120" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r={R} fill="none" stroke="var(--bg3)" strokeWidth="14" />
+                <circle cx="60" cy="60" r={R} fill="none" stroke="#4CAF7D" strokeWidth="14"
+                  strokeDasharray={`${segLibre} ${CIRC}`} strokeDashoffset="0"
+                  transform="rotate(-90 60 60)" strokeLinecap="butt" />
+                <circle cx="60" cy="60" r={R} fill="none" stroke="#C0614A" strokeWidth="14"
+                  strokeDasharray={`${segOcupada} ${CIRC}`} strokeDashoffset={`-${segLibre}`}
+                  transform="rotate(-90 60 60)" strokeLinecap="butt" />
+                <circle cx="60" cy="60" r={R} fill="none" stroke="#787890" strokeWidth="14"
+                  strokeDasharray={`${segFuera} ${CIRC}`} strokeDashoffset={`-${segLibre + segOcupada}`}
+                  transform="rotate(-90 60 60)" strokeLinecap="butt" />
+              </svg>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ color: 'var(--text)', fontSize: 18, fontWeight: 700 }}>{pctOcupacion}%</div>
+                <div style={{ color: 'var(--text-sub)', fontSize: 7, textTransform: 'uppercase', letterSpacing: 0.5 }}>ocupación</div>
+              </div>
             </div>
-          );
-        })}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                <span style={{ color: 'var(--text-sub)' }}><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: '#4CAF7D', marginRight: 6 }} />Libres</span>
+                <span style={{ color: 'var(--text)' }}>{libres}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                <span style={{ color: 'var(--text-sub)' }}><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: '#C0614A', marginRight: 6 }} />Ocupadas</span>
+                <span style={{ color: 'var(--text)' }}>{ocupadas}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                <span style={{ color: 'var(--text-sub)' }}><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: '#787890', marginRight: 6 }} />Mantenimiento</span>
+                <span style={{ color: 'var(--text)' }}>{fuera}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-
 
 
 function BottomBar({ principales, vista, setVista, masItems }) {
