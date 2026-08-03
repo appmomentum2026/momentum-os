@@ -80,7 +80,7 @@ export default function ModelasMonitor({ monitorData }) {
     return unsub;
   }, []);
 
-  const misModelos = modelos.filter(m => modelasMonitor.includes(m.nombreReal));
+  const misModelos = modelos.filter(m => m.activa !== false && m.monitor === monitorData?.nombre);
 
   const iniciarEdicion = (m) => {
     setEditando(m.id);

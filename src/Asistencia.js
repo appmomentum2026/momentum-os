@@ -51,8 +51,8 @@ export default function Asistencia({ rol, nombreMonitor, modelasMonitor }) {
 
   const getReg = (modelo) => asistencia[`${hoy}_${modelo}`] || null;
 
-  const modelosAMostrar = (rol === 'monitor' && modelasMonitor && modelasMonitor.length > 0)
-    ? modelasMonitor
+  const modelosAMostrar = (rol === 'monitor' && nombreMonitor)
+    ? modelosDB.filter(m => m.monitor === nombreMonitor).map(m => m.nombreReal)
     : modelosDB.map(m => m.nombreReal);
 
   if (modelosAMostrar.length === 0) {

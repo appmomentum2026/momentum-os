@@ -307,7 +307,7 @@ function VistaJefe({ cierres }) {
     setDatosModelos(prev => ({ ...prev, [nombre]: { ...prev[nombre], [campo]: valor } }));
   };
 
-  const misModelos = modelasMonitor && modelasMonitor.length > 0 ? modelasMonitor : [];
+  const misModelos = (nombreMonitor) ? modelosDB.filter(m => m.activa !== false && m.monitor === nombreMonitor).map(m => m.nombreReal) : [];
 
   
 

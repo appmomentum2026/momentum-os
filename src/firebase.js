@@ -2,7 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
-import { getAuth } from 'firebase/auth';
+import { getAuth, signInAnonymously } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: "AIzaSyB_dhmq881XJJ6TI-i1-_zM2wh4-EUcOd4",
@@ -18,3 +18,8 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app, 'us-central1');
 export const auth = getAuth(app);
+
+// Login anónimo automático (para que las reglas de Firestore reconozcan al usuario)
+signInAnonymously(auth).catch((error) => {
+  console.error('Error en login anónimo:', error);
+});
