@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, updateDoc, onSnapshot, orderBy, query } from 'firebase/firestore';
 
 const PLATAFORMAS = ['Stripchat', 'Camsoda', 'Chaturbate', 'Streamate'];
 
@@ -15,6 +15,18 @@ const favicon = (plat) => `https://www.google.com/s2/favicons?domain=${PLAT_DOMI
 const TURNOS = { 'Daniela': 'Manana', 'Ramon': 'Manana', 'Santiago': 'Tarde', 'Monica': 'Tarde', 'Juan': 'Noche', 'Cesar': 'Noche' };
 
 const ORDEN_TURNOS = ['Manana', 'Tarde', 'Noche'];
+
+const fechaISOLocal = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const parseFechaLocal = (iso) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
 
 const s = {
   form: { background: 'var(--bg2)', borderRadius: 14, padding: 20, marginBottom: 14, border: '1px solid var(--border2)' },
@@ -38,6 +50,23 @@ const s = {
   sheetCard: { background: 'var(--bg2)', borderRadius: 12, padding: '10px 14px', border: '1px solid var(--border2)', marginBottom: 14 },
   sheetTit: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 },
   sheetFila: { display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid var(--border)', fontSize: 12 },
+  fechaCard: { background: 'var(--bg2)', borderRadius: 14, padding: '14px 18px', marginBottom: 16, border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
+  dateInput: { background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', colorScheme: 'dark' },
+  avisoExistente: { background: 'rgba(201,146,74,0.15)', color: 'var(--gold)', fontSize: 11, padding: '6px 12px', borderRadius: 20 },
+  historial: { background: 'var(--bg2)', borderRadius: 14, padding: '16px 18px', marginTop: 16, border: '1px solid var(--border2)' },
+  historialFila: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 12 },
+  tabsJefe: { display: 'flex', gap: 4, marginBottom: 18, borderBottom: '1px solid var(--border)' },
+  tabJefeBtn: { background: 'transparent', border: 'none', padding: '10px 18px', fontSize: 12, fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--text-sub)', cursor: 'pointer', borderBottom: '2px solid transparent', marginBottom: -1, transition: 'color 0.15s, border-color 0.15s' },
+  tabJefeBtnActivo: { color: 'var(--gold)', borderBottom: '2px solid var(--gold)' },
+  quincenaBtn: { background: 'transparent', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontSize: 16, padding: '0 4px' },
+  turnoLabel: { color: 'var(--gold)', fontSize: 16, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center' },
+  reporteCard: { background: 'var(--bg2)', borderRadius: 12, padding: 16, border: '1px solid var(--border2)' },
+  reporteFila: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 12 },
+  reporteLabel: { color: 'var(--text-sub)' },
+  reporteValor: { color: 'var(--text)', fontWeight: 500 },
+  reporteSecTit: { color: 'var(--text-dim)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 12, marginBottom: 6 },
+  textarea: { width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--text)', padding: '8px 10px', fontSize: 12, outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' },
+  btnGuardarReporte: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '9px', fontSize: 12, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginTop: 12 },
   turnoHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
   turnoTitulo: { color: 'var(--gold)', fontSize: 16, fontWeight: 500 },
   turnoSubtotal: { textAlign: 'right' },
@@ -277,12 +306,233 @@ function VistaJefe({ cierres }) {
   );
 }
 
-  
+function getQuincenaReporte(offset = 0) {
+  const hoy = new Date();
+  let dia = hoy.getDate();
+  let mes = hoy.getMonth();
+  let anio = hoy.getFullYear();
+  let esPrimera = dia <= 15;
+  let totalQ = (esPrimera ? 0 : 1) + offset;
+  while (totalQ < 0) { mes -= 1; if (mes < 0) { mes = 11; anio -= 1; } totalQ += 2; }
+  while (totalQ > 1) { mes += 1; if (mes > 11) { mes = 0; anio += 1; } totalQ -= 2; }
+  const mesNombre = new Date(anio, mes, 1).toLocaleString('es-CO', { month: 'long' });
+  const anioMes = `${anio}-${String(mes + 1).padStart(2, '0')}`;
+  if (totalQ === 0) {
+    return {
+      inicio: new Date(anio, mes, 1).toISOString().split('T')[0],
+      fin: new Date(anio, mes, 15).toISOString().split('T')[0],
+      label: `1 - 15 de ${mesNombre}`,
+      dias: 15,
+      idQuincena: `${anioMes}-Q1`
+    };
+  }
+  const ultimoDia = new Date(anio, mes + 1, 0).getDate();
+  return {
+    inicio: new Date(anio, mes, 16).toISOString().split('T')[0],
+    fin: new Date(anio, mes, ultimoDia).toISOString().split('T')[0],
+    label: `16 - ${ultimoDia} de ${mesNombre}`,
+    dias: ultimoDia - 15,
+    idQuincena: `${anioMes}-Q2`
+  };
+}
+
+const PORCENTAJES_OPCIONES = [50, 60, 65, 70];
+const TURNO_INFO_REPORTE = { Manana: { icono: '🌅', label: 'Turno Mañana' }, Tarde: { icono: '☀️', label: 'Turno Tarde' }, Noche: { icono: '🌙', label: 'Turno Noche' } };
+
+function VistaReporteQuincenal({ cierres }) {
+  const [modelosDB, setModelosDB] = useState([]);
+  const [asistenciaDB, setAsistenciaDB] = useState({});
+  const [reportesDB, setReportesDB] = useState({});
+  const [edits, setEdits] = useState({});
+  const [guardando, setGuardando] = useState({});
+  const [quincenaOffset, setQuincenaOffset] = useState(0);
+
+  const quincena = getQuincenaReporte(quincenaOffset);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'modelos'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setModelosDB(data.filter(m => m.activa !== false));
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'asistencia'), snap => {
+      const data = {};
+      snap.forEach(d => { data[d.id] = d.data(); });
+      setAsistenciaDB(data);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'reportesQuincenales'), snap => {
+      const data = {};
+      snap.forEach(d => { data[d.id] = d.data(); });
+      setReportesDB(data);
+    });
+    return unsub;
+  }, []);
+
+  const valorCampo = (id, campo) => {
+    if (edits[id] && edits[id][campo] !== undefined) return edits[id][campo];
+    return reportesDB[id]?.[campo] || '';
+  };
+
+  const actualizarCampo = (id, campo, valor) => {
+    setEdits(prev => ({ ...prev, [id]: { ...(prev[id] || {}), [campo]: valor } }));
+  };
+
+  const guardarReporte = async (nombre) => {
+    const id = `${quincena.idQuincena}_${nombre}`;
+    setGuardando(prev => ({ ...prev, [id]: true }));
+    await setDoc(doc(db, 'reportesQuincenales', id), {
+      idQuincena: quincena.idQuincena,
+      nombreModelo: nombre,
+      porcentaje: valorCampo(id, 'porcentaje'),
+      observaciones: valorCampo(id, 'observaciones'),
+      justificacion: valorCampo(id, 'justificacion'),
+      actualizadoEn: new Date().toISOString()
+    });
+    setGuardando(prev => ({ ...prev, [id]: false }));
+  };
+
+  const calcularModelo = (nombre) => {
+    let horasTrabajadas = 0;
+    cierres.forEach(cierre => {
+      if (cierre.fecha < quincena.inicio || cierre.fecha > quincena.fin + 'Z') return;
+      const modeloData = (cierre.modelos || []).find(m => m.nombre === nombre);
+      if (!modeloData || !modeloData.inicio || !modeloData.fin) return;
+      const [hi, mi] = modeloData.inicio.split(':').map(Number);
+      const [hf, mf] = modeloData.fin.split(':').map(Number);
+      let mins = (hf * 60 + mf) - (hi * 60 + mi);
+      if (modeloData.inicioBreak && modeloData.finBreak) {
+        const [hbi, mbi] = modeloData.inicioBreak.split(':').map(Number);
+        const [hbf, mbf] = modeloData.finBreak.split(':').map(Number);
+        mins -= (hbf * 60 + mbf) - (hbi * 60 + mbi);
+      }
+      horasTrabajadas += Math.max(0, mins / 60);
+    });
+
+    const registrosAsistencia = Object.values(asistenciaDB).filter(a => a.modelo === nombre && a.fecha >= quincena.inicio && a.fecha <= quincena.fin);
+    const diasTrabajados = registrosAsistencia.filter(a => a.presente === true).length;
+    const inasistencias = registrosAsistencia.filter(a => a.presente === false);
+
+    return { horasTrabajadas: horasTrabajadas.toFixed(1), diasTrabajados, inasistencias };
+  };
+
+  const modelosPorTurno = { Manana: [], Tarde: [], Noche: [] };
+  modelosDB.forEach(m => {
+    if (modelosPorTurno[m.turno]) modelosPorTurno[m.turno].push(m);
+  });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 10, padding: '8px 14px' }}>
+          <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>📅</span>
+          <span style={{ color: 'var(--text)', fontSize: 12 }}>{quincena.label}</span>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button style={s.quincenaBtn} onClick={() => setQuincenaOffset(o => o - 1)}>‹</button>
+            {quincenaOffset < 0 && <button style={s.quincenaBtn} onClick={() => setQuincenaOffset(o => o + 1)}>›</button>}
+          </div>
+        </div>
+      </div>
+
+      {ORDEN_TURNOS.map(turno => {
+        const modelos = modelosPorTurno[turno];
+        if (!modelos || modelos.length === 0) return null;
+        const info = TURNO_INFO_REPORTE[turno];
+        return (
+          <div key={turno}>
+            <div style={s.turnoLabel}>
+              <span style={{ fontSize: 18, marginRight: 8 }}>{info.icono}</span>{info.label}
+            </div>
+            <div className="nm-grid-cards">
+              {modelos.map(m => {
+                const nombre = m.nombreReal;
+                const id = `${quincena.idQuincena}_${nombre}`;
+                const { horasTrabajadas, diasTrabajados, inasistencias } = calcularModelo(nombre);
+                return (
+                  <div key={m.id} style={s.reporteCard}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 18, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 16, flexShrink: 0, overflow: 'hidden' }}>
+                        {m.fotoURL ? <img src={m.fotoURL} alt={nombre} style={{ width: 36, height: 36, objectFit: 'cover' }} /> : '👤'}
+                      </div>
+                      <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>{nombre}</div>
+                    </div>
+
+                    <div style={s.reporteFila}>
+                      <span style={s.reporteLabel}>Horas trabajadas</span>
+                      <span style={s.reporteValor}>{horasTrabajadas} hrs</span>
+                    </div>
+                    <div style={s.reporteFila}>
+                      <span style={s.reporteLabel}>Días trabajados</span>
+                      <span style={s.reporteValor}>{diasTrabajados} / {quincena.dias}</span>
+                    </div>
+                    <div style={{ ...s.reporteFila, borderBottom: inasistencias.length > 0 ? '1px solid var(--border)' : 'none' }}>
+                      <span style={s.reporteLabel}>Días que faltó</span>
+                      <span style={s.reporteValor}>{inasistencias.length}</span>
+                    </div>
+                    {inasistencias.length > 0 && (
+                      <div style={{ marginBottom: 10 }}>
+                        {inasistencias.map((a, i) => (
+                          <div key={i} style={{ color: 'var(--text-sub)', fontSize: 11, padding: '3px 0' }}>
+                            {a.fecha}{a.motivo ? ` — ${a.motivo}` : ' — sin motivo'}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div style={s.reporteSecTit}>Porcentaje asignado</div>
+                    <select style={s.select} value={valorCampo(id, 'porcentaje')} onChange={e => actualizarCampo(id, 'porcentaje', e.target.value)}>
+                      <option value="">Sin asignar</option>
+                      {PORCENTAJES_OPCIONES.map(p => <option key={p} value={p}>{p}%</option>)}
+                    </select>
+
+                    <div style={s.reporteSecTit}>Justificación del porcentaje</div>
+                    <textarea style={s.textarea} rows={2} placeholder="Motivo del porcentaje asignado..." value={valorCampo(id, 'justificacion')} onChange={e => actualizarCampo(id, 'justificacion', e.target.value)} />
+
+                    <div style={s.reporteSecTit}>Observaciones del monitor</div>
+                    <textarea style={s.textarea} rows={2} placeholder="Observaciones..." value={valorCampo(id, 'observaciones')} onChange={e => actualizarCampo(id, 'observaciones', e.target.value)} />
+
+                    <button style={s.btnGuardarReporte} onClick={() => guardarReporte(nombre)} disabled={guardando[id]}>
+                      {guardando[id] ? 'Guardando...' : 'Guardar reporte'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function VistaJefeTabs({ cierres }) {
+  const [tab, setTab] = useState('diarios');
+  return (
+    <div>
+      <div style={s.tabsJefe}>
+        <button type="button" style={{ ...s.tabJefeBtn, ...(tab === 'diarios' ? s.tabJefeBtnActivo : {}) }} onClick={() => setTab('diarios')}>Cierres Diarios</button>
+        <button type="button" style={{ ...s.tabJefeBtn, ...(tab === 'quincenal' ? s.tabJefeBtnActivo : {}) }} onClick={() => setTab('quincenal')}>Reporte Quincenal</button>
+      </div>
+      {tab === 'diarios' ? <VistaJefe cierres={cierres} /> : <VistaReporteQuincenal cierres={cierres} />}
+    </div>
+  );
+}
+
+
       export default function CierreTurno({ rol, nombreMonitor, modelasMonitor }) {
   const [datosModelos, setDatosModelos] = useState({});
   const [cierres, setCierres] = useState([]);
+  const [cierresLoaded, setCierresLoaded] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [modelosDB, setModelosDB] = useState([]);
+  const [fechaCierre, setFechaCierre] = useState(() => fechaISOLocal(new Date()));
 
   useEffect(() => {
     const q = query(collection(db, 'cierres'), orderBy('fecha', 'desc'));
@@ -290,6 +540,7 @@ function VistaJefe({ cierres }) {
       const data = [];
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
       setCierres(data);
+      setCierresLoaded(true);
     });
     return unsub;
   }, []);
@@ -309,26 +560,47 @@ function VistaJefe({ cierres }) {
 
   const misModelos = (nombreMonitor) ? modelosDB.filter(m => m.activa !== false && m.monitor === nombreMonitor).map(m => m.nombreReal) : [];
 
-  
+  const diaSeleccionado = parseFechaLocal(fechaCierre).toLocaleDateString('es-CO');
+  const cierreExistente = cierres.find(c => c.monitor === nombreMonitor && c.dia === diaSeleccionado);
+
+  // Al cambiar la fecha (o cargar los cierres por primera vez), precargar los datos ya guardados de ese día
+  useEffect(() => {
+    if (!cierresLoaded) return;
+    if (cierreExistente) {
+      const datos = {};
+      (cierreExistente.modelos || []).forEach(m => { datos[m.nombre] = { ...m }; });
+      setDatosModelos(datos);
+    } else {
+      setDatosModelos({});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fechaCierre, cierresLoaded]);
 
   const enviarCierre = async () => {
     if (!nombreMonitor) return;
     setEnviando(true);
     const resumen = misModelos.map(m => ({ nombre: m, ...datosModelos[m] }));
-    await addDoc(collection(db, 'cierres'), {
+    const ahora = new Date();
+    const fechaConHora = parseFechaLocal(fechaCierre);
+    fechaConHora.setHours(ahora.getHours(), ahora.getMinutes(), ahora.getSeconds(), ahora.getMilliseconds());
+    const datosCierre = {
       monitor: nombreMonitor,
       turno: TURNOS[nombreMonitor] || '',
       modelos: resumen,
-      fecha: new Date().toISOString(),
-      dia: new Date().toLocaleDateString('es-CO'),
-      hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
-    });
-    setDatosModelos({});
+      fecha: fechaConHora.toISOString(),
+      dia: diaSeleccionado,
+      hora: ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+    };
+    if (cierreExistente) {
+      await updateDoc(doc(db, 'cierres', cierreExistente.id), datosCierre);
+    } else {
+      await addDoc(collection(db, 'cierres'), datosCierre);
+    }
     setEnviando(false);
   };
 
   if (rol === 'jefe') {
-    return <VistaJefe cierres={cierres} />;
+    return <VistaJefeTabs cierres={cierres} />;
   }
 
     
@@ -355,8 +627,17 @@ function VistaJefe({ cierres }) {
           );
         })()}
       </div>
-      
-      
+
+      <div style={s.fechaCard}>
+        <div>
+          <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>Fecha del cierre</div>
+          <input type="date" style={s.dateInput} value={fechaCierre} onChange={e => setFechaCierre(e.target.value)} />
+        </div>
+        {cierreExistente && (
+          <span style={s.avisoExistente}>Ya existe un cierre guardado para este día — puedes editarlo</span>
+        )}
+      </div>
+
       <div className="nm-grid-cards">
         {misModelos.map(nombre => (
           <FormModelo key={nombre} nombre={nombre} datos={datosModelos[nombre] || {}}
@@ -365,8 +646,29 @@ function VistaJefe({ cierres }) {
         ))}
       </div>
       <button style={s.btnEnviar} onClick={enviarCierre} disabled={enviando}>
-        {enviando ? 'Enviando...' : 'Cerrar turno'}
+        {enviando ? 'Enviando...' : (cierreExistente ? 'Actualizar cierre' : 'Cerrar turno')}
       </button>
+
+      <div style={s.historial}>
+        <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Historial (últimos 7 días)</div>
+        {(() => {
+          const historial = cierres
+            .filter(c => c.monitor === nombreMonitor)
+            .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+            .slice(0, 7);
+          if (historial.length === 0) {
+            return <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>Aún no has registrado cierres</div>;
+          }
+          return historial.map(c => (
+            <div key={c.id} style={s.historialFila}>
+              <span style={{ color: c.dia === diaSeleccionado ? 'var(--gold)' : 'var(--text)' }}>
+                {c.dia}{c.dia === diaSeleccionado ? ' (seleccionado)' : ''}
+              </span>
+              <span style={{ color: 'var(--text-sub)' }}>{c.hora || '—'}</span>
+            </div>
+          ));
+        })()}
+      </div>
     </div>
   );
 }

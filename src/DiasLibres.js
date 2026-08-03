@@ -29,7 +29,14 @@ const s = {
   nombre: { color: 'var(--gold)', fontSize: 13, fontWeight: 500, marginBottom: 4 },
   sub: { color: 'var(--text-sub)', fontSize: 12 },
   exito: { background: '#1d9e7522', borderRadius: 12, padding: 12, border: '1px solid #1d9e75', color: '#1d9e75', fontSize: 13, marginBottom: 12 },
-  turnoLabel: { color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, marginTop: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' }
+  turnoLabel: { color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, marginTop: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' },
+  // Bloqueo tras aprobación
+  badgeAprobado: { display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(76,175,125,0.15)', color: 'var(--green)', padding: '4px 12px', borderRadius: 20, fontSize: 11, letterSpacing: 1, fontWeight: 600, flexShrink: 0 },
+  cardAprobado: { border: '1px solid rgba(76,175,125,0.35)' },
+  filaAprobada: { background: 'rgba(76,175,125,0.06)', borderRadius: 10 },
+  // Historial de quincenas anteriores
+  historialToggle: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--text-sub)', padding: '9px 14px', fontSize: 12, cursor: 'pointer', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 },
+  historialItem: { padding: '10px 4px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
 };
 
 const ESTADO_COLOR = {
@@ -43,8 +50,11 @@ export function DiasLibresModelo({ nombreModelo }) {
   const [fecha1, setFecha1] = useState('');
   const [fecha2, setFecha2] = useState('');
   const [enviado, setEnviado] = useState(false);
+  const [historial, setHistorial] = useState([]);
+  const [historialAbierto, setHistorialAbierto] = useState(false);
   const quincena = QUINCENA_ACTUAL();
   const id = `${nombreModelo}_${quincena}_1`;
+  const bloqueado = solicitud?.estado === 'aprobado';
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'diasLibres', id), snap => {
@@ -53,6 +63,19 @@ export function DiasLibresModelo({ nombreModelo }) {
     });
     return unsub;
   }, [id]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'diasLibres'), snap => {
+      const data = [];
+      snap.forEach(d => {
+        const item = { id: d.id, ...d.data() };
+        if (item.tipo === 'modelo' && item.modelo === nombreModelo && item.quincena !== quincena) data.push(item);
+      });
+      data.sort((a, b) => (b.creado || '').localeCompare(a.creado || ''));
+      setHistorial(data);
+    });
+    return unsub;
+  }, [nombreModelo, quincena]);
 
   const solicitar = async () => {
     if (!fecha1) return;
@@ -73,20 +96,20 @@ export function DiasLibresModelo({ nombreModelo }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {enviado && <div style={s.exito}>Solicitud enviada correctamente</div>}
 
-      <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)' }}>
+      <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)', ...(bloqueado ? s.cardAprobado : {}) }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-          <i className="ti ti-calendar" style={{ color: 'var(--gold)', fontSize: 18 }} />
+          <i className={bloqueado ? 'ti ti-lock' : 'ti ti-calendar'} style={{ color: bloqueado ? 'var(--green)' : 'var(--gold)', fontSize: 18 }} />
           <span style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>Mis días de descanso</span>
         </div>
 
-        {solicitud?.estado === 'aprobado' ? (
+        {bloqueado ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
             <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>👤</div>
             <div style={{ flex: 1 }}>
               <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>{nombreModelo}</div>
               <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 2 }}>{solicitud.fecha1}{solicitud.fecha2 ? ` — ${solicitud.fecha2}` : ''}</div>
             </div>
-            <span style={{ ...s.badge, background: ESTADO_COLOR.aprobado.bg, color: ESTADO_COLOR.aprobado.color }}>aprobado</span>
+            <span style={s.badgeAprobado}><i className="ti ti-lock" style={{ fontSize: 12 }} /> Aprobado ✓</span>
           </div>
         ) : (
           <div>
@@ -104,18 +127,41 @@ export function DiasLibresModelo({ nombreModelo }) {
           </div>
         )}
       </div>
+
+      {historial.length > 0 && (
+        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 16, border: '1px solid var(--border2)' }}>
+          <button style={s.historialToggle} onClick={() => setHistorialAbierto(v => !v)}>
+            <span>Quincenas anteriores ({historial.length})</span>
+            <span>{historialAbierto ? '↑' : '↓'}</span>
+          </button>
+          {historialAbierto && historial.map(h => {
+            const ec = ESTADO_COLOR[h.estado] || ESTADO_COLOR.pendiente;
+            return (
+              <div key={h.id} style={s.historialItem}>
+                <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>{h.fecha1}{h.fecha2 ? ` — ${h.fecha2}` : ''}</span>
+                <span style={{ ...s.badge, background: ec.bg, color: ec.color }}>{h.estado}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
   const [solicitudesModelas, setSolicitudesModelas] = useState([]);
+  const [historialModelas, setHistorialModelas] = useState([]);
+  const [historialModelasAbierto, setHistorialModelasAbierto] = useState(false);
   const [miSolicitud, setMiSolicitud] = useState(null);
+  const [historialPropio, setHistorialPropio] = useState([]);
+  const [historialPropioAbierto, setHistorialPropioAbierto] = useState(false);
   const [fecha1, setFecha1] = useState('');
   const [fecha2, setFecha2] = useState('');
   const [enviado, setEnviado] = useState(false);
   const quincena = QUINCENA_ACTUAL();
   const idMonitor = `monitor_${nombreMonitor}_${quincena}`;
+  const bloqueado = miSolicitud?.estado === 'aprobado';
 
   useEffect(() => {
     const unsub1 = onSnapshot(doc(db, 'diasLibres', idMonitor), snap => {
@@ -123,15 +169,26 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
       else setMiSolicitud(null);
     });
     const unsub2 = onSnapshot(collection(db, 'diasLibres'), snap => {
-      const data = [];
+      const actualModelas = [];
+      const anterioresModelas = [];
+      const anterioresPropio = [];
       snap.forEach(d => {
         const item = { id: d.id, ...d.data() };
-        if (item.tipo === 'modelo' && modelasMonitor.includes(item.modelo) && item.quincena === QUINCENA_ACTUAL()) data.push(item);
+        if (item.tipo === 'modelo' && modelasMonitor.includes(item.modelo)) {
+          if (item.quincena === quincena) actualModelas.push(item);
+          else anterioresModelas.push(item);
+        } else if (item.tipo === 'monitor' && item.monitor === nombreMonitor && item.quincena !== quincena) {
+          anterioresPropio.push(item);
+        }
       });
-      setSolicitudesModelas(data);
+      anterioresModelas.sort((a, b) => (b.creado || '').localeCompare(a.creado || ''));
+      anterioresPropio.sort((a, b) => (b.creado || '').localeCompare(a.creado || ''));
+      setSolicitudesModelas(actualModelas);
+      setHistorialModelas(anterioresModelas);
+      setHistorialPropio(anterioresPropio);
     });
     return () => { unsub1(); unsub2(); };
-  }, [idMonitor, modelasMonitor]);
+  }, [idMonitor, modelasMonitor, nombreMonitor, quincena]);
 
   const enviarSolicitud = async () => {
     if (!fecha1) return;
@@ -158,13 +215,13 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }} className="nm-dias-grid">
 
         {/* Mis dias libres */}
-        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)' }}>
+        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)', ...(bloqueado ? s.cardAprobado : {}) }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <i className="ti ti-calendar" style={{ color: 'var(--gold)', fontSize: 18 }} />
+            <i className={bloqueado ? 'ti ti-lock' : 'ti ti-calendar'} style={{ color: bloqueado ? 'var(--green)' : 'var(--gold)', fontSize: 18 }} />
             <span style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>Mis días libres</span>
           </div>
           {enviado && <div style={s.exito}>Solicitud enviada</div>}
-          {miSolicitud?.estado === 'aprobado' ? (
+          {bloqueado ? (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 15, fontWeight: 600, flexShrink: 0 }}>{nombreMonitor.charAt(0)}</div>
@@ -172,7 +229,7 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
                   <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>{nombreMonitor}</div>
                   <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 2 }}>{miSolicitud.fecha1}{miSolicitud.fecha2 ? ` — ${miSolicitud.fecha2}` : ''}</div>
                 </div>
-                <span style={{ ...s.badge, background: ESTADO_COLOR.aprobado.bg, color: ESTADO_COLOR.aprobado.color }}>aprobado</span>
+                <span style={s.badgeAprobado}><i className="ti ti-lock" style={{ fontSize: 12 }} /> Aprobado ✓</span>
               </div>
             </div>
           ) : (
@@ -190,6 +247,24 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
               </button>
             </div>
           )}
+
+          {historialPropio.length > 0 && (
+            <>
+              <button style={s.historialToggle} onClick={() => setHistorialPropioAbierto(v => !v)}>
+                <span>Quincenas anteriores ({historialPropio.length})</span>
+                <span>{historialPropioAbierto ? '↑' : '↓'}</span>
+              </button>
+              {historialPropioAbierto && historialPropio.map(h => {
+                const ec = ESTADO_COLOR[h.estado] || ESTADO_COLOR.pendiente;
+                return (
+                  <div key={h.id} style={s.historialItem}>
+                    <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>{h.fecha1}{h.fecha2 ? ` — ${h.fecha2}` : ''}</span>
+                    <span style={{ ...s.badge, background: ec.bg, color: ec.color }}>{h.estado}</span>
+                  </div>
+                );
+              })}
+            </>
+          )}
         </div>
 
         {/* Descansos de mis modelos */}
@@ -201,8 +276,9 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
           {solicitudesModelas.length === 0 && <p style={s.vacio}>Ninguna modelo ha solicitado descanso</p>}
           {solicitudesModelas.map(sol => {
             const ec = ESTADO_COLOR[sol.estado] || ESTADO_COLOR.pendiente;
+            const solBloqueada = sol.estado === 'aprobado';
             return (
-              <div key={sol.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+              <div key={sol.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 6px', borderBottom: '1px solid var(--border)', ...(solBloqueada ? s.filaAprobada : {}) }}>
                 <div style={{ width: 36, height: 36, borderRadius: 18, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 14, flexShrink: 0 }}>👤</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ color: 'var(--text)', fontSize: 12, fontWeight: 500 }}>{sol.modelo}</div>
@@ -214,10 +290,31 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
                     </div>
                   )}
                 </div>
-                <span style={{ ...s.badge, background: ec.bg, color: ec.color, flexShrink: 0 }}>{sol.estado}</span>
+                {solBloqueada
+                  ? <span style={s.badgeAprobado}><i className="ti ti-lock" style={{ fontSize: 11 }} /> Aprobado ✓</span>
+                  : <span style={{ ...s.badge, background: ec.bg, color: ec.color, flexShrink: 0 }}>{sol.estado}</span>
+                }
               </div>
             );
           })}
+
+          {historialModelas.length > 0 && (
+            <>
+              <button style={s.historialToggle} onClick={() => setHistorialModelasAbierto(v => !v)}>
+                <span>Quincenas anteriores ({historialModelas.length})</span>
+                <span>{historialModelasAbierto ? '↑' : '↓'}</span>
+              </button>
+              {historialModelasAbierto && historialModelas.map(h => {
+                const ec = ESTADO_COLOR[h.estado] || ESTADO_COLOR.pendiente;
+                return (
+                  <div key={h.id} style={s.historialItem}>
+                    <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>{h.modelo} · {h.fecha1}{h.fecha2 ? ` — ${h.fecha2}` : ''}</span>
+                    <span style={{ ...s.badge, background: ec.bg, color: ec.color }}>{h.estado}</span>
+                  </div>
+                );
+              })}
+            </>
+          )}
         </div>
       </div>
     </div>

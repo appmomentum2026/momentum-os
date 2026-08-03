@@ -14,6 +14,7 @@ import ResumenJefe from './ResumenJefe';
 import GestionModelos from './GestionModelos';
 import Inventario2 from './Inventario2';
 import Pedidos from './Pedidos';
+import Lockers from './Lockers';
 import { DiasLibresModelo, DiasLibresMonitor, DiasLibresJefe } from './DiasLibres';
 import { solicitarPermiso, escucharNotificaciones } from './Notificaciones';
 import GestionMonitores from './GestionMonitores';
@@ -435,6 +436,7 @@ function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
     { id: 'pedidos', label: 'Pedidos', icon: 'shopping-bag' },
     { id: 'modelos', label: 'Modelos', icon: 'user-plus' },
     { id: 'monitores', label: 'Monitores', icon: 'users' },
+    { id: 'lockers', label: 'Lockers', icon: 'lock' },
     { id: 'diaslibres', label: 'Dias libres', icon: 'calendar' },
     { id: 'novedades', label: 'Novedades', icon: 'alert-circle' },
     { id: 'sheets', label: 'Sheets', icon: 'table' },
@@ -452,6 +454,7 @@ function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
     vista === 'monitores' ? 'Gestion de monitores' :
     vista === 'inventario' ? 'Inventario' :
     vista === 'pedidos' ? 'Pedidos' :
+    vista === 'lockers' ? 'Lockers' :
     vista === 'diaslibres' ? 'Dias libres' : '';
 
   return (
@@ -476,7 +479,8 @@ function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
       {vista === 'monitores' && <ResumenMonitores />}
       {vista === 'monitores' && <GestionMonitores />}
       {vista === 'inventario' && <Inventario2 rol="jefe" />}
-      {vista === 'pedidos' && <Pedidos rol="jefe" />}
+      {vista === 'pedidos' && <Pedidos rol="jefe" nombreAprobador={userId} />}
+      {vista === 'lockers' && <Lockers />}
       {vista === 'diaslibres' && <DiasLibresJefe />}
     </NavLayout>
   );
@@ -536,6 +540,7 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
     { id: 'mapa', label: 'Habitaciones', icon: 'layout-grid' },
     { id: 'nomina', label: 'Mi quincena', icon: 'coin' },
     { id: 'tienda', label: 'Tienda', icon: 'shopping-cart' },
+    { id: 'pedidos', label: 'Mis pedidos', icon: 'shopping-bag' },
     { id: 'descanso', label: 'Descansos', icon: 'calendar' },
   ];
 
@@ -543,7 +548,8 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
     vista === 'mapa' ? 'Habitaciones disponibles' :
     vista === 'nomina' ? 'Mi nomina en vivo' :
     vista === 'metas' ? 'Mi meta quincenal' :
-    vista === 'tienda' ? 'Tienda de insumos' : 'Mis descansos';
+    vista === 'tienda' ? 'Tienda de insumos' :
+    vista === 'pedidos' ? 'Mis pedidos' : 'Mis descansos';
 
   const userId = `modelo_${modelaData?.nombreReal || 'modelo'}`;
 
@@ -553,7 +559,9 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
       principales={items.slice(0, 3)}
       masItems={items.slice(3)}
       vista={vista} setVista={setVista}
-      titulo="Mi panel" sub={modelaData?.nombreReal || 'Momentum Studio'} icono="star"
+      titulo={<span style={{ fontSize: 22, fontWeight: 700 }}>Mi panel</span>}
+      sub={<span style={{ fontSize: 16 }}>{modelaData?.nombreReal || 'Momentum Studio'}</span>}
+      icono="star"
       seccionLabel={seccionLabel}
       onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema}
       userId={userId}
@@ -562,6 +570,7 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
       {vista === 'nomina' && <Nomina nombreModelo={nombreModelo} />}
       {vista === 'metas' && <Metas rol="modelo" nombreModelo={nombreModelo} />}
       {vista === 'tienda' && <Inventario2 rol="tienda" nombreModelo={nombreModelo} />}
+      {vista === 'pedidos' && <Pedidos rol="tienda" nombreModelo={nombreModelo} />}
       {vista === 'descanso' && <DiasLibresModelo nombreModelo={nombreModelo} />}
     </NavLayout>
   );
@@ -571,6 +580,17 @@ export default function App() {
   const [usuario, setUsuario] = useState(null);
   const [modelaData, setModelaData] = useState(null);
   const [monitorData, setMonitorData] = useState(null);
+  // Listener en tiempo real para el documento del monitor
+  useEffect(() => {
+    if (usuario !== 'monitor' || !monitorData?.id) return;
+    const unsub = onSnapshot(doc(db, 'monitores', monitorData.id), (snap) => {
+      if (snap.exists()) {
+        setMonitorData({ id: snap.id, ...snap.data() });
+      }
+    });
+    return () => unsub();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuario, monitorData?.id]);
   const [temaOscuro, setTemaOscuro] = useState(true);
   const [notif, setNotif] = useState(null);
 

@@ -28,6 +28,16 @@ const s = {
   btnGuardar: { flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '10px', fontSize: 13, letterSpacing: 1, cursor: 'pointer' },
   btnCancelar: { background: 'transparent', border: 'none', color: 'var(--text-sub)', padding: '10px', fontSize: 13, cursor: 'pointer' },
   vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 },
+  cabecera: { display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' },
+  btnVerMas: { background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, padding: 4 },
+  btnVerMasTxt: { fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--text-sub)' },
+  chevron: { color: 'var(--gold)', fontSize: 16, transition: 'transform 0.25s ease' },
+  panel: { overflow: 'hidden', transition: 'max-height 0.35s ease' },
+  panelInner: { paddingTop: 14 },
+  tabs: { display: 'flex', gap: 4, marginBottom: 12, borderBottom: '1px solid var(--border)' },
+  tabBtn: { background: 'transparent', border: 'none', padding: '8px 14px', fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--text-sub)', cursor: 'pointer', borderBottom: '2px solid transparent', marginBottom: -1, transition: 'color 0.15s, border-color 0.15s' },
+  tabBtnActivo: { color: 'var(--gold)', borderBottom: '2px solid var(--gold)' },
+  vacioSeccion: { color: 'var(--text-dim)', fontSize: 12, padding: '10px 0' },
 };
 
 function FormCampos({ form, setForm, paginas, setPaginas }) {
@@ -67,8 +77,16 @@ export default function ModelasMonitor({ monitorData }) {
   const [formEdit, setFormEdit] = useState(FORM_VACIO);
   const [paginasEdit, setPaginasEdit] = useState([]);
   const [vistaGrid, setVistaGrid] = useState(true);
+  const [expandidas, setExpandidas] = useState(new Set());
+  const [tabCard, setTabCard] = useState({});
 
-  const modelasMonitor = monitorData?.modelas || [];
+  const toggleExpandir = (id) => {
+    setExpandidas(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'modelos'), snap => {
@@ -136,66 +154,124 @@ export default function ModelasMonitor({ monitorData }) {
                 <button style={s.btnCancelar} onClick={() => { setEditando(null); setPaginasEdit([]); }}>Cancelar</button>
               </div>
             </>
-          ) : (
-            <>
-              {/* Header con avatar */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                <div style={{ position: 'relative', flexShrink: 0 }}>
-                  {m.fotoURL
-                    ? <img src={m.fotoURL} alt={m.nombreReal} style={{ width: 48, height: 48, borderRadius: 24, objectFit: 'cover', border: '1px solid var(--border2)' }} />
-                    : <div style={{ width: 48, height: 48, borderRadius: 24, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 18 }}>👤</div>
-                  }
-                  <div style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, background: '#4CAF7D', border: '2px solid var(--bg2)' }} />
+          ) : (() => {
+            const expandida = expandidas.has(m.id);
+            const tab = tabCard[m.id] || 'personal';
+            const plataformaBox = (nombre, user, pass, link) => {
+              if (!user && !pass && !link) return null;
+              return (
+                <React.Fragment key={nombre}>
+                  <div style={s.secTit}>{nombre}</div>
+                  <div style={{ ...s.credBox, marginBottom: 6 }}>
+                    {user && <div style={s.pagRow}><span style={s.pagLabel}>Usuario</span><span style={s.pagValor}>{user}</span></div>}
+                    {pass && <div style={s.pagRow}><span style={s.pagLabel}>Clave</span><span style={s.pagValor}>{pass}</span></div>}
+                    {link && <div style={s.pagRow}><span style={s.pagLabel}>Link</span><span style={s.pagValor}>{link}</span></div>}
+                  </div>
+                </React.Fragment>
+              );
+            };
+            const hayDatosPersonales = m.nacimiento || m.correo || m.cedula || m.contacto || m.direccion || m.fechaInicio || m.cuentaBancaria || m.entidadBancaria || m.locker || m.contrato;
+            const hayPlataformas = m.lovense || m.amazon || m.chaturbateUser || m.chaturbatePass || m.chaturbateLink || m.camsodaUser || m.camsodaPass || m.camsodaLink || m.stripchatUser || m.stripchatPass || m.stripchatLink || m.correoTrabajo || m.claveCorreoTrabajo || (m.paginas && m.paginas.length > 0);
+
+            return (
+              <>
+                {/* Header con avatar */}
+                <div style={s.cabecera} onClick={() => toggleExpandir(m.id)}>
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    {m.fotoURL
+                      ? <img src={m.fotoURL} alt={m.nombreReal} style={{ width: 48, height: 48, borderRadius: 24, objectFit: 'cover', border: '1px solid var(--border2)' }} />
+                      : <div style={{ width: 48, height: 48, borderRadius: 24, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 18 }}>👤</div>
+                    }
+                    <div style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, background: '#4CAF7D', border: '2px solid var(--bg2)' }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>{m.nombreReal}</div>
+                    {m.nombreModelo && <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>{m.nombreModelo}</div>}
+                  </div>
+                  <button type="button" style={s.btnVerMas} onClick={e => { e.stopPropagation(); toggleExpandir(m.id); }}>
+                    <span style={s.btnVerMasTxt}>{expandida ? 'Ver menos' : 'Ver más'}</span>
+                    <i className="ti ti-chevron-down" style={{ ...s.chevron, transform: expandida ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                  </button>
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>{m.nombreReal}</div>
-                  {m.nombreModelo && <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>{m.nombreModelo}</div>}
-                </div>
-              </div>
 
-              {/* Info */}
-              <div style={s.fila}>
-                <span style={s.filaLabel}>Nacimiento</span>
-                <span style={s.filaValor}>{m.nacimiento || '—'}</span>
-              </div>
-              <div style={{ ...s.fila, borderBottom: m.lovense || m.amazon || (m.paginas?.length > 0) ? '1px solid var(--border)' : 'none' }}>
-                <span style={s.filaLabel}>Correo</span>
-                <span style={s.filaValor}>{m.correo || '—'}</span>
-              </div>
-
-              {m.lovense && (
-                <>
-                  <div style={s.secTit}>Lovense</div>
-                  <div style={s.credBox}><div style={s.credTexto}>{m.lovense}</div></div>
-                </>
-              )}
-
-              {m.amazon && (
-                <>
-                  <div style={s.secTit}>Amazon</div>
-                  <div style={s.credBox}><div style={s.credTexto}>{m.amazon}</div></div>
-                </>
-              )}
-
-              {m.paginas && m.paginas.length > 0 && (
-                <>
-                  <div style={s.secTit}>Páginas</div>
-                  {m.paginas.map((p, i) => (
-                    <div key={i} style={{ ...s.credBox, marginBottom: 6 }}>
-                      <div style={s.pagNombre}>{p.nombre || '—'}</div>
-                      {p.usuario && <div style={s.pagRow}><span style={s.pagLabel}>Usuario</span><span style={s.pagValor}>{p.usuario}</span></div>}
-                      {p.clave && <div style={s.pagRow}><span style={s.pagLabel}>Clave</span><span style={s.pagValor}>{p.clave}</span></div>}
+                {/* Contenido expandible */}
+                <div style={{ ...s.panel, maxHeight: expandida ? 2000 : 0 }}>
+                  <div style={s.panelInner}>
+                    <div style={s.tabs}>
+                      <button type="button" style={{ ...s.tabBtn, ...(tab === 'personal' ? s.tabBtnActivo : {}) }} onClick={() => setTabCard(prev => ({ ...prev, [m.id]: 'personal' }))}>Datos personales</button>
+                      <button type="button" style={{ ...s.tabBtn, ...(tab === 'plataformas' ? s.tabBtnActivo : {}) }} onClick={() => setTabCard(prev => ({ ...prev, [m.id]: 'plataformas' }))}>Plataformas</button>
                     </div>
-                  ))}
-                </>
-              )}
 
-              {/* Botones */}
-              <div style={s.accionRow}>
-                <button style={s.btnEditar} onClick={() => iniciarEdicion(m)}>✎ Editar</button>
-              </div>
-            </>
-          )}
+                    {tab === 'personal' && (
+                      hayDatosPersonales ? (
+                        <>
+                          {m.nacimiento && <div style={s.fila}><span style={s.filaLabel}>Nacimiento</span><span style={s.filaValor}>{m.nacimiento}</span></div>}
+                          {m.fechaInicio && <div style={s.fila}><span style={s.filaLabel}>Fecha de inicio</span><span style={s.filaValor}>{m.fechaInicio}</span></div>}
+                          {m.cedula && <div style={s.fila}><span style={s.filaLabel}>Cédula</span><span style={s.filaValor}>{m.cedula}</span></div>}
+                          {m.correo && <div style={s.fila}><span style={s.filaLabel}>Correo</span><span style={s.filaValor}>{m.correo}</span></div>}
+                          {m.contacto && <div style={s.fila}><span style={s.filaLabel}>Contacto</span><span style={s.filaValor}>{m.contacto}</span></div>}
+                          {m.direccion && <div style={s.fila}><span style={s.filaLabel}>Dirección</span><span style={s.filaValor}>{m.direccion}</span></div>}
+                          {m.cuentaBancaria && <div style={s.fila}><span style={s.filaLabel}>Cuenta bancaria</span><span style={s.filaValor}>{m.cuentaBancaria}</span></div>}
+                          {m.entidadBancaria && <div style={s.fila}><span style={s.filaLabel}>Entidad bancaria</span><span style={s.filaValor}>{m.entidadBancaria}</span></div>}
+                          {m.locker && <div style={s.fila}><span style={s.filaLabel}>Locker</span><span style={s.filaValor}>{m.locker}</span></div>}
+                          {m.contrato && <div style={{ ...s.fila, borderBottom: 'none' }}><span style={s.filaLabel}>Contrato</span><span style={s.filaValor}>{m.contrato}</span></div>}
+                        </>
+                      ) : <div style={s.vacioSeccion}>Sin datos registrados</div>
+                    )}
+
+                    {tab === 'plataformas' && (
+                      hayPlataformas ? (
+                        <>
+                          {m.lovense && (
+                            <>
+                              <div style={s.secTit}>Lovense</div>
+                              <div style={{ ...s.credBox, marginBottom: 6 }}><div style={s.credTexto}>{m.lovense}</div></div>
+                            </>
+                          )}
+                          {m.amazon && (
+                            <>
+                              <div style={s.secTit}>Amazon</div>
+                              <div style={{ ...s.credBox, marginBottom: 6 }}><div style={s.credTexto}>{m.amazon}</div></div>
+                            </>
+                          )}
+                          {(m.correoTrabajo || m.claveCorreoTrabajo) && (
+                            <>
+                              <div style={s.secTit}>Correo de trabajo</div>
+                              <div style={{ ...s.credBox, marginBottom: 6 }}>
+                                {m.correoTrabajo && <div style={s.pagRow}><span style={s.pagLabel}>Correo</span><span style={s.pagValor}>{m.correoTrabajo}</span></div>}
+                                {m.claveCorreoTrabajo && <div style={s.pagRow}><span style={s.pagLabel}>Clave</span><span style={s.pagValor}>{m.claveCorreoTrabajo}</span></div>}
+                              </div>
+                            </>
+                          )}
+                          {plataformaBox('Chaturbate', m.chaturbateUser, m.chaturbatePass, m.chaturbateLink)}
+                          {plataformaBox('Camsoda', m.camsodaUser, m.camsodaPass, m.camsodaLink)}
+                          {plataformaBox('Stripchat', m.stripchatUser, m.stripchatPass, m.stripchatLink)}
+                          {m.paginas && m.paginas.length > 0 && (
+                            <>
+                              <div style={s.secTit}>Otras plataformas</div>
+                              {m.paginas.map((p, i) => (
+                                <div key={i} style={{ ...s.credBox, marginBottom: 6 }}>
+                                  <div style={s.pagNombre}>{p.nombre || '—'}</div>
+                                  {p.usuario && <div style={s.pagRow}><span style={s.pagLabel}>Usuario</span><span style={s.pagValor}>{p.usuario}</span></div>}
+                                  {p.clave && <div style={s.pagRow}><span style={s.pagLabel}>Clave</span><span style={s.pagValor}>{p.clave}</span></div>}
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </>
+                      ) : <div style={s.vacioSeccion}>Sin plataformas registradas</div>
+                    )}
+
+                    {expandida && (
+                      <div style={s.accionRow}>
+                        <button style={s.btnEditar} onClick={() => iniciarEdicion(m)}>✎ Editar</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </div>
       ))}
       </div>

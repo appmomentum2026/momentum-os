@@ -20,7 +20,7 @@ const s = {
   statFila: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)', alignItems: 'center' },
   statLabel: { color: 'var(--text-sub)', fontSize: 13 },
   statVal: { color: 'var(--text)', fontSize: 13 },
-  barraWrap: { background: 'var(--bg3)', borderRadius: 20, height: 8, marginTop: 12, overflow: 'hidden' },
+  barraWrap: { background: 'var(--bg)', boxShadow: 'var(--shadow-in)', borderRadius: 20, height: 8, marginTop: 12, overflow: 'hidden' },
   barraFill: { height: '100%', borderRadius: 20, transition: 'width 0.5s' },
   badge: { padding: '4px 12px', borderRadius: 20, fontSize: 12, letterSpacing: 1 },
   motivacion: { background: 'rgba(76,175,125,0.1)', border: '1px solid rgba(76,175,125,0.2)', borderRadius: 12, padding: 14, color: '#4CAF7D', fontSize: 13, lineHeight: 1.5 },
@@ -88,6 +88,18 @@ function tokensEnRango(cierres, nombreModelo, inicio, fin) {
   return { total, porDia };
 }
 
+// Color de la barra de progreso segun avance vs. tiempo transcurrido de la quincena
+function colorProgreso(pct, quincena) {
+  if (pct >= 100) return 'var(--green)';
+  const inicio = new Date(quincena.inicio);
+  const fin = new Date(quincena.fin);
+  const totalMs = fin - inicio;
+  const fraccionTranscurrida = totalMs > 0 ? Math.min(1, Math.max(0, (new Date() - inicio) / totalMs)) : 0;
+  if (fraccionTranscurrida < 0.5 && pct > 50) return 'var(--green)';
+  if (fraccionTranscurrida > 0.5 && pct < 30) return 'var(--red)';
+  return 'var(--gold)';
+}
+
 function ProyeccionModelo({ nombreModelo, meta }) {
   const [cierres, setCierres] = useState([]);
   const [asistencia, setAsistencia] = useState({});
@@ -128,6 +140,7 @@ function ProyeccionModelo({ nombreModelo, meta }) {
   const finQuincena = new Date(quincena.fin);
   const diasRestantes = Math.max(1, Math.ceil((finQuincena - hoy) / (1000 * 60 * 60 * 24)));
   const cumplimiento = meta > 0 ? Math.min(100, Math.round((totalTokens / meta) * 100)) : 0;
+  const colorBarra = colorProgreso(cumplimiento, quincena);
   const tokensNecesarios = Math.max(0, meta - totalTokens);
   const porDia = diasRestantes > 0 ? Math.ceil(tokensNecesarios / diasRestantes) : 0;
   const promedioDiario = diasTrabajados > 0 ? Math.round(totalTokens / diasTrabajados) : 0;
@@ -163,11 +176,11 @@ function ProyeccionModelo({ nombreModelo, meta }) {
           <div style={s.label}>Tu meta esta quincena</div>
           <div style={s.bigVal}>{meta > 0 ? meta.toLocaleString() : '—'} tokens</div>
           <div style={{ ...s.statFila, borderBottom: 'none', marginTop: 4 }}>
-            <div style={{ color: 'var(--text-sub)', fontSize: 13 }}>Llevas {totalTokens.toLocaleString()} tokens</div>
-            <div style={{ ...s.badge, background: cumplimiento >= 100 ? 'rgba(76,175,125,0.15)' : 'rgba(201,146,74,0.15)', color: cumplimiento >= 100 ? '#4CAF7D' : 'var(--gold)' }}>{cumplimiento}%</div>
+            <div style={{ color: 'var(--text-sub)', fontSize: 13 }}>{totalTokens.toLocaleString()} / {meta > 0 ? meta.toLocaleString() : '—'} tokens</div>
+            <div style={{ ...s.badge, background: cumplimiento >= 100 ? 'rgba(76,175,125,0.15)' : 'rgba(201,146,74,0.15)', color: colorBarra }}>{cumplimiento}%</div>
           </div>
           <div style={s.barraWrap}>
-            <div style={{ ...s.barraFill, width: `${cumplimiento}%`, background: cumplimiento >= 100 ? '#4CAF7D' : 'var(--gold)' }}></div>
+            <div style={{ ...s.barraFill, width: `${cumplimiento}%`, background: colorBarra }}></div>
           </div>
           <div style={{ ...s.motivacion, marginTop: 12 }}>{getMensaje()}</div>
         </div>
@@ -320,6 +333,7 @@ export default function Metas({ rol, nombreModelo }) {
       const { total } = tokensEnRango(cierres, modelo, quincena.inicio, quincena.fin);
       const meta = metas[modelo]?.tokens || 0;
       const pct = meta > 0 ? Math.min(100, Math.round((total / meta) * 100)) : 0;
+      const colorBarra = colorProgreso(pct, quincena);
       return (
         <div key={modelo} style={{ background: 'var(--bg2)', borderRadius: 12, padding: '10px 14px', border: '1px solid var(--border2)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -333,13 +347,13 @@ export default function Metas({ rol, nombreModelo }) {
           {meta > 0 && (
             <>
               <div style={s.barraWrap}>
-                <div style={{ ...s.barraFill, width: `${pct}%`, background: pct >= 100 ? '#4CAF7D' : 'var(--gold)' }} />
+                <div style={{ ...s.barraFill, width: `${pct}%`, background: colorBarra }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>{total.toLocaleString()} / {meta.toLocaleString()} tokens</span>
                 {pct >= 100
-                  ? <span style={{ background: 'rgba(76,175,125,0.15)', color: '#4CAF7D', fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>● Completada</span>
-                  : <span style={{ color: 'var(--gold)', fontSize: 11, fontWeight: 600 }}>{pct}%</span>
+                  ? <span style={{ background: 'rgba(76,175,125,0.15)', color: 'var(--green)', fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>● Completada</span>
+                  : <span style={{ color: colorBarra, fontSize: 11, fontWeight: 600 }}>{pct}%</span>
                 }
               </div>
             </>

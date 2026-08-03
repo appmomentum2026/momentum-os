@@ -6,6 +6,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const CATEGORIAS = ['Lubricantes', 'Juguetes', 'Limpiadores', 'Otros'];
 const STOCK_MINIMO = 5;
+const CATEGORIAS_ESTUDIO = ['Limpieza', 'Lencería', 'Higiene', 'Otros'];
 
 const s = {
   wrap: { display: 'block' },
@@ -64,11 +65,32 @@ const s = {
   // Tienda
   alertaExito: { background: '#1d9e7522', borderRadius: 14, padding: 16, border: '1px solid #1d9e75', color: '#1d9e75', fontSize: 13, marginBottom: 10 },
   imgTienda: { width: '100%', height: 180, objectFit: 'contain', borderRadius: 10, marginBottom: 12, background: 'var(--bg3)' },
-  btnPedir: { background: 'var(--gold)', border: 'none', borderRadius: 12, color: '#141414', padding: '12px 28px', fontSize: 15, fontWeight: 700, letterSpacing: 1, cursor: 'pointer', boxShadow: '0 2px 8px rgba(201,146,74,0.4)' },
+  btnPedir: { background: 'var(--gold)', border: 'none', borderRadius: 10, color: '#FFF', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' },
   cuotaBox: { background: 'var(--bg)', borderRadius: 10, padding: 12, boxShadow: 'var(--shadow-in)', marginTop: 8 },
   cuotaTexto: { color: 'var(--text-sub)', fontSize: 12, marginBottom: 10 },
   cuotaBtns: { display: 'flex', gap: 8 },
   cuotaBtn: { flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '8px', fontSize: 12, cursor: 'pointer' },
+  // Tabs principales + gráfico
+  tabsRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 18, flexWrap: 'wrap' },
+  tabsPrincipal: { display: 'flex', gap: 4, borderBottom: '1px solid var(--border)' },
+  tabPrincipalBtn: { background: 'transparent', border: 'none', padding: '10px 18px', fontSize: 12, fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--text-sub)', cursor: 'pointer', borderBottom: '2px solid transparent', marginBottom: -1, transition: 'color 0.15s, border-color 0.15s' },
+  tabPrincipalBtnActivo: { color: 'var(--gold)', borderBottom: '2px solid var(--gold)' },
+  btnGrafico: { background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '10px 16px', fontSize: 12, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 },
+  badgeBajoStock: { background: 'rgba(216,90,48,0.15)', color: '#d85a30', fontSize: 10, padding: '3px 8px', borderRadius: 20, fontWeight: 600, whiteSpace: 'nowrap' },
+  // Panel gráfico
+  graficoOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  graficoPanel: { background: 'var(--bg2)', borderRadius: 16, border: '1px solid var(--border2)', width: '100%', maxWidth: 640, maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow-out)' },
+  graficoHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border)' },
+  graficoTitulo: { color: 'var(--gold)', fontSize: 15, fontWeight: 700 },
+  graficoCerrar: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--text-sub)', width: 30, height: 30, cursor: 'pointer', fontSize: 14 },
+  graficoBody: { padding: '16px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 },
+  graficoFila: { display: 'flex', flexDirection: 'column', gap: 6 },
+  graficoFilaHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  graficoNombre: { color: 'var(--text)', fontSize: 12 },
+  graficoOrigen: { color: 'var(--text-dim)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 },
+  graficoBarraWrap: { position: 'relative', background: 'var(--bg3)', borderRadius: 20, height: 10, overflow: 'hidden' },
+  graficoBarra: { height: '100%', borderRadius: 20, transition: 'width 0.4s' },
+  graficoMarcaMinimo: { position: 'absolute', top: 0, bottom: 0, width: 2, background: 'var(--text)', opacity: 0.5 },
 };
 
 export default function Inventario2({ rol, nombreModelo }) {
@@ -86,6 +108,14 @@ export default function Inventario2({ rol, nombreModelo }) {
   const [busqueda, setBusqueda] = useState('');
   const [filtrocat, setFiltrocat] = useState('Todos');
   const [vistaGrid, setVistaGrid] = useState(true);
+  const [tabPrincipal, setTabPrincipal] = useState('modelos');
+  const [graficoAbierto, setGraficoAbierto] = useState(false);
+  const [insumosEstudio, setInsumosEstudio] = useState([]);
+  const [modoEstudio, setModoEstudio] = useState(null);
+  const [formEstudio, setFormEstudio] = useState({ nombre: '', categoria: '', cantidad: '', cantidadMinima: '', precioUnitario: '', fechaCompra: '' });
+  const [editandoEstudio, setEditandoEstudio] = useState(null);
+  const [formEditEstudio, setFormEditEstudio] = useState({});
+  const [confirmandoEstudio, setConfirmandoEstudio] = useState(null);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'inventario'), snap => {
@@ -93,6 +123,16 @@ export default function Inventario2({ rol, nombreModelo }) {
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
       data.sort((a, b) => a.nombre.localeCompare(b.nombre));
       setProductos(data);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'insumosEstudio'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      data.sort((a, b) => a.nombre.localeCompare(b.nombre));
+      setInsumosEstudio(data);
     });
     return unsub;
   }, []);
@@ -127,12 +167,13 @@ export default function Inventario2({ rol, nombreModelo }) {
 
   const hacerPedido = async (producto, cuotas) => {
     await addDoc(collection(db, 'pedidos'), {
-      producto: producto.nombre, precio: producto.precio, cuotas,
+      producto: producto.nombre, productoId: producto.id, cantidad: 1,
+      precio: producto.precio, cuotas,
       modelo: nombreModelo, estado: 'pendiente',
       fecha: new Date().toISOString(),
       hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
     });
-    await setDoc(doc(db, 'inventario', producto.id), { ...producto, stock: producto.stock - 1 });
+    // El stock se descuenta cuando el jefe aprueba el pedido (ver Pedidos.js), no al pedirlo
     setPedidoEnviado(producto.nombre);
     setSeleccionando(null);
     setTimeout(() => setPedidoEnviado(null), 3000);
@@ -152,6 +193,52 @@ export default function Inventario2({ rol, nombreModelo }) {
   const eliminar = async (id) => {
     await deleteDoc(doc(db, 'inventario', id));
     setConfirmando(null);
+  };
+
+  const guardarInsumoEstudio = async () => {
+    if (!formEstudio.nombre || !formEstudio.categoria || formEstudio.cantidad === '') return;
+    const id = formEstudio.nombre.replace(/\s+/g, '_').toLowerCase() + '_' + Date.now();
+    await setDoc(doc(db, 'insumosEstudio', id), {
+      nombre: formEstudio.nombre,
+      categoria: formEstudio.categoria,
+      cantidad: Number(formEstudio.cantidad),
+      cantidadMinima: Number(formEstudio.cantidadMinima || 0),
+      precioUnitario: Number(formEstudio.precioUnitario || 0),
+      fechaCompra: formEstudio.fechaCompra || ''
+    });
+    setModoEstudio(null);
+    setFormEstudio({ nombre: '', categoria: '', cantidad: '', cantidadMinima: '', precioUnitario: '', fechaCompra: '' });
+  };
+
+  const ajustarStockEstudio = async (item, cantidad) => {
+    const nuevaCantidad = Math.max(0, item.cantidad + cantidad);
+    await setDoc(doc(db, 'insumosEstudio', item.id), { ...item, cantidad: nuevaCantidad });
+  };
+
+  const guardarEdicionEstudio = async () => {
+    if (!editandoEstudio) return;
+    const item = insumosEstudio.find(x => x.id === editandoEstudio);
+    await setDoc(doc(db, 'insumosEstudio', editandoEstudio), {
+      ...item,
+      nombre: formEditEstudio.nombre,
+      categoria: formEditEstudio.categoria,
+      cantidad: Number(formEditEstudio.cantidad),
+      cantidadMinima: Number(formEditEstudio.cantidadMinima || 0),
+      precioUnitario: Number(formEditEstudio.precioUnitario || 0),
+      fechaCompra: formEditEstudio.fechaCompra || ''
+    });
+    setEditandoEstudio(null); setFormEditEstudio({});
+  };
+
+  const eliminarEstudio = async (id) => {
+    await deleteDoc(doc(db, 'insumosEstudio', id));
+    setConfirmandoEstudio(null);
+  };
+
+  const colorPorStock = (stock, minimo) => {
+    if (stock <= minimo) return '#d85a30';
+    if (stock <= minimo * 1.5) return '#C9924A';
+    return '#1d9e75';
   };
 
   const alertas = productos.filter(p => p.stock <= STOCK_MINIMO);
@@ -186,7 +273,7 @@ export default function Inventario2({ rol, nombreModelo }) {
           if (prods.length === 0) return null;
           return (
             <div key={cat}>
-              <div style={{ color: 'var(--gold)', fontSize: 20, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12, marginTop: 20, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>{cat}</div>
+              <div style={{ color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16, marginTop: 24, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>{cat}</div>
               <div className="nm-grid-cards">
                 {prods.map(p => (
                   <div key={p.id} style={s.card}>
@@ -197,7 +284,7 @@ export default function Inventario2({ rol, nombreModelo }) {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>Disponibles: {p.stock}</div>
-                      <button style={s.btnPedir} onClick={() => setSeleccionando(seleccionando === p.id ? null : p.id)}>Pedir</button>
+                      <button className="nm-btn-pedir" style={s.btnPedir} onClick={() => setSeleccionando(seleccionando === p.id ? null : p.id)}>Pedir</button>
                     </div>
                     {seleccionando === p.id && (
                       <div style={s.cuotaBox}>
@@ -248,8 +335,9 @@ export default function Inventario2({ rol, nombreModelo }) {
     return '#1d9e75';
   };
 
-  return (
-    <div style={s.wrap}>
+  function renderInsumosModelos() {
+    return (
+    <div>
 
       {/* Tarjetas resumen */}
       <div style={s.resumenGrid} className="nm-resumen-inventario">
@@ -367,7 +455,8 @@ export default function Inventario2({ rol, nombreModelo }) {
         );
       })}
     </div>
-  );
+    );
+  }
 
   function renderCardGrid(p) {
     const pct = Math.min(100, (p.stock / Math.max((p.stockMinimo || STOCK_MINIMO) * 4, 20)) * 100);
@@ -470,4 +559,209 @@ export default function Inventario2({ rol, nombreModelo }) {
       </>
     );
   }
+
+  function renderInsumosEstudio() {
+    const alertasEstudio = insumosEstudio.filter(i => i.cantidad <= (i.cantidadMinima || 0));
+    const totalItems = insumosEstudio.length;
+    const valorTotalEstudio = insumosEstudio.reduce((a, i) => a + (i.cantidad || 0) * (i.precioUnitario || 0), 0);
+
+    return (
+      <div>
+        <div style={s.resumenGrid} className="nm-resumen-inventario">
+          <div style={s.resumenCard}>
+            <div style={{ ...s.resumenIcono, background: 'rgba(201,146,74,0.15)' }}>🧴</div>
+            <div>
+              <div style={s.resumenVal}>{totalItems}</div>
+              <div style={s.resumenLabel}>Insumos registrados</div>
+            </div>
+          </div>
+          <div style={s.resumenCard}>
+            <div style={{ ...s.resumenIcono, background: 'rgba(216,90,48,0.15)' }}>⚠️</div>
+            <div>
+              <div style={{ ...s.resumenVal, color: alertasEstudio.length > 0 ? '#d85a30' : 'var(--text)' }}>{alertasEstudio.length}</div>
+              <div style={s.resumenLabel}>Stock bajo</div>
+            </div>
+          </div>
+          <div style={s.resumenCard}>
+            <div style={{ ...s.resumenIcono, background: 'rgba(201,146,74,0.15)' }}>💰</div>
+            <div>
+              <div style={{ ...s.resumenVal, fontSize: 16 }}>${valorTotalEstudio.toLocaleString()}</div>
+              <div style={s.resumenLabel}>Valor en insumos</div>
+            </div>
+          </div>
+        </div>
+
+        {alertasEstudio.length > 0 && (
+          <div style={s.alertaCard}>
+            <div>
+              <div style={s.alertaTexto}>⚠️ {alertasEstudio.length} insumo{alertasEstudio.length > 1 ? 's' : ''} bajo{alertasEstudio.length === 1 ? '' : 's'} el mínimo</div>
+              <div style={s.alertaSub}>{alertasEstudio.map(i => `${i.nombre} · ${i.cantidad} unidades`).join('  —  ')}</div>
+            </div>
+          </div>
+        )}
+
+        <div style={s.toolbar}>
+          {modoEstudio === null && (
+            <button style={s.btnNuevo} onClick={() => setModoEstudio('nuevo')}>+ Agregar insumo</button>
+          )}
+        </div>
+
+        {modoEstudio === 'nuevo' && (
+          <div style={s.form}>
+            <label style={s.label}>Nombre del insumo</label>
+            <input style={s.input} placeholder="Ej: Sábanas blancas" value={formEstudio.nombre} onChange={e => setFormEstudio(p => ({ ...p, nombre: e.target.value }))} />
+            <label style={s.label}>Categoría</label>
+            <select style={s.select} value={formEstudio.categoria} onChange={e => setFormEstudio(p => ({ ...p, categoria: e.target.value }))}>
+              <option value="">Seleccionar</option>
+              {CATEGORIAS_ESTUDIO.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <label style={s.label}>Cantidad actual</label>
+            <input style={s.input} type="number" placeholder="Ej: 20" value={formEstudio.cantidad} onChange={e => setFormEstudio(p => ({ ...p, cantidad: e.target.value }))} />
+            <label style={s.label}>Cantidad mínima (alerta)</label>
+            <input style={s.input} type="number" placeholder="Ej: 5" value={formEstudio.cantidadMinima} onChange={e => setFormEstudio(p => ({ ...p, cantidadMinima: e.target.value }))} />
+            <label style={s.label}>Precio unitario (COP)</label>
+            <input style={s.input} type="number" placeholder="Ej: 8000" value={formEstudio.precioUnitario} onChange={e => setFormEstudio(p => ({ ...p, precioUnitario: e.target.value }))} />
+            <label style={s.label}>Fecha de compra</label>
+            <input style={s.input} type="date" value={formEstudio.fechaCompra} onChange={e => setFormEstudio(p => ({ ...p, fechaCompra: e.target.value }))} />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={s.btnGuardar} onClick={guardarInsumoEstudio}>Guardar</button>
+              <button style={s.btnCancelar} onClick={() => { setModoEstudio(null); setFormEstudio({ nombre: '', categoria: '', cantidad: '', cantidadMinima: '', precioUnitario: '', fechaCompra: '' }); }}>Cancelar</button>
+            </div>
+          </div>
+        )}
+
+        {insumosEstudio.length === 0 && modoEstudio === null && <p style={s.vacio}>No hay insumos registrados</p>}
+
+        {CATEGORIAS_ESTUDIO.map(cat => {
+          const itemsCat = insumosEstudio.filter(i => i.categoria === cat);
+          if (itemsCat.length === 0) return null;
+          return (
+            <div key={cat} style={{ marginBottom: 8 }}>
+              <div style={s.turnoLabel}>{cat}</div>
+              <div className="nm-grid-cards">
+                {itemsCat.map(i => renderCardEstudio(i))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function renderCardEstudio(i) {
+    const minimo = i.cantidadMinima || 0;
+    const bajoMinimo = i.cantidad <= minimo;
+    return (
+      <div key={i.id} style={{ ...s.card, border: bajoMinimo ? '1px solid #d85a30' : '1px solid transparent' }}>
+        {editandoEstudio === i.id ? renderFormEditEstudio(i) : (
+          <>
+            <div style={s.cardHeader}>
+              <div>
+                <div style={s.cardNombre}>{i.nombre}</div>
+                <div style={s.cardCategoria}>{i.categoria}</div>
+              </div>
+              {bajoMinimo && <span style={s.badgeBajoStock}>⚠️ Bajo stock</span>}
+            </div>
+            <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>Cantidad actual</div>
+            <div style={{ color: bajoMinimo ? '#d85a30' : 'var(--text)', fontSize: 13, fontWeight: 600 }}>{i.cantidad} unidades · mínimo {minimo}</div>
+            {i.precioUnitario > 0 && <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 4 }}>${Number(i.precioUnitario).toLocaleString()} c/u{i.fechaCompra ? ` · comprado ${i.fechaCompra}` : ''}</div>}
+            <div style={s.stockControls}>
+              <button style={s.btnStk} onClick={() => ajustarStockEstudio(i, -1)}>−</button>
+              <span style={s.stockNum}>{i.cantidad}</span>
+              <button style={{ ...s.btnStk, color: '#1d9e75' }} onClick={() => ajustarStockEstudio(i, 1)}>+</button>
+              <button style={{ ...s.btnStk, fontSize: 12, width: 'auto', padding: '0 10px' }} onClick={() => ajustarStockEstudio(i, 5)}>+5</button>
+              <button style={{ ...s.btnStk, fontSize: 12, width: 'auto', padding: '0 10px' }} onClick={() => ajustarStockEstudio(i, 10)}>+10</button>
+            </div>
+            <div style={s.accionRow}>
+              <button style={s.btnEditar} onClick={() => { setEditandoEstudio(i.id); setFormEditEstudio({ nombre: i.nombre, categoria: i.categoria, cantidad: i.cantidad, cantidadMinima: i.cantidadMinima || 0, precioUnitario: i.precioUnitario || 0, fechaCompra: i.fechaCompra || '' }); }}>Editar</button>
+              {confirmandoEstudio === i.id ? (
+                <>
+                  <button style={s.btnConfirmar} onClick={() => eliminarEstudio(i.id)}>¿Confirmar?</button>
+                  <button style={s.btnCancelar} onClick={() => setConfirmandoEstudio(null)}>No</button>
+                </>
+              ) : (
+                <button style={s.btnEliminar} onClick={() => setConfirmandoEstudio(i.id)}>Eliminar</button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  function renderFormEditEstudio() {
+    return (
+      <>
+        <label style={s.label}>Nombre</label>
+        <input style={s.input} value={formEditEstudio.nombre || ''} onChange={e => setFormEditEstudio(f => ({ ...f, nombre: e.target.value }))} />
+        <label style={s.label}>Categoría</label>
+        <select style={s.select} value={formEditEstudio.categoria || ''} onChange={e => setFormEditEstudio(f => ({ ...f, categoria: e.target.value }))}>
+          {CATEGORIAS_ESTUDIO.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <label style={s.label}>Cantidad actual</label>
+        <input style={s.input} type="number" value={formEditEstudio.cantidad ?? ''} onChange={e => setFormEditEstudio(f => ({ ...f, cantidad: e.target.value }))} />
+        <label style={s.label}>Cantidad mínima</label>
+        <input style={s.input} type="number" value={formEditEstudio.cantidadMinima ?? ''} onChange={e => setFormEditEstudio(f => ({ ...f, cantidadMinima: e.target.value }))} />
+        <label style={s.label}>Precio unitario (COP)</label>
+        <input style={s.input} type="number" value={formEditEstudio.precioUnitario ?? ''} onChange={e => setFormEditEstudio(f => ({ ...f, precioUnitario: e.target.value }))} />
+        <label style={s.label}>Fecha de compra</label>
+        <input style={s.input} type="date" value={formEditEstudio.fechaCompra || ''} onChange={e => setFormEditEstudio(f => ({ ...f, fechaCompra: e.target.value }))} />
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button style={s.btnGuardar} onClick={guardarEdicionEstudio}>Guardar</button>
+          <button style={s.btnCancelar} onClick={() => { setEditandoEstudio(null); setFormEditEstudio({}); }}>Cancelar</button>
+        </div>
+      </>
+    );
+  }
+
+  const itemsGrafico = [
+    ...productos.map(p => ({ key: 'm_' + p.id, nombre: p.nombre, origen: 'Modelos', stock: p.stock || 0, minimo: p.stockMinimo || STOCK_MINIMO })),
+    ...insumosEstudio.map(i => ({ key: 'e_' + i.id, nombre: i.nombre, origen: 'Estudio', stock: i.cantidad || 0, minimo: i.cantidadMinima || 0 }))
+  ].sort((a, b) => (a.stock - a.minimo) - (b.stock - b.minimo));
+
+  return (
+    <div style={s.wrap}>
+      <div style={s.tabsRow}>
+        <div style={s.tabsPrincipal}>
+          <button type="button" style={{ ...s.tabPrincipalBtn, ...(tabPrincipal === 'modelos' ? s.tabPrincipalBtnActivo : {}) }} onClick={() => setTabPrincipal('modelos')}>Insumos Modelos</button>
+          <button type="button" style={{ ...s.tabPrincipalBtn, ...(tabPrincipal === 'estudio' ? s.tabPrincipalBtnActivo : {}) }} onClick={() => setTabPrincipal('estudio')}>Insumos Estudio</button>
+        </div>
+        <button type="button" style={s.btnGrafico} onClick={() => setGraficoAbierto(true)}>📊 Ver gráfico</button>
+      </div>
+
+      {tabPrincipal === 'modelos' ? renderInsumosModelos() : renderInsumosEstudio()}
+
+      {graficoAbierto && (
+        <div style={s.graficoOverlay} onClick={() => setGraficoAbierto(false)}>
+          <div style={s.graficoPanel} onClick={e => e.stopPropagation()}>
+            <div style={s.graficoHeader}>
+              <span style={s.graficoTitulo}>📊 Stock actual vs mínimo</span>
+              <button style={s.graficoCerrar} onClick={() => setGraficoAbierto(false)}>✕</button>
+            </div>
+            <div style={s.graficoBody}>
+              {itemsGrafico.length === 0 && <p style={s.vacio}>No hay insumos para graficar</p>}
+              {itemsGrafico.map(item => {
+                const color = colorPorStock(item.stock, item.minimo);
+                const escala = Math.max(item.stock, item.minimo * 1.5, 1);
+                const pctStock = Math.min(100, (item.stock / escala) * 100);
+                const pctMinimo = Math.min(100, (item.minimo / escala) * 100);
+                return (
+                  <div key={item.key} style={s.graficoFila}>
+                    <div style={s.graficoFilaHeader}>
+                      <span style={s.graficoNombre}>{item.nombre} <span style={s.graficoOrigen}>· {item.origen}</span></span>
+                      <span style={{ color, fontSize: 11, fontWeight: 600 }}>{item.stock} / mín {item.minimo}</span>
+                    </div>
+                    <div style={s.graficoBarraWrap}>
+                      <div style={{ ...s.graficoBarra, width: `${pctStock}%`, background: color }} />
+                      <div style={{ ...s.graficoMarcaMinimo, left: `${pctMinimo}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

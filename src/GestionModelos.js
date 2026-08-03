@@ -14,15 +14,178 @@ const MONITORES_LISTA = [
   { nombre: 'Cesar', turno: 'Noche' }
 ];
 
-const FORM_VACIO = { nombreReal: '', nombreModelo: '', monitor: '', turno: '', clave: '', nacimiento: '', correo: '', lovense: '', amazon: '', habitacion: '' };
+const FORM_VACIO = {
+  nombreReal: '', nombreModelo: '', cedula: '', monitor: '', turno: '', habitacion: '',
+  nacimiento: '', fechaInicio: '', contacto: '', direccion: '', correo: '',
+  cuentaBancaria: '', entidadBancaria: '', locker: '', contrato: '', clave: '',
+  correoTrabajo: '', claveCorreoTrabajo: '',
+  chaturbateUser: '', chaturbatePass: '', chaturbateLink: '',
+  camsodaUser: '', camsodaPass: '', camsodaLink: '',
+  stripchatUser: '', stripchatPass: '', stripchatLink: '',
+  lovense: '', amazon: ''
+};
 
 const TURNO_ICONO = { 'Manana': '🌅', 'Tarde': '☀️', 'Noche': '🌙' };
+
+const s = {
+  wrap: { display: 'block' },
+  btnNuevo: { background: 'var(--gold)', border: 'none', borderRadius: 12, color: '#141414', padding: '12px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginBottom: 8, fontWeight: 700 },
+  form: { background: 'var(--bg2)', borderRadius: 14, padding: 20, boxShadow: 'var(--shadow-out)', marginBottom: 8 },
+  label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
+  input: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14, boxSizing: 'border-box' },
+  select: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14, boxSizing: 'border-box' },
+  btnRow: { display: 'flex', gap: 10 },
+  btnGuardar: { flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '10px', fontSize: 13, letterSpacing: 1, cursor: 'pointer' },
+  btnCancelar: { background: 'transparent', border: 'none', color: 'var(--text-sub)', padding: '10px', fontSize: 13, cursor: 'pointer' },
+  btnEditar: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--text-sub)', padding: '6px 12px', fontSize: 12, cursor: 'pointer' },
+  btnEliminar: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '6px 12px', fontSize: 12, cursor: 'pointer' },
+  confirmBox: { background: 'var(--bg3)', borderRadius: 14, padding: 16, border: '1px solid rgba(216,90,48,0.45)', marginTop: 8 },
+  confirmText: { color: 'var(--text-sub)', fontSize: 13, marginBottom: 12 },
+  vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 },
+  turnoLabel: { color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, marginTop: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' },
+  tabla: { width: '100%', borderCollapse: 'collapse' },
+  th: { textAlign: 'left', color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', padding: '10px 12px', borderBottom: '1px solid var(--border2)', whiteSpace: 'nowrap' },
+  td: { padding: '10px 12px', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text)', userSelect: 'text' },
+  secTit: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 14, marginBottom: 8 },
+  tabs: { display: 'flex', gap: 4, marginBottom: 18, borderBottom: '1px solid var(--border)' },
+  tabBtn: { background: 'transparent', border: 'none', padding: '10px 18px', fontSize: 12, fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--text-sub)', cursor: 'pointer', borderBottom: '2px solid transparent', marginBottom: -1, transition: 'color 0.15s, border-color 0.15s' },
+  tabBtnActivo: { color: 'var(--gold)', borderBottom: '2px solid var(--gold)' },
+  fotoWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 20 },
+  fotoImg: { width: 96, height: 96, borderRadius: 48, objectFit: 'cover', border: '2px solid var(--gold)', boxShadow: 'var(--shadow-out)' },
+  fotoPlaceholder: { width: 96, height: 96, borderRadius: 48, background: 'var(--bg3)', border: '2px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 32 },
+  fotoBtn: { background: 'var(--bg)', boxShadow: 'var(--shadow-out)', borderRadius: 8, color: 'var(--gold)', padding: '6px 14px', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', display: 'inline-block' },
+};
+
+function FormularioModelo({ values, setValues, tab, setTab, fotoPreview, fotoURLActual, onFotoChange, paginas, setPaginas, onMonitorChange, onGuardar, onCancelar }) {
+  const campo = (label, key, extra = {}) => (
+    <div>
+      <label style={s.label}>{label}</label>
+      <input style={s.input} value={values[key] || ''} onChange={e => setValues(prev => ({ ...prev, [key]: e.target.value }))} {...extra} />
+    </div>
+  );
+
+  return (
+    <>
+      <div style={s.fotoWrap}>
+        {(fotoPreview || fotoURLActual)
+          ? <img src={fotoPreview || fotoURLActual} alt="foto" style={s.fotoImg} />
+          : <div style={s.fotoPlaceholder}>👤</div>
+        }
+        <label style={s.fotoBtn}>
+          Cambiar foto
+          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={onFotoChange} />
+        </label>
+      </div>
+
+      <div style={s.tabs}>
+        <button type="button" style={{ ...s.tabBtn, ...(tab === 'personal' ? s.tabBtnActivo : {}) }} onClick={() => setTab('personal')}>Datos personales</button>
+        <button type="button" style={{ ...s.tabBtn, ...(tab === 'plataformas' ? s.tabBtnActivo : {}) }} onClick={() => setTab('plataformas')}>Plataformas</button>
+      </div>
+
+      {tab === 'personal' && (
+        <div className="nm-form-grid2">
+          {campo('Nombre real', 'nombreReal')}
+          {campo('Nombre de modelo', 'nombreModelo')}
+          {campo('Cédula', 'cedula')}
+          <div>
+            <label style={s.label}>Monitor</label>
+            <select style={s.select} value={values.monitor || ''} onChange={e => onMonitorChange(e.target.value)}>
+              <option value="">Seleccionar monitor</option>
+              {MONITORES_LISTA.map(m => <option key={m.nombre} value={m.nombre}>{m.nombre} — {m.turno}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={s.label}>Turno</label>
+            <input style={{ ...s.input, color: 'var(--text-sub)' }} value={values.turno || ''} readOnly placeholder="Se asigna con el monitor" />
+          </div>
+          <div>
+            <label style={s.label}>Habitación asignada</label>
+            <select style={s.select} value={values.habitacion || ''} onChange={e => setValues(prev => ({ ...prev, habitacion: e.target.value }))}>
+              <option value="">Sin habitación</option>
+              {Array.from({ length: 16 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Habitación {n}</option>)}
+            </select>
+          </div>
+          {campo('Fecha de nacimiento', 'nacimiento', { type: 'date' })}
+          {campo('Fecha de inicio', 'fechaInicio', { type: 'date' })}
+          {campo('Teléfono / contacto', 'contacto')}
+          {campo('Dirección', 'direccion')}
+          {campo('Correo personal', 'correo', { type: 'email' })}
+          {campo('Cuenta bancaria', 'cuentaBancaria')}
+          {campo('Entidad bancaria', 'entidadBancaria')}
+          {campo('Número de locker', 'locker')}
+          <div>
+            <label style={s.label}>Contrato</label>
+            <select style={s.select} value={values.contrato || ''} onChange={e => setValues(prev => ({ ...prev, contrato: e.target.value }))}>
+              <option value="">Seleccionar</option>
+              <option value="Si">Sí</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          {campo('Clave de acceso', 'clave')}
+        </div>
+      )}
+
+      {tab === 'plataformas' && (
+        <>
+          <div className="nm-form-grid2">
+            {campo('Correo de trabajo', 'correoTrabajo', { type: 'email' })}
+            {campo('Contraseña correo trabajo', 'claveCorreoTrabajo')}
+          </div>
+
+          <div style={s.secTit}>Chaturbate</div>
+          <div className="nm-form-grid2">
+            {campo('Usuario', 'chaturbateUser')}
+            {campo('Contraseña', 'chaturbatePass')}
+          </div>
+          {campo('Link', 'chaturbateLink')}
+
+          <div style={s.secTit}>Camsoda</div>
+          <div className="nm-form-grid2">
+            {campo('Usuario', 'camsodaUser')}
+            {campo('Contraseña', 'camsodaPass')}
+          </div>
+          {campo('Link', 'camsodaLink')}
+
+          <div style={s.secTit}>Stripchat</div>
+          <div className="nm-form-grid2">
+            {campo('Usuario', 'stripchatUser')}
+            {campo('Contraseña', 'stripchatPass')}
+          </div>
+          {campo('Link', 'stripchatLink')}
+
+          <div style={s.secTit}>Otros accesos</div>
+          <div className="nm-form-grid2">
+            {campo('Accesos Lovense', 'lovense')}
+            {campo('Accesos Amazon', 'amazon')}
+          </div>
+
+          <label style={s.label}>Otras plataformas</label>
+          {paginas.map((p, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 6, marginBottom: 8 }}>
+              <input style={{ ...s.input, marginBottom: 0 }} placeholder="Plataforma" value={p.nombre} onChange={e => setPaginas(ps => ps.map((x, idx) => idx === i ? { ...x, nombre: e.target.value } : x))} />
+              <input style={{ ...s.input, marginBottom: 0 }} placeholder="Usuario" value={p.usuario} onChange={e => setPaginas(ps => ps.map((x, idx) => idx === i ? { ...x, usuario: e.target.value } : x))} />
+              <input style={{ ...s.input, marginBottom: 0 }} placeholder="Clave" value={p.clave} onChange={e => setPaginas(ps => ps.map((x, idx) => idx === i ? { ...x, clave: e.target.value } : x))} />
+              <button style={{ background: 'transparent', border: 'none', color: '#d85a30', cursor: 'pointer', fontSize: 16, padding: '0 4px' }} onClick={() => setPaginas(ps => ps.filter((_, idx) => idx !== i))}>✕</button>
+            </div>
+          ))}
+          <button style={{ ...s.btnCancelar, color: 'var(--gold)', marginBottom: 14, display: 'block', padding: '4px 0' }} onClick={() => setPaginas(ps => [...ps, { nombre: '', usuario: '', clave: '' }])}>+ Agregar página</button>
+        </>
+      )}
+
+      <div style={s.btnRow}>
+        <button style={s.btnGuardar} onClick={onGuardar}>Guardar</button>
+        <button style={s.btnCancelar} onClick={onCancelar}>Cancelar</button>
+      </div>
+    </>
+  );
+}
 
 export default function GestionModelos() {
   const [modelos, setModelos] = useState([]);
   const [monitores, setMonitores] = useState([]);
   const [modo, setModo] = useState(null);
   const [form, setForm] = useState(FORM_VACIO);
+  const [tabForm, setTabForm] = useState('personal');
   const [paginas, setPaginas] = useState([]);
   const [confirmEliminar, setConfirmEliminar] = useState(null);
   const [fotoFile, setFotoFile] = useState(null);
@@ -33,6 +196,7 @@ export default function GestionModelos() {
   const [vistaRetiradas, setVistaRetiradas] = useState(false);
   const [editando, setEditando] = useState(null);
   const [formEdit, setFormEdit] = useState(FORM_VACIO);
+  const [tabFormEdit, setTabFormEdit] = useState('personal');
   const [paginasEdit, setPaginasEdit] = useState([]);
   const [fotoFileEdit, setFotoFileEdit] = useState(null);
   const [fotoPreviewEdit, setFotoPreviewEdit] = useState(null);
@@ -70,14 +234,33 @@ export default function GestionModelos() {
       datos: {
         nombreReal: form.nombreReal,
         nombreModelo: form.nombreModelo,
+        cedula: form.cedula || '',
         monitor: form.monitor,
         turno: form.turno,
         activa: true,
+        habitacion: form.habitacion || '',
         nacimiento: form.nacimiento || '',
+        fechaInicio: form.fechaInicio || '',
+        contacto: form.contacto || '',
+        direccion: form.direccion || '',
         correo: form.correo || '',
+        cuentaBancaria: form.cuentaBancaria || '',
+        entidadBancaria: form.entidadBancaria || '',
+        locker: form.locker || '',
+        contrato: form.contrato || '',
+        correoTrabajo: form.correoTrabajo || '',
+        claveCorreoTrabajo: form.claveCorreoTrabajo || '',
+        chaturbateUser: form.chaturbateUser || '',
+        chaturbatePass: form.chaturbatePass || '',
+        chaturbateLink: form.chaturbateLink || '',
+        camsodaUser: form.camsodaUser || '',
+        camsodaPass: form.camsodaPass || '',
+        camsodaLink: form.camsodaLink || '',
+        stripchatUser: form.stripchatUser || '',
+        stripchatPass: form.stripchatPass || '',
+        stripchatLink: form.stripchatLink || '',
         lovense: form.lovense || '',
         amazon: form.amazon || '',
-        habitacion: form.habitacion || '',
         paginas: paginas,
         fotoURL: fotoURL
       }
@@ -88,6 +271,7 @@ export default function GestionModelos() {
 
     setModo(null);
     setForm(FORM_VACIO);
+    setTabForm('personal');
     setPaginas([]);
     setFotoFile(null);
     setFotoPreview(null);
@@ -112,18 +296,44 @@ export default function GestionModelos() {
       datos: {
         nombreReal: formEdit.nombreReal,
         nombreModelo: formEdit.nombreModelo,
+        cedula: formEdit.cedula || '',
         monitor: formEdit.monitor,
         turno: formEdit.turno,
         activa: true,
+        habitacion: formEdit.habitacion || '',
         nacimiento: formEdit.nacimiento || '',
+        fechaInicio: formEdit.fechaInicio || '',
+        contacto: formEdit.contacto || '',
+        direccion: formEdit.direccion || '',
         correo: formEdit.correo || '',
+        cuentaBancaria: formEdit.cuentaBancaria || '',
+        entidadBancaria: formEdit.entidadBancaria || '',
+        locker: formEdit.locker || '',
+        contrato: formEdit.contrato || '',
+        correoTrabajo: formEdit.correoTrabajo || '',
+        claveCorreoTrabajo: formEdit.claveCorreoTrabajo || '',
+        chaturbateUser: formEdit.chaturbateUser || '',
+        chaturbatePass: formEdit.chaturbatePass || '',
+        chaturbateLink: formEdit.chaturbateLink || '',
+        camsodaUser: formEdit.camsodaUser || '',
+        camsodaPass: formEdit.camsodaPass || '',
+        camsodaLink: formEdit.camsodaLink || '',
+        stripchatUser: formEdit.stripchatUser || '',
+        stripchatPass: formEdit.stripchatPass || '',
+        stripchatLink: formEdit.stripchatLink || '',
         lovense: formEdit.lovense || '',
         amazon: formEdit.amazon || '',
-        habitacion: formEdit.habitacion || '',
         paginas: paginasEdit,
         fotoURL: fotoURL
       }
     });
+
+    setEditando(null);
+    setFormEdit(FORM_VACIO);
+    setTabFormEdit('personal');
+    setPaginasEdit([]);
+    setFotoFileEdit(null);
+    setFotoPreviewEdit(null);
 
     if (modeloActual) {
       const oldMonitor = modeloActual.monitor;
@@ -141,28 +351,42 @@ export default function GestionModelos() {
         }
       }
     }
-
-    setEditando(null);
-    setFormEdit(FORM_VACIO);
-    setPaginasEdit([]);
-    setFotoFileEdit(null);
-    setFotoPreviewEdit(null);
   };
 
   const editar = (modelo) => {
     setModo(null);
     setEditando(modelo.id);
+    setTabFormEdit('personal');
     setFormEdit({
       nombreReal: modelo.nombreReal,
       nombreModelo: modelo.nombreModelo || '',
+      cedula: modelo.cedula || '',
       monitor: modelo.monitor,
       turno: modelo.turno,
       clave: modelo.clave || '',
+      habitacion: modelo.habitacion || '',
       nacimiento: modelo.nacimiento || '',
+      fechaInicio: modelo.fechaInicio || '',
+      contacto: modelo.contacto || '',
+      direccion: modelo.direccion || '',
       correo: modelo.correo || '',
+      cuentaBancaria: modelo.cuentaBancaria || '',
+      entidadBancaria: modelo.entidadBancaria || '',
+      locker: modelo.locker || '',
+      contrato: modelo.contrato || '',
+      correoTrabajo: modelo.correoTrabajo || '',
+      claveCorreoTrabajo: modelo.claveCorreoTrabajo || '',
+      chaturbateUser: modelo.chaturbateUser || '',
+      chaturbatePass: modelo.chaturbatePass || '',
+      chaturbateLink: modelo.chaturbateLink || '',
+      camsodaUser: modelo.camsodaUser || '',
+      camsodaPass: modelo.camsodaPass || '',
+      camsodaLink: modelo.camsodaLink || '',
+      stripchatUser: modelo.stripchatUser || '',
+      stripchatPass: modelo.stripchatPass || '',
+      stripchatLink: modelo.stripchatLink || '',
       lovense: modelo.lovense || '',
       amazon: modelo.amazon || '',
-      habitacion: modelo.habitacion || '',
       fotoURL: modelo.fotoURL || ''
     });
     setFotoFileEdit(null);
@@ -201,88 +425,30 @@ export default function GestionModelos() {
 
   const retiradas = modelos.filter(m => m.activa === false);
 
-  const s = {
-    wrap: { display: 'block' },
-    btnNuevo: { background: 'var(--gold)', border: 'none', borderRadius: 12, color: '#141414', padding: '12px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginBottom: 8, fontWeight: 700 },
-    form: { background: 'var(--bg2)', borderRadius: 14, padding: 20, boxShadow: 'var(--shadow-out)', marginBottom: 8 },
-    label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
-    input: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14, boxSizing: 'border-box' },
-    select: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14, boxSizing: 'border-box' },
-    btnRow: { display: 'flex', gap: 10 },
-    btnGuardar: { flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '10px', fontSize: 13, letterSpacing: 1, cursor: 'pointer' },
-    btnCancelar: { background: 'transparent', border: 'none', color: 'var(--text-sub)', padding: '10px', fontSize: 13, cursor: 'pointer' },
-    btnEditar: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--text-sub)', padding: '6px 12px', fontSize: 12, cursor: 'pointer' },
-    btnEliminar: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '6px 12px', fontSize: 12, cursor: 'pointer' },
-    confirmBox: { background: 'var(--bg3)', borderRadius: 14, padding: 16, border: '1px solid rgba(216,90,48,0.45)', marginTop: 8 },
-    confirmText: { color: 'var(--text-sub)', fontSize: 13, marginBottom: 12 },
-    vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 },
-    turnoLabel: { color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, marginTop: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' },
-    tabla: { width: '100%', borderCollapse: 'collapse' },
-    th: { textAlign: 'left', color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', padding: '10px 12px', borderBottom: '1px solid var(--border2)', whiteSpace: 'nowrap' },
-    td: { padding: '10px 12px', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text)', userSelect: 'text' },
-  };
-
   return (
     <div style={s.wrap}>
       {modo === null && (
-        <button style={s.btnNuevo} onClick={() => { setModo('nuevo'); setEditando(null); setForm({ nombreReal: '', nombreModelo: '', monitor: '', turno: '', clave: '' }); }}>
+        <button style={s.btnNuevo} onClick={() => { setModo('nuevo'); setEditando(null); setForm(FORM_VACIO); setTabForm('personal'); setPaginas([]); setFotoFile(null); setFotoPreview(null); }}>
           + Agregar modelo
         </button>
       )}
 
       {modo === 'nuevo' && (
-        <div style={s.form}>
-          <label style={s.label}>Nombre real</label>
-          <input style={s.input} placeholder="Nombre completo" value={form.nombreReal} onChange={e => setForm(prev => ({ ...prev, nombreReal: e.target.value }))} />
-          <label style={s.label}>Nombre de modelo</label>
-          <input style={s.input} placeholder="Nombre artistico" value={form.nombreModelo} onChange={e => setForm(prev => ({ ...prev, nombreModelo: e.target.value }))} />
-          <label style={s.label}>Monitor</label>
-          <select style={s.select} value={form.monitor} onChange={e => seleccionarMonitor(e.target.value)}>
-            <option value="">Seleccionar monitor</option>
-            {MONITORES_LISTA.map(m => <option key={m.nombre} value={m.nombre}>{m.nombre} — {m.turno}</option>)}
-          </select>
-          <label style={s.label}>Turno</label>
-          <input style={{ ...s.input, color: 'var(--text-sub)' }} value={form.turno} readOnly placeholder="Se asigna con el monitor" />
-          <label style={s.label}>Habitación asignada</label>
-          <select style={s.select} value={form.habitacion || ''} onChange={e => setForm(prev => ({ ...prev, habitacion: e.target.value }))}>
-            <option value="">Sin habitación</option>
-            {Array.from({ length: 16 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Habitación {n}</option>)}
-          </select>
-          <label style={s.label}>Clave de acceso</label>
-          <input style={s.input} placeholder="Clave para la modelo" value={form.clave || ''} onChange={e => setForm(prev => ({ ...prev, clave: e.target.value }))} />
-          <label style={s.label}>Fecha de nacimiento</label>
-          <input style={s.input} type="date" value={form.nacimiento || ''} onChange={e => setForm(prev => ({ ...prev, nacimiento: e.target.value }))} />
-          <label style={s.label}>Correo electrónico</label>
-          <input style={s.input} type="email" placeholder="correo@ejemplo.com" value={form.correo || ''} onChange={e => setForm(prev => ({ ...prev, correo: e.target.value }))} />
-          <label style={s.label}>Accesos Lovense</label>
-          <input style={s.input} placeholder="Usuario / Clave" value={form.lovense || ''} onChange={e => setForm(prev => ({ ...prev, lovense: e.target.value }))} />
-          <label style={s.label}>Accesos Amazon</label>
-          <input style={s.input} placeholder="Usuario / Clave" value={form.amazon || ''} onChange={e => setForm(prev => ({ ...prev, amazon: e.target.value }))} />
-          <label style={s.label}>Foto</label>
-          <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
-            {(fotoPreview || form.fotoURL) && (
-              <img src={fotoPreview || form.fotoURL} alt="foto" style={{ width: 60, height: 60, borderRadius: 30, objectFit: 'cover', border: '2px solid var(--gold)' }} />
-            )}
-            <input type="file" accept="image/*" style={{ color: 'var(--text-sub)', fontSize: 12 }}
-              onChange={e => {
-                const file = e.target.files[0];
-                if (file) { setFotoFile(file); setFotoPreview(URL.createObjectURL(file)); }
-              }} />
-          </div>
-          <label style={s.label}>Páginas</label>
-          {paginas.map((p, i) => (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 6, marginBottom: 8 }}>
-              <input style={{ ...s.input, marginBottom: 0 }} placeholder="Plataforma" value={p.nombre} onChange={e => setPaginas(ps => ps.map((x, idx) => idx === i ? { ...x, nombre: e.target.value } : x))} />
-              <input style={{ ...s.input, marginBottom: 0 }} placeholder="Usuario" value={p.usuario} onChange={e => setPaginas(ps => ps.map((x, idx) => idx === i ? { ...x, usuario: e.target.value } : x))} />
-              <input style={{ ...s.input, marginBottom: 0 }} placeholder="Clave" value={p.clave} onChange={e => setPaginas(ps => ps.map((x, idx) => idx === i ? { ...x, clave: e.target.value } : x))} />
-              <button style={{ background: 'transparent', border: 'none', color: '#d85a30', cursor: 'pointer', fontSize: 16, padding: '0 4px' }} onClick={() => setPaginas(ps => ps.filter((_, idx) => idx !== i))}>✕</button>
-            </div>
-          ))}
-          <button style={{ ...s.btnCancelar, color: 'var(--gold)', marginBottom: 14, display: 'block' }} onClick={() => setPaginas(ps => [...ps, { nombre: '', usuario: '', clave: '' }])}>+ Agregar página</button>
-          <div style={s.btnRow}>
-            <button style={s.btnGuardar} onClick={guardar}>Guardar</button>
-            <button style={s.btnCancelar} onClick={() => { setModo(null); setPaginas([]); setFotoFile(null); setFotoPreview(null); }}>Cancelar</button>
-          </div>
+        <div style={s.form} className="nm-form-inline">
+          <FormularioModelo
+            values={form}
+            setValues={setForm}
+            tab={tabForm}
+            setTab={setTabForm}
+            fotoPreview={fotoPreview}
+            fotoURLActual={form.fotoURL}
+            onFotoChange={e => { const file = e.target.files[0]; if (file) { setFotoFile(file); setFotoPreview(URL.createObjectURL(file)); } }}
+            paginas={paginas}
+            setPaginas={setPaginas}
+            onMonitorChange={seleccionarMonitor}
+            onGuardar={guardar}
+            onCancelar={() => { setModo(null); setPaginas([]); setFotoFile(null); setFotoPreview(null); }}
+          />
         </div>
       )}
 
@@ -377,59 +543,20 @@ export default function GestionModelos() {
               <div key={m.id}>
                 <div className={editando === m.id ? 'nm-form-inline' : ''} style={{ background: 'var(--bg2)', borderRadius: 14, padding: 16, border: '1px solid var(--border2)' }}>
                   {editando === m.id ? (
-                    <>
-                      <label style={s.label}>Nombre real</label>
-                      <input style={s.input} placeholder="Nombre completo" value={formEdit.nombreReal} onChange={e => setFormEdit(prev => ({ ...prev, nombreReal: e.target.value }))} />
-                      <label style={s.label}>Nombre de modelo</label>
-                      <input style={s.input} placeholder="Nombre artistico" value={formEdit.nombreModelo} onChange={e => setFormEdit(prev => ({ ...prev, nombreModelo: e.target.value }))} />
-                      <label style={s.label}>Monitor</label>
-                      <select style={s.select} value={formEdit.monitor} onChange={e => seleccionarMonitorEdit(e.target.value)}>
-                        <option value="">Seleccionar monitor</option>
-                        {MONITORES_LISTA.map(mon => <option key={mon.nombre} value={mon.nombre}>{mon.nombre} — {mon.turno}</option>)}
-                      </select>
-                      <label style={s.label}>Turno</label>
-                      <input style={{ ...s.input, color: 'var(--text-sub)' }} value={formEdit.turno} readOnly placeholder="Se asigna con el monitor" />
-                      <label style={s.label}>Habitación asignada</label>
-                      <select style={s.select} value={formEdit.habitacion || ''} onChange={e => setFormEdit(prev => ({ ...prev, habitacion: e.target.value }))}>
-                        <option value="">Sin habitación</option>
-                        {Array.from({ length: 16 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Habitación {n}</option>)}
-                      </select>
-                      <label style={s.label}>Clave de acceso</label>
-                      <input style={s.input} placeholder="Clave para la modelo" value={formEdit.clave || ''} onChange={e => setFormEdit(prev => ({ ...prev, clave: e.target.value }))} />
-                      <label style={s.label}>Fecha de nacimiento</label>
-                      <input style={s.input} type="date" value={formEdit.nacimiento || ''} onChange={e => setFormEdit(prev => ({ ...prev, nacimiento: e.target.value }))} />
-                      <label style={s.label}>Correo electrónico</label>
-                      <input style={s.input} type="email" placeholder="correo@ejemplo.com" value={formEdit.correo || ''} onChange={e => setFormEdit(prev => ({ ...prev, correo: e.target.value }))} />
-                      <label style={s.label}>Accesos Lovense</label>
-                      <input style={s.input} placeholder="Usuario / Clave" value={formEdit.lovense || ''} onChange={e => setFormEdit(prev => ({ ...prev, lovense: e.target.value }))} />
-                      <label style={s.label}>Accesos Amazon</label>
-                      <input style={s.input} placeholder="Usuario / Clave" value={formEdit.amazon || ''} onChange={e => setFormEdit(prev => ({ ...prev, amazon: e.target.value }))} />
-                      <label style={s.label}>Foto</label>
-                      <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
-                        {(fotoPreviewEdit || formEdit.fotoURL) && (
-                          <img src={fotoPreviewEdit || formEdit.fotoURL} alt="foto" style={{ width: 60, height: 60, borderRadius: 30, objectFit: 'cover', border: '2px solid var(--gold)' }} />
-                        )}
-                        <input type="file" accept="image/*" style={{ color: 'var(--text-sub)', fontSize: 12 }}
-                          onChange={e => {
-                            const file = e.target.files[0];
-                            if (file) { setFotoFileEdit(file); setFotoPreviewEdit(URL.createObjectURL(file)); }
-                          }} />
-                      </div>
-                      <label style={s.label}>Páginas</label>
-                      {paginasEdit.map((p, i) => (
-                        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 6, marginBottom: 8 }}>
-                          <input style={{ ...s.input, marginBottom: 0 }} placeholder="Plataforma" value={p.nombre} onChange={e => setPaginasEdit(ps => ps.map((x, idx) => idx === i ? { ...x, nombre: e.target.value } : x))} />
-                          <input style={{ ...s.input, marginBottom: 0 }} placeholder="Usuario" value={p.usuario} onChange={e => setPaginasEdit(ps => ps.map((x, idx) => idx === i ? { ...x, usuario: e.target.value } : x))} />
-                          <input style={{ ...s.input, marginBottom: 0 }} placeholder="Clave" value={p.clave} onChange={e => setPaginasEdit(ps => ps.map((x, idx) => idx === i ? { ...x, clave: e.target.value } : x))} />
-                          <button style={{ background: 'transparent', border: 'none', color: '#d85a30', cursor: 'pointer', fontSize: 16, padding: '0 4px' }} onClick={() => setPaginasEdit(ps => ps.filter((_, idx) => idx !== i))}>✕</button>
-                        </div>
-                      ))}
-                      <button style={{ ...s.btnCancelar, color: 'var(--gold)', marginBottom: 14, display: 'block' }} onClick={() => setPaginasEdit(ps => [...ps, { nombre: '', usuario: '', clave: '' }])}>+ Agregar página</button>
-                      <div style={s.btnRow}>
-                        <button style={s.btnGuardar} onClick={guardarEdicion}>Guardar</button>
-                        <button style={s.btnCancelar} onClick={() => { setEditando(null); setPaginasEdit([]); setFotoFileEdit(null); setFotoPreviewEdit(null); }}>Cancelar</button>
-                      </div>
-                    </>
+                    <FormularioModelo
+                      values={formEdit}
+                      setValues={setFormEdit}
+                      tab={tabFormEdit}
+                      setTab={setTabFormEdit}
+                      fotoPreview={fotoPreviewEdit}
+                      fotoURLActual={formEdit.fotoURL}
+                      onFotoChange={e => { const file = e.target.files[0]; if (file) { setFotoFileEdit(file); setFotoPreviewEdit(URL.createObjectURL(file)); } }}
+                      paginas={paginasEdit}
+                      setPaginas={setPaginasEdit}
+                      onMonitorChange={seleccionarMonitorEdit}
+                      onGuardar={guardarEdicion}
+                      onCancelar={() => { setEditando(null); setPaginasEdit([]); setFotoFileEdit(null); setFotoPreviewEdit(null); }}
+                    />
                   ) : (
                     <>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
