@@ -58,6 +58,7 @@ function getQuincena() {
 export default function ResumenMonitores() {
   const [cierres, setCierres] = useState([]);
   const [monitoresDB, setMonitoresDB] = useState([]);
+  const [modelosDB, setModelosDB] = useState([]);
   const [editando, setEditando] = useState(null);
   const [formEdit, setFormEdit] = useState({ nombre: '', turno: '', clave: '' });
   const [guardando, setGuardando] = useState(false);
@@ -74,7 +75,12 @@ export default function ResumenMonitores() {
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
       setMonitoresDB(data);
     });
-    return () => { unsub1(); unsub2(); };
+    const unsub3 = onSnapshot(collection(db, 'modelos'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setModelosDB(data);
+    });
+    return () => { unsub1(); unsub2(); unsub3(); };
   }, []);
 
   const iniciarEdicion = (nombreMonitor) => {
@@ -113,7 +119,9 @@ export default function ResumenMonitores() {
   };
 
   const calcularMonitor = (nombreMonitor) => {
-    const susModelos = MONITORES[nombreMonitor] || [];
+    const susModelos = modelosDB
+      .filter(m => m.monitor === nombreMonitor && m.activa !== false)
+      .map(m => m.nombreReal);
     let totalTokens = 0;
 
     cierres.forEach(cierre => {

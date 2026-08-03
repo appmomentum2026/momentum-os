@@ -2,30 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
-const MODELOS_POR_TURNO = {
-  'Mañana': [
-    'Ashly Naibel Burgos Machado', 'Ana Sofia Ospina Ortega', 'Tatiana Andrea Rios Hurtado',
-    'Luz Magnolia Salazar Garcia', 'Vanessa Arroyave', 'Valentina Osorno Alvarez',
-    'Sara Arango Zuleta', 'Valentina Zapata Azcuntar', 'Alejandra Rojas Vargas',
-    'Maye Catalina Insuasty Saldariaga', 'Juliana Ospina Jimenez', 'Liliana Castillo Salgado',
-    'Nicoll Pulgarin Nohava', 'Alison Daniela Zapata Estrada', 'Evelyn Tamayo Zapata'
-  ],
-  'Tarde': [
-    'Valentina Marquez Pino', 'Susana Pelaez', 'Ivonne Camila Zuluaga Prieto',
-    'Evelin Saday Ricardo Solis', 'Luisa Fernanda Osorio Jimenez',
-    'Natalia Hernandez Llano', 'Maria Camila Correa Munoz', 'Nataly Cardenas Moreno',
-    'Dayannis Tobon Acosta', 'Diana Luz Agamez Gonzalez', 'Asoryana Ramos Briseno', 'Yesmi Diaz Ruiz'
-  ],
-  'Noche': [
-    'Andrea Carolina Gomez Rodelo', 'Viviana Marcela Zambrano Mosquera', 'Sofia del Pilar Herrera Celis',
-    'Angie Marcela Villa Carmona', 'Isabela Gutierrez Rivera', 'Alexa Rivera Montoya',
-    'Yeimy Viviana Osorio Rojas', 'Maria Jose Lopez Mejia', 'Sara Paulina Mejia Marin',
-    'Luisa Fernanda Rodriguez Calderon'
-  ]
+const ORDEN_TURNOS = ['Manana', 'Tarde', 'Noche'];
+const TURNO_INFO = {
+  Manana: { icono: '🌅', label: 'Turno Mañana' },
+  Tarde: { icono: '☀️', label: 'Turno Tarde' },
+  Noche: { icono: '🌙', label: 'Turno Noche' }
 };
-
-const TURNO_ICONO = { 'Mañana': '🌅', 'Tarde': '☀️', 'Noche': '🌙' };
-const MODELOS_TODAS = Object.values(MODELOS_POR_TURNO).flat();
 
 function getQuincena(offset = 0) {
   const hoy = new Date();
@@ -63,6 +45,7 @@ function getBadgeStyle(porcentaje) {
 export default function ResumenJefe() {
   const [cierres, setCierres] = useState([]);
   const [asistencia, setAsistencia] = useState({});
+  const [modelosDB, setModelosDB] = useState([]);
   const [vistaGrid, setVistaGrid] = useState(true);
   const [rankingAbierto, setRankingAbierto] = useState(false);
   const [quincenaOffset, setQuincenaOffset] = useState(0);
@@ -81,7 +64,13 @@ export default function ResumenJefe() {
       snap.forEach(d => { data[d.id] = d.data(); });
       setAsistencia(data);
     });
-    return () => { unsub1(); unsub2(); };
+    const unsub3 = onSnapshot(collection(db, 'modelos'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      data.sort((a, b) => (parseInt(a.habitacion) || 99) - (parseInt(b.habitacion) || 99));
+      setModelosDB(data.filter(m => m.activa !== false));
+    });
+    return () => { unsub1(); unsub2(); unsub3(); };
   }, []);
 
   const calcularModelo = (nombreModelo, q) => {
@@ -118,8 +107,9 @@ export default function ResumenJefe() {
     return { diasTrabajados, totalTokens, horasTrabajadas: horasTrabajadas.toFixed(1), horasRequeridas: horasRequeridas.toFixed(1), porcentaje, usdNeto: usdNeto.toFixed(2) };
   };
 
-  const resumen = MODELOS_TODAS.map(m => ({ nombre: m, ...calcularModelo(m, quincena) }));
-  const resumenAnterior = MODELOS_TODAS.map(m => ({ nombre: m, ...calcularModelo(m, quincenaAnterior) }));
+  const modelosTodas = modelosDB.map(m => m.nombreReal);
+  const resumen = modelosTodas.map(m => ({ nombre: m, ...calcularModelo(m, quincena) }));
+  const resumenAnterior = modelosTodas.map(m => ({ nombre: m, ...calcularModelo(m, quincenaAnterior) }));
 
   const totalPagar = resumen.reduce((acc, m) => acc + parseFloat(m.usdNeto), 0);
   const totalTokensEstudio = resumen.reduce((acc, m) => acc + m.totalTokens, 0);
@@ -175,19 +165,20 @@ export default function ResumenJefe() {
         </div>
 
         {/* Proyección */}
-        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '24px 20px', border: '1px solid var(--border2)', display: 'none' }} className="nm-hide-mobile">
+        <div className="nm-hide-mobile" style={{ background: 'var(--bg2)', borderRadius: 16, padding: '24px 20px', border: '1px solid var(--border2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ fontSize: 20 }}>📈</span>
             <span style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' }}>Proyección quincena</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ color: 'var(--gold)', fontSize: 28, fontWeight: 700 }}>{proyeccionTokens.toLocaleString()}</div>
+            <div style={{ color: 'var(--gold)', fontSize: 28, fontWeight: 700 }}>{proyeccionTokens.toLocaleString()} <span style={{ fontSize: 14, fontWeight: 400 }}>tokens</span></div>
             {pctCambio !== null && (
               <span style={{ background: pctCambio >= 0 ? 'rgba(76,175,125,0.15)' : 'rgba(192,97,74,0.15)', color: pctCambio >= 0 ? '#4CAF7D' : '#C0614A', fontSize: 11, padding: '3px 8px', borderRadius: 20, fontWeight: 600 }}>
                 {pctCambio >= 0 ? '+' : ''}{pctCambio}%
               </span>
             )}
           </div>
+          <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 4 }}>${(proyeccionTokens / 20).toFixed(2)} USD</div>
           <button style={{ background: 'transparent', border: 'none', color: 'var(--text-sub)', fontSize: 11, cursor: 'pointer', padding: 0, marginTop: 6, textDecoration: 'underline' }} onClick={() => setQuincenaOffset(o => o - 1)}>
             Ver quincena anterior
           </button>
@@ -235,16 +226,19 @@ export default function ResumenJefe() {
       )}
 
       {/* Turnos */}
-      {Object.entries(MODELOS_POR_TURNO).map(([turno, modelos]) => {
-        const modelosTurno = resumen.filter(m => modelos.includes(m.nombre));
+      {ORDEN_TURNOS.map(turno => {
+        const nombresTurno = modelosDB.filter(m => m.turno === turno).map(m => m.nombreReal);
+        const modelosTurno = resumen.filter(m => nombresTurno.includes(m.nombre));
+        if (modelosTurno.length === 0) return null;
         const totalTurno = modelosTurno.reduce((acc, m) => acc + parseFloat(m.usdNeto), 0);
         const tokensTurno = modelosTurno.reduce((acc, m) => acc + m.totalTokens, 0);
+        const info = TURNO_INFO[turno] || {};
         return (
           <div key={turno}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 20 }}>{TURNO_ICONO[turno]}</span>
-                <span style={{ color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Turno {turno}</span>
+                <span style={{ fontSize: 20 }}>{info.icono}</span>
+                <span style={{ color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>{info.label}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>{tokensTurno.toLocaleString()} tokens · <span style={{ color: 'var(--gold)', fontWeight: 600 }}>${totalTurno.toFixed(2)} USD</span></span>

@@ -100,11 +100,12 @@ function colorProgreso(pct, quincena) {
   return 'var(--gold)';
 }
 
-function ProyeccionModelo({ nombreModelo, meta }) {
+function ProyeccionModelo({ nombreModelo, metaUsd }) {
   const [cierres, setCierres] = useState([]);
   const [asistencia, setAsistencia] = useState({});
   const quincena = getQuincena(0);
   const quincenaAnterior = getQuincena(-1);
+  const metaTokens = metaUsd * 20;
 
   useEffect(() => {
     const unsub1 = onSnapshot(collection(db, 'cierres'), snap => {
@@ -139,9 +140,9 @@ function ProyeccionModelo({ nombreModelo, meta }) {
   const hoy = new Date();
   const finQuincena = new Date(quincena.fin);
   const diasRestantes = Math.max(1, Math.ceil((finQuincena - hoy) / (1000 * 60 * 60 * 24)));
-  const cumplimiento = meta > 0 ? Math.min(100, Math.round((totalTokens / meta) * 100)) : 0;
+  const cumplimiento = metaTokens > 0 ? Math.min(100, Math.round((totalTokens / metaTokens) * 100)) : 0;
   const colorBarra = colorProgreso(cumplimiento, quincena);
-  const tokensNecesarios = Math.max(0, meta - totalTokens);
+  const tokensNecesarios = Math.max(0, metaTokens - totalTokens);
   const porDia = diasRestantes > 0 ? Math.ceil(tokensNecesarios / diasRestantes) : 0;
   const promedioDiario = diasTrabajados > 0 ? Math.round(totalTokens / diasTrabajados) : 0;
   const diasOrdenados = Object.entries(tokensPorDia).sort(([a], [b]) => a.localeCompare(b)).slice(-10);
@@ -173,10 +174,11 @@ function ProyeccionModelo({ nombreModelo, meta }) {
 
       <div style={s.grid2}>
         <div style={s.bigCard}>
-          <div style={s.label}>Tu meta esta quincena</div>
-          <div style={s.bigVal}>{meta > 0 ? meta.toLocaleString() : '—'} tokens</div>
+          <div style={s.label}>Meta esta quincena</div>
+          <div style={s.bigVal}>{metaUsd > 0 ? `$${metaUsd.toLocaleString()} USD` : '—'}</div>
+          {metaTokens > 0 && <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: -2, marginBottom: 6 }}>({metaTokens.toLocaleString()} tokens)</div>}
           <div style={{ ...s.statFila, borderBottom: 'none', marginTop: 4 }}>
-            <div style={{ color: 'var(--text-sub)', fontSize: 13 }}>{totalTokens.toLocaleString()} / {meta > 0 ? meta.toLocaleString() : '—'} tokens</div>
+            <div style={{ color: 'var(--text-sub)', fontSize: 13 }}>{totalTokens.toLocaleString()} / {metaTokens > 0 ? metaTokens.toLocaleString() : '—'} tokens</div>
             <div style={{ ...s.badge, background: cumplimiento >= 100 ? 'rgba(76,175,125,0.15)' : 'rgba(201,146,74,0.15)', color: colorBarra }}>{cumplimiento}%</div>
           </div>
           <div style={s.barraWrap}>
@@ -186,16 +188,16 @@ function ProyeccionModelo({ nombreModelo, meta }) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {meta > 0 && (
+          {metaTokens > 0 && (
             <div style={s.proyeccionBox}>
               <div style={s.compLabel}>Proyección al ritmo actual</div>
               <div style={{ color: 'var(--gold)', fontSize: 26, fontWeight: 500, marginBottom: 4 }}>
                 {proyeccionFinal.toLocaleString()} tokens
               </div>
               <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>
-                {proyeccionFinal >= meta
+                {proyeccionFinal >= metaTokens
                   ? 'Vas camino a superar tu meta!'
-                  : `Te faltarían ${(meta - proyeccionFinal).toLocaleString()} para la meta`}
+                  : `Te faltarían ${(metaTokens - proyeccionFinal).toLocaleString()} para la meta`}
               </div>
             </div>
           )}
@@ -318,7 +320,7 @@ export default function Metas({ rol, nombreModelo }) {
 
   const guardarMeta = async (modelo, valor) => {
     if (!valor) return;
-    await setDoc(doc(db, 'metas', modelo), { tokens: Number(valor), actualizado: new Date().toISOString() });
+    await setDoc(doc(db, 'metas', modelo), { usd: Number(valor), actualizado: new Date().toISOString() });
     setEditando(prev => { const n = { ...prev }; delete n[modelo]; return n; });
   };
 
@@ -329,28 +331,36 @@ export default function Metas({ rol, nombreModelo }) {
       'Noche':  { hora: '8pm - 2am', icono: '🌙' },
     };
 
-    const renderModelo = (modelo) => {
+    const renderModelo = (m) => {
+      const modelo = m.nombreReal;
       const { total } = tokensEnRango(cierres, modelo, quincena.inicio, quincena.fin);
-      const meta = metas[modelo]?.tokens || 0;
-      const pct = meta > 0 ? Math.min(100, Math.round((total / meta) * 100)) : 0;
+      const metaUsd = metas[modelo]?.usd || 0;
+      const metaTokens = metaUsd * 20;
+      const pct = metaTokens > 0 ? Math.min(100, Math.round((total / metaTokens) * 100)) : 0;
       const colorBarra = colorProgreso(pct, quincena);
       return (
-        <div key={modelo} style={{ background: 'var(--bg2)', borderRadius: 12, padding: '10px 14px', border: '1px solid var(--border2)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div key={modelo} style={{ background: 'var(--bg2)', borderRadius: 12, padding: '10px 14px', border: '1px solid var(--border2)', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 24, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 18, flexShrink: 0, overflow: 'hidden' }}>
+              {m.fotoURL ? <img src={m.fotoURL} alt={modelo} style={{ width: 48, height: 48, objectFit: 'cover' }} /> : '👤'}
+            </div>
             <div style={{ flex: 1, color: 'var(--text)', fontSize: 12, fontWeight: 500 }}>{modelo}</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <input style={{ ...s.input, width: 90, marginBottom: 0, fontSize: 12, padding: '6px 10px' }} type="number"
-              placeholder={metas[modelo]?.tokens || 'Meta'}
+              placeholder={metaUsd || 'Meta USD'}
               value={editando[modelo] || ''}
               onChange={e => setEditando(prev => ({ ...prev, [modelo]: e.target.value }))} />
             <button style={{ ...s.btnGuardar, padding: '6px 12px', fontSize: 12, width: 'auto', flex: 'none' }} onClick={() => guardarMeta(modelo, editando[modelo])}>OK</button>
           </div>
-          {meta > 0 && (
+          {metaTokens > 0 && (
             <>
+              <div style={{ color: 'var(--text-dim)', fontSize: 10 }}>Meta: ${metaUsd.toLocaleString()} USD ({metaTokens.toLocaleString()} tokens)</div>
               <div style={s.barraWrap}>
                 <div style={{ ...s.barraFill, width: `${pct}%`, background: colorBarra }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>{total.toLocaleString()} / {meta.toLocaleString()} tokens</span>
+                <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>{total.toLocaleString()} / {metaTokens.toLocaleString()} tokens</span>
                 {pct >= 100
                   ? <span style={{ background: 'rgba(76,175,125,0.15)', color: 'var(--green)', fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>● Completada</span>
                   : <span style={{ color: colorBarra, fontSize: 11, fontWeight: 600 }}>{pct}%</span>
@@ -364,6 +374,7 @@ export default function Metas({ rol, nombreModelo }) {
 
     const turnoData = { 'Manana': [], 'Tarde': [], 'Noche': [] };
     modelosDB.forEach(m => { if (turnoData[m.turno]) turnoData[m.turno].push(m); });
+    Object.values(turnoData).forEach(lista => lista.sort((a, b) => (parseInt(a.habitacion) || 99) - (parseInt(b.habitacion) || 99)));
 
     return (
       <div style={s.wrap}>
@@ -382,7 +393,7 @@ export default function Metas({ rol, nombreModelo }) {
             : modelosTurno;
           const info = TURNO_INFO[turno] || {};
           const totalTokensTurno = modelosFiltrados.reduce((acc, m) => acc + (tokensEnRango(cierres, m.nombreReal, quincena.inicio, quincena.fin).total), 0);
-          const totalMetaTurno = modelosFiltrados.reduce((acc, m) => acc + (metas[m.nombreReal]?.tokens || 0), 0);
+          const totalMetaTurno = modelosFiltrados.reduce((acc, m) => acc + ((metas[m.nombreReal]?.usd || 0) * 20), 0);
           return (
             <div key={turno} style={{ marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, padding: '10px 16px', background: 'var(--bg2)', borderRadius: 12, border: '1px solid var(--border2)', flexWrap: 'wrap' }}>
@@ -411,7 +422,7 @@ export default function Metas({ rol, nombreModelo }) {
                 </div>
               )}
               <div className={vistaGrid ? 'nm-grid-cards' : ''} style={!vistaGrid ? { display: 'flex', flexDirection: 'column', gap: 8 } : {}}>
-                {modelosFiltrados.map(m => renderModelo(m.nombreReal))}
+                {modelosFiltrados.map(m => renderModelo(m))}
               </div>
             </div>
           );
@@ -420,6 +431,6 @@ export default function Metas({ rol, nombreModelo }) {
     );
   }
 
-  const meta = metas[nombreModelo]?.tokens || 0;
-  return <ProyeccionModelo nombreModelo={nombreModelo} meta={meta} />;
+  const metaUsd = metas[nombreModelo]?.usd || 0;
+  return <ProyeccionModelo nombreModelo={nombreModelo} metaUsd={metaUsd} />;
 }

@@ -521,7 +521,9 @@ export default function GestionModelos() {
       )}
 
       {!vistaRetiradas && ['Manana', 'Tarde', 'Noche'].map(turno => {
-        const modelosTurno = modelos.filter(m => m.activa !== false && m.turno === turno && (!filtroMonitor[turno] || m.monitor === filtroMonitor[turno]) && (m.nombreReal.toLowerCase().includes(busqueda.toLowerCase()) || (m.nombreModelo || '').toLowerCase().includes(busqueda.toLowerCase())));
+        const modelosTurno = modelos
+          .filter(m => m.activa !== false && m.turno === turno && (!filtroMonitor[turno] || m.monitor === filtroMonitor[turno]) && (m.nombreReal.toLowerCase().includes(busqueda.toLowerCase()) || (m.nombreModelo || '').toLowerCase().includes(busqueda.toLowerCase())))
+          .sort((a, b) => (parseInt(a.habitacion) || 99) - (parseInt(b.habitacion) || 99));
         if (modelosTurno.length === 0) return null;
         return (
           <div key={turno} style={{ marginBottom: 16, marginTop: 48 }}>

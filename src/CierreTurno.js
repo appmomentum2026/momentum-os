@@ -339,7 +339,7 @@ function getQuincenaReporte(offset = 0) {
 const PORCENTAJES_OPCIONES = [50, 60, 65, 70];
 const TURNO_INFO_REPORTE = { Manana: { icono: '🌅', label: 'Turno Mañana' }, Tarde: { icono: '☀️', label: 'Turno Tarde' }, Noche: { icono: '🌙', label: 'Turno Noche' } };
 
-function VistaReporteQuincenal({ cierres }) {
+function VistaReporteQuincenal({ cierres, rol, nombreMonitor }) {
   const [modelosDB, setModelosDB] = useState([]);
   const [asistenciaDB, setAsistenciaDB] = useState({});
   const [reportesDB, setReportesDB] = useState({});
@@ -388,14 +388,23 @@ function VistaReporteQuincenal({ cierres }) {
   const guardarReporte = async (nombre) => {
     const id = `${quincena.idQuincena}_${nombre}`;
     setGuardando(prev => ({ ...prev, [id]: true }));
-    await setDoc(doc(db, 'reportesQuincenales', id), {
+    const ahora = new Date().toISOString();
+    const payload = {
       idQuincena: quincena.idQuincena,
       nombreModelo: nombre,
       porcentaje: valorCampo(id, 'porcentaje'),
       observaciones: valorCampo(id, 'observaciones'),
       justificacion: valorCampo(id, 'justificacion'),
-      actualizadoEn: new Date().toISOString()
-    });
+      actualizadoEn: ahora
+    };
+    if (rol === 'monitor') {
+      payload.observacionesEditadoPor = 'monitor';
+      payload.observacionesActualizadoEn = ahora;
+    } else if (rol === 'jefe') {
+      payload.porcentajeEditadoPor = 'jefe';
+      payload.porcentajeActualizadoEn = ahora;
+    }
+    await setDoc(doc(db, 'reportesQuincenales', id), payload, { merge: true });
     setGuardando(prev => ({ ...prev, [id]: false }));
   };
 
@@ -405,6 +414,9 @@ function VistaReporteQuincenal({ cierres }) {
       if (cierre.fecha < quincena.inicio || cierre.fecha > quincena.fin + 'Z') return;
       const modeloData = (cierre.modelos || []).find(m => m.nombre === nombre);
       if (!modeloData || !modeloData.inicio || !modeloData.fin) return;
+      const fechaCierreISO = cierre.fecha.split('T')[0];
+      const registroDia = asistenciaDB[`${fechaCierreISO}_${nombre}`];
+      if (registroDia && registroDia.presente === false) return; // no asistió ese día: no cuenta horas
       const [hi, mi] = modeloData.inicio.split(':').map(Number);
       const [hf, mf] = modeloData.fin.split(':').map(Number);
       let mins = (hf * 60 + mf) - (hi * 60 + mi);
@@ -424,9 +436,12 @@ function VistaReporteQuincenal({ cierres }) {
   };
 
   const modelosPorTurno = { Manana: [], Tarde: [], Noche: [] };
-  modelosDB.forEach(m => {
-    if (modelosPorTurno[m.turno]) modelosPorTurno[m.turno].push(m);
-  });
+  modelosDB
+    .filter(m => rol !== 'monitor' || m.monitor === nombreMonitor)
+    .forEach(m => {
+      if (modelosPorTurno[m.turno]) modelosPorTurno[m.turno].push(m);
+    });
+  Object.values(modelosPorTurno).forEach(lista => lista.sort((a, b) => (parseInt(a.habitacion) || 99) - (parseInt(b.habitacion) || 99)));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -486,17 +501,17 @@ function VistaReporteQuincenal({ cierres }) {
                       </div>
                     )}
 
-                    <div style={s.reporteSecTit}>Porcentaje asignado</div>
-                    <select style={s.select} value={valorCampo(id, 'porcentaje')} onChange={e => actualizarCampo(id, 'porcentaje', e.target.value)}>
+                    <div style={s.reporteSecTit}>Porcentaje asignado{rol !== 'jefe' ? ' (lo asigna el jefe)' : ''}</div>
+                    <select style={{ ...s.select, ...(rol !== 'jefe' ? { opacity: 0.6, cursor: 'not-allowed' } : {}) }} value={valorCampo(id, 'porcentaje')} disabled={rol !== 'jefe'} onChange={e => actualizarCampo(id, 'porcentaje', e.target.value)}>
                       <option value="">Sin asignar</option>
                       {PORCENTAJES_OPCIONES.map(p => <option key={p} value={p}>{p}%</option>)}
                     </select>
 
-                    <div style={s.reporteSecTit}>Justificación del porcentaje</div>
-                    <textarea style={s.textarea} rows={2} placeholder="Motivo del porcentaje asignado..." value={valorCampo(id, 'justificacion')} onChange={e => actualizarCampo(id, 'justificacion', e.target.value)} />
+                    <div style={s.reporteSecTit}>Justificación del porcentaje{rol === 'jefe' ? ' (escrita por el monitor)' : ''}</div>
+                    <textarea style={{ ...s.textarea, ...(rol === 'jefe' ? { opacity: 0.7, cursor: 'not-allowed' } : {}) }} rows={2} placeholder="Motivo del porcentaje asignado..." value={valorCampo(id, 'justificacion')} disabled={rol === 'jefe'} onChange={e => actualizarCampo(id, 'justificacion', e.target.value)} />
 
-                    <div style={s.reporteSecTit}>Observaciones del monitor</div>
-                    <textarea style={s.textarea} rows={2} placeholder="Observaciones..." value={valorCampo(id, 'observaciones')} onChange={e => actualizarCampo(id, 'observaciones', e.target.value)} />
+                    <div style={s.reporteSecTit}>Observaciones del monitor{rol === 'jefe' ? ' (escritas por el monitor)' : ''}</div>
+                    <textarea style={{ ...s.textarea, ...(rol === 'jefe' ? { opacity: 0.7, cursor: 'not-allowed' } : {}) }} rows={2} placeholder="Observaciones..." value={valorCampo(id, 'observaciones')} disabled={rol === 'jefe'} onChange={e => actualizarCampo(id, 'observaciones', e.target.value)} />
 
                     <button style={s.btnGuardarReporte} onClick={() => guardarReporte(nombre)} disabled={guardando[id]}>
                       {guardando[id] ? 'Guardando...' : 'Guardar reporte'}
@@ -520,7 +535,7 @@ function VistaJefeTabs({ cierres }) {
         <button type="button" style={{ ...s.tabJefeBtn, ...(tab === 'diarios' ? s.tabJefeBtnActivo : {}) }} onClick={() => setTab('diarios')}>Cierres Diarios</button>
         <button type="button" style={{ ...s.tabJefeBtn, ...(tab === 'quincenal' ? s.tabJefeBtnActivo : {}) }} onClick={() => setTab('quincenal')}>Reporte Quincenal</button>
       </div>
-      {tab === 'diarios' ? <VistaJefe cierres={cierres} /> : <VistaReporteQuincenal cierres={cierres} />}
+      {tab === 'diarios' ? <VistaJefe cierres={cierres} /> : <VistaReporteQuincenal cierres={cierres} rol="jefe" />}
     </div>
   );
 }
@@ -533,6 +548,7 @@ function VistaJefeTabs({ cierres }) {
   const [enviando, setEnviando] = useState(false);
   const [modelosDB, setModelosDB] = useState([]);
   const [fechaCierre, setFechaCierre] = useState(() => fechaISOLocal(new Date()));
+  const [tabMonitor, setTabMonitor] = useState('diario');
 
   useEffect(() => {
     const q = query(collection(db, 'cierres'), orderBy('fecha', 'desc'));
@@ -558,7 +574,12 @@ function VistaJefeTabs({ cierres }) {
     setDatosModelos(prev => ({ ...prev, [nombre]: { ...prev[nombre], [campo]: valor } }));
   };
 
-  const misModelos = (nombreMonitor) ? modelosDB.filter(m => m.activa !== false && m.monitor === nombreMonitor).map(m => m.nombreReal) : [];
+  const misModelos = (nombreMonitor)
+    ? modelosDB
+        .filter(m => m.activa !== false && m.monitor === nombreMonitor)
+        .sort((a, b) => (parseInt(a.habitacion) || 99) - (parseInt(b.habitacion) || 99))
+        .map(m => m.nombreReal)
+    : [];
 
   const diaSeleccionado = parseFechaLocal(fechaCierre).toLocaleDateString('es-CO');
   const cierreExistente = cierres.find(c => c.monitor === nombreMonitor && c.dia === diaSeleccionado);
@@ -612,63 +633,74 @@ function VistaJefeTabs({ cierres }) {
 
   return (
     <div>
-      <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '18px 20px', marginBottom: 16, position: 'relative', overflow: 'hidden', border: '1px solid var(--border2)', borderLeft: '4px solid var(--gold)', boxShadow: '0 4px 20px rgba(201,146,74,0.12)' }}>
-        <div style={{ color: 'var(--gold)', fontSize: 20, fontWeight: 700 }}>{nombreMonitor}</div>
-        <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 3 }}>Turno {TURNOS[nombreMonitor] || ''} · {misModelos.length} modelos</div>
-        {(() => {
-          const completadas = misModelos.filter(m => PLATAFORMAS.reduce((acc, p) => acc + Number(datosModelos[m]?.[p + '_tokens'] || 0), 0) > 0).length;
-          return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
-              <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>{completadas} de {misModelos.length} completadas</span>
-              <div style={{ flex: 1, maxWidth: 200, height: 6, background: 'var(--bg3)', borderRadius: 10, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${(completadas / misModelos.length) * 100}%`, background: 'var(--gold)', borderRadius: 10, transition: 'width 0.3s' }} />
-              </div>
+      <div style={s.tabsJefe}>
+        <button type="button" style={{ ...s.tabJefeBtn, ...(tabMonitor === 'diario' ? s.tabJefeBtnActivo : {}) }} onClick={() => setTabMonitor('diario')}>Cierre del día</button>
+        <button type="button" style={{ ...s.tabJefeBtn, ...(tabMonitor === 'quincenal' ? s.tabJefeBtnActivo : {}) }} onClick={() => setTabMonitor('quincenal')}>Reporte Quincenal</button>
+      </div>
+
+      {tabMonitor === 'quincenal' ? (
+        <VistaReporteQuincenal cierres={cierres} rol="monitor" nombreMonitor={nombreMonitor} />
+      ) : (
+        <>
+          <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '18px 20px', marginBottom: 16, position: 'relative', overflow: 'hidden', border: '1px solid var(--border2)', borderLeft: '4px solid var(--gold)', boxShadow: '0 4px 20px rgba(201,146,74,0.12)' }}>
+            <div style={{ color: 'var(--gold)', fontSize: 20, fontWeight: 700 }}>{nombreMonitor}</div>
+            <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 3 }}>Turno {TURNOS[nombreMonitor] || ''} · {misModelos.length} modelos</div>
+            {(() => {
+              const completadas = misModelos.filter(m => PLATAFORMAS.reduce((acc, p) => acc + Number(datosModelos[m]?.[p + '_tokens'] || 0), 0) > 0).length;
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+                  <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>{completadas} de {misModelos.length} completadas</span>
+                  <div style={{ flex: 1, maxWidth: 200, height: 6, background: 'var(--bg3)', borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${(completadas / misModelos.length) * 100}%`, background: 'var(--gold)', borderRadius: 10, transition: 'width 0.3s' }} />
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          <div style={s.fechaCard}>
+            <div>
+              <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>Fecha del cierre</div>
+              <input type="date" style={s.dateInput} value={fechaCierre} onChange={e => setFechaCierre(e.target.value)} />
             </div>
-          );
-        })()}
-      </div>
+            {cierreExistente && (
+              <span style={s.avisoExistente}>Ya existe un cierre guardado para este día — puedes editarlo</span>
+            )}
+          </div>
 
-      <div style={s.fechaCard}>
-        <div>
-          <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>Fecha del cierre</div>
-          <input type="date" style={s.dateInput} value={fechaCierre} onChange={e => setFechaCierre(e.target.value)} />
-        </div>
-        {cierreExistente && (
-          <span style={s.avisoExistente}>Ya existe un cierre guardado para este día — puedes editarlo</span>
-        )}
-      </div>
+          <div className="nm-grid-cards">
+            {misModelos.map(nombre => (
+              <FormModelo key={nombre} nombre={nombre} datos={datosModelos[nombre] || {}}
+                onChange={(campo, valor) => actualizarModelo(nombre, campo, valor)}
+                fotoURL={modelosDB.find(m => m.nombreReal === nombre)?.fotoURL || ''} />
+            ))}
+          </div>
+          <button style={s.btnEnviar} onClick={enviarCierre} disabled={enviando}>
+            {enviando ? 'Enviando...' : (cierreExistente ? 'Actualizar cierre' : 'Cerrar turno')}
+          </button>
 
-      <div className="nm-grid-cards">
-        {misModelos.map(nombre => (
-          <FormModelo key={nombre} nombre={nombre} datos={datosModelos[nombre] || {}}
-            onChange={(campo, valor) => actualizarModelo(nombre, campo, valor)}
-            fotoURL={modelosDB.find(m => m.nombreReal === nombre)?.fotoURL || ''} />
-        ))}
-      </div>
-      <button style={s.btnEnviar} onClick={enviarCierre} disabled={enviando}>
-        {enviando ? 'Enviando...' : (cierreExistente ? 'Actualizar cierre' : 'Cerrar turno')}
-      </button>
-
-      <div style={s.historial}>
-        <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Historial (últimos 7 días)</div>
-        {(() => {
-          const historial = cierres
-            .filter(c => c.monitor === nombreMonitor)
-            .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
-            .slice(0, 7);
-          if (historial.length === 0) {
-            return <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>Aún no has registrado cierres</div>;
-          }
-          return historial.map(c => (
-            <div key={c.id} style={s.historialFila}>
-              <span style={{ color: c.dia === diaSeleccionado ? 'var(--gold)' : 'var(--text)' }}>
-                {c.dia}{c.dia === diaSeleccionado ? ' (seleccionado)' : ''}
-              </span>
-              <span style={{ color: 'var(--text-sub)' }}>{c.hora || '—'}</span>
-            </div>
-          ));
-        })()}
-      </div>
+          <div style={s.historial}>
+            <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Historial (últimos 7 días)</div>
+            {(() => {
+              const historial = cierres
+                .filter(c => c.monitor === nombreMonitor)
+                .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+                .slice(0, 7);
+              if (historial.length === 0) {
+                return <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>Aún no has registrado cierres</div>;
+              }
+              return historial.map(c => (
+                <div key={c.id} style={s.historialFila}>
+                  <span style={{ color: c.dia === diaSeleccionado ? 'var(--gold)' : 'var(--text)' }}>
+                    {c.dia}{c.dia === diaSeleccionado ? ' (seleccionado)' : ''}
+                  </span>
+                  <span style={{ color: 'var(--text-sub)' }}>{c.hora || '—'}</span>
+                </div>
+              ));
+            })()}
+          </div>
+        </>
+      )}
     </div>
   );
 }

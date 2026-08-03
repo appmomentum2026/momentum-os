@@ -20,6 +20,7 @@ import { solicitarPermiso, escucharNotificaciones } from './Notificaciones';
 import GestionMonitores from './GestionMonitores';
 import ResumenMonitores from './ResumenMonitores';
 import ModelasMonitor from './ModelasMonitor';
+import QuincenaMonitor from './QuincenaMonitor';
 import GoogleSheets from './GoogleSheets';
 import PanelWidgets from './PanelWidgets';
 import Finanzas from './Finanzas';
@@ -497,6 +498,7 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
     { id: 'novedades', label: 'Novedades', icon: 'alert-circle' },
     { id: 'modelos', label: 'Modelos', icon: 'id-badge' },
     { id: 'pedidos', label: 'Pedidos', icon: 'shopping-bag' },
+    { id: 'miquincena', label: 'Mi Quincena', icon: 'report-money' },
     { id: 'diaslibres', label: 'Dias libres', icon: 'calendar' },
   ];
 
@@ -506,7 +508,8 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
     vista === 'novedades' ? 'Novedades del turno' :
     vista === 'cierre' ? 'Cierre de turno' :
     vista === 'modelos' ? 'Mis modelos' :
-    vista === 'pedidos' ? 'Pedidos' : 'Dias libres';
+    vista === 'pedidos' ? 'Pedidos' :
+    vista === 'miquincena' ? 'Mi Quincena' : 'Dias libres';
 
   const userId = `monitor_${monitorData?.nombre || 'monitor'}`;
 
@@ -527,8 +530,27 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
       {vista === 'cierre' && <CierreTurno rol="monitor" nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
       {vista === 'modelos' && <ModelasMonitor monitorData={monitorData} />}
       {vista === 'pedidos' && <Pedidos rol="monitor" />}
+      {vista === 'miquincena' && <QuincenaMonitor nombreMonitor={monitorData?.nombre || ''} turno={monitorData?.turno || ''} />}
       {vista === 'diaslibres' && <DiasLibresMonitor nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
     </NavLayout>
+  );
+}
+
+function HeaderModeloCard({ modelaData }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 18px', marginBottom: 16, boxShadow: 'var(--shadow-out)' }}>
+      <div style={{ width: 56, height: 56, borderRadius: 28, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 22, flexShrink: 0, overflow: 'hidden' }}>
+        {modelaData?.fotoURL ? <img src={modelaData.fotoURL} alt={modelaData?.nombreReal} style={{ width: 56, height: 56, objectFit: 'cover' }} /> : '👤'}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ color: 'var(--text)', fontSize: 18, fontWeight: 700 }}>{modelaData?.nombreReal || 'Modelo'}</div>
+        {modelaData?.nombreModelo && <div style={{ color: 'var(--text-sub)', fontSize: 14, marginTop: 2 }}>{modelaData.nombreModelo}</div>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+          {modelaData?.turno && <span style={{ background: 'rgba(201,146,74,0.15)', color: 'var(--gold)', fontSize: 11, padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>{modelaData.turno}</span>}
+          {modelaData?.monitor && <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>Monitor: {modelaData.monitor}</span>}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -566,6 +588,7 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
       onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema}
       userId={userId}
     >
+      <HeaderModeloCard modelaData={modelaData} />
       {vista === 'mapa' && <MapaHabitaciones rol="modelo" />}
       {vista === 'nomina' && <Nomina nombreModelo={nombreModelo} />}
       {vista === 'metas' && <Metas rol="modelo" nombreModelo={nombreModelo} />}

@@ -51,9 +51,13 @@ export default function Asistencia({ rol, nombreMonitor, modelasMonitor }) {
 
   const getReg = (modelo) => asistencia[`${hoy}_${modelo}`] || null;
 
-  const modelosAMostrar = (rol === 'monitor' && nombreMonitor)
-    ? modelosDB.filter(m => m.monitor === nombreMonitor).map(m => m.nombreReal)
-    : modelosDB.map(m => m.nombreReal);
+  const modelosAMostrar = ((rol === 'monitor' && nombreMonitor)
+    ? modelosDB.filter(m => m.monitor === nombreMonitor)
+    : modelosDB
+  )
+    .slice()
+    .sort((a, b) => (parseInt(a.habitacion) || 99) - (parseInt(b.habitacion) || 99))
+    .map(m => m.nombreReal);
 
   if (modelosAMostrar.length === 0) {
     return <div style={s.vacio}>No hay modelos asignadas a este monitor</div>;

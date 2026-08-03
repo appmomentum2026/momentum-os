@@ -2,16 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
-function getQuincena() {
+function getQuincena(offset = 0) {
   const hoy = new Date();
-  const dia = hoy.getDate();
-  const mes = hoy.getMonth();
-  const anio = hoy.getFullYear();
-  if (dia <= 15) {
+  let dia = hoy.getDate();
+  let mes = hoy.getMonth();
+  let anio = hoy.getFullYear();
+  let esPrimera = dia <= 15;
+  let totalQ = (esPrimera ? 0 : 1) + offset;
+  while (totalQ < 0) { mes -= 1; if (mes < 0) { mes = 11; anio -= 1; } totalQ += 2; }
+  while (totalQ > 1) { mes += 1; if (mes > 11) { mes = 0; anio += 1; } totalQ -= 2; }
+  const mesNombre = new Date(anio, mes, 1).toLocaleString('es-CO', { month: 'long' });
+  if (totalQ === 0) {
     return {
       inicio: new Date(anio, mes, 1).toISOString().split('T')[0],
       fin: new Date(anio, mes, 15).toISOString().split('T')[0],
-      label: `1 - 15 de ${hoy.toLocaleString('es-CO', { month: 'long' })}`,
+      label: `1 - 15 de ${mesNombre}`,
       dias: 15
     };
   } else {
@@ -19,7 +24,7 @@ function getQuincena() {
     return {
       inicio: new Date(anio, mes, 16).toISOString().split('T')[0],
       fin: new Date(anio, mes, ultimoDia).toISOString().split('T')[0],
-      label: `16 - ${ultimoDia} de ${hoy.toLocaleString('es-CO', { month: 'long' })}`,
+      label: `16 - ${ultimoDia} de ${mesNombre}`,
       dias: ultimoDia - 15
     };
   }
@@ -33,12 +38,44 @@ function calcularPorcentaje(tokens, horasCumplidas, horasRequeridas) {
   return 60;
 }
 
+// Domingos dentro del rango de la quincena (fechas ISO 'YYYY-MM-DD')
+function contarDomingos(inicioISO, finISO) {
+  let count = 0;
+  let d = new Date(inicioISO + 'T00:00:00');
+  const fin = new Date(finISO + 'T00:00:00');
+  while (d <= fin) {
+    if (d.getDay() === 0) count++;
+    d.setDate(d.getDate() + 1);
+  }
+  return count;
+}
+
+// Dias libres aprobados (colección diasLibres) de esa modelo dentro del rango
+function contarDiasLibresAprobados(diasLibresList, nombreModelo, inicioISO, finISO) {
+  let count = 0;
+  diasLibresList.forEach(d => {
+    if (d.tipo !== 'modelo' || d.modelo !== nombreModelo || d.estado !== 'aprobado') return;
+    if (d.fecha1 && d.fecha1 >= inicioISO && d.fecha1 <= finISO) count++;
+    if (d.fecha2 && d.fecha2 >= inicioISO && d.fecha2 <= finISO) count++;
+  });
+  return count;
+}
+
+// Dias laborales reales = dias de la quincena - domingos - dias libres aprobados
+function calcularDiasLaborales(quincena, diasLibresList, nombreModelo) {
+  const domingos = contarDomingos(quincena.inicio, quincena.fin);
+  const libres = contarDiasLibresAprobados(diasLibresList, nombreModelo, quincena.inicio, quincena.fin);
+  return Math.max(0, quincena.dias - domingos - libres);
+}
+
 export default function Nomina({ nombreModelo }) {
   const [cierres, setCierres] = useState([]);
   const [asistencia, setAsistencia] = useState({});
   const [metas, setMetas] = useState({});
   const [pedidos, setPedidos] = useState([]);
-  const quincena = getQuincena();
+  const [diasLibres, setDiasLibres] = useState([]);
+  const [quincenaOffset, setQuincenaOffset] = useState(0);
+  const quincena = getQuincena(quincenaOffset);
 
   useEffect(() => {
     const unsub1 = onSnapshot(collection(db, 'cierres'), snap => {
@@ -61,7 +98,12 @@ export default function Nomina({ nombreModelo }) {
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
       setPedidos(data);
     });
-    return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
+    const unsub5 = onSnapshot(collection(db, 'diasLibres'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setDiasLibres(data);
+    });
+    return () => { unsub1(); unsub2(); unsub3(); unsub4(); unsub5(); };
   }, []);
 
   // Calcular totales
@@ -72,6 +114,7 @@ export default function Nomina({ nombreModelo }) {
     a.fecha >= quincena.inicio && a.fecha <= quincena.fin
   );
   const diasTrabajados = fechasAsistencia.length;
+  const diasLabQuincena = calcularDiasLaborales(quincena, diasLibres, nombreModelo);
 
   cierres.forEach(cierre => {
     if (cierre.fecha < quincena.inicio || cierre.fecha > quincena.fin + 'Z') return;
@@ -98,23 +141,31 @@ export default function Nomina({ nombreModelo }) {
   const porcentaje = calcularPorcentaje(totalTokens, horasTrabajadas, horasRequeridas);
   const usdBruto = totalTokens / 20;
   const usdNeto = usdBruto * (porcentaje / 100);
-  const totalDescuentos = pedidos
-    .filter(p => p.modelo === nombreModelo && p.estado !== 'cancelado')
+
+  // Pedidos: solo los pendientes (cualquier fecha) o los de la quincena seleccionada
+  const misPedidos = pedidos.filter(p => {
+    if (p.modelo !== nombreModelo) return false;
+    if (p.estado === 'pendiente') return true;
+    const fechaPedido = p.fecha?.split('T')[0] || '';
+    return fechaPedido >= quincena.inicio && fechaPedido <= quincena.fin;
+  });
+  const totalDescuentos = misPedidos
+    .filter(p => p.estado !== 'cancelado' && p.estado !== 'rechazado')
     .reduce((acc, p) => acc + (p.precio || 0), 0);
   const descuentoUSD = totalDescuentos / 4000;
   const usdNetoFinal = Math.max(0, usdNeto - descuentoUSD).toFixed(2);
-  const meta = metas[nombreModelo]?.tokens || 0;
+
+  const metaUsd = metas[nombreModelo]?.usd || 0;
+  const metaTokens = metaUsd * 20;
   const hoy = new Date();
   const finQuincena = new Date(quincena.fin);
   const diasRestantes = Math.max(0, Math.ceil((finQuincena - hoy) / (1000 * 60 * 60 * 24)));
-  const tokensNecesarios = Math.max(0, meta - totalTokens);
+  const tokensNecesarios = Math.max(0, metaTokens - totalTokens);
   const porDia = diasRestantes > 0 ? Math.ceil(tokensNecesarios / diasRestantes) : 0;
-  const pctMeta = meta > 0 ? Math.min(100, Math.round((totalTokens / meta) * 100)) : 0;
-  const pctDias = quincena.dias > 0 ? Math.min(100, Math.round((diasTrabajados / quincena.dias) * 100)) : 0;
-  const horasReqTotal = quincena.dias * 6.5;
+  const pctMeta = metaTokens > 0 ? Math.min(100, Math.round((totalTokens / metaTokens) * 100)) : 0;
+  const pctDias = diasLabQuincena > 0 ? Math.min(100, Math.round((diasTrabajados / diasLabQuincena) * 100)) : 0;
+  const horasReqTotal = diasLabQuincena * 6.5;
   const pctHoras = horasReqTotal > 0 ? Math.min(100, Math.round((horasTrabajadas / horasReqTotal) * 100)) : 0;
-
-  const misPedidos = pedidos.filter(p => p.modelo === nombreModelo);
 
   const barraWrap = { background: 'var(--bg3)', borderRadius: 20, height: 6, marginTop: 6, overflow: 'hidden' };
   const barraFill = (pct, color) => ({ height: '100%', width: `${pct}%`, background: color || 'var(--gold)', borderRadius: 20, transition: 'width 0.4s' });
@@ -126,11 +177,15 @@ export default function Nomina({ nombreModelo }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
         <div>
           <div style={{ color: 'var(--text)', fontSize: 24, fontWeight: 700 }}>Mi nómina en vivo</div>
-          <div style={{ color: 'var(--text-sub)', fontSize: 13, marginTop: 2 }}>Resumen de tu quincena actual</div>
+          <div style={{ color: 'var(--text-sub)', fontSize: 13, marginTop: 2 }}>Resumen de tu quincena</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 10, padding: '8px 14px' }}>
           <span style={{ fontSize: 14 }}>📅</span>
           <span style={{ color: 'var(--text)', fontSize: 12 }}>{quincena.label}</span>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button style={{ background: 'transparent', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }} onClick={() => setQuincenaOffset(o => o - 1)}>‹</button>
+            {quincenaOffset < 0 && <button style={{ background: 'transparent', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }} onClick={() => setQuincenaOffset(o => o + 1)}>›</button>}
+          </div>
         </div>
       </div>
 
@@ -150,11 +205,19 @@ export default function Nomina({ nombreModelo }) {
         {/* Meta quincenal */}
         <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '20px 18px', border: '1px solid var(--border2)' }}>
           <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Meta quincenal</div>
-          <div style={{ color: 'var(--text)', fontSize: 22, fontWeight: 700 }}>{totalTokens.toLocaleString()} <span style={{ color: 'var(--text-sub)', fontSize: 13 }}>/ {meta > 0 ? meta.toLocaleString() : '—'} tokens</span></div>
-          <div style={barraWrap}><div style={barraFill(pctMeta)} /></div>
-          <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 8 }}>
-            {meta > 0 ? `Necesitas ${porDia.toLocaleString()} tokens por día` : 'Sin meta asignada'}
-          </div>
+          {metaUsd > 0 ? (
+            <>
+              <div style={{ color: 'var(--gold)', fontSize: 16, fontWeight: 700 }}>${metaUsd.toLocaleString()} USD</div>
+              <div style={{ color: 'var(--text-dim)', fontSize: 11, marginBottom: 6 }}>({metaTokens.toLocaleString()} tokens)</div>
+              <div style={{ color: 'var(--text)', fontSize: 15, fontWeight: 600 }}>{totalTokens.toLocaleString()} <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>/ {metaTokens.toLocaleString()} tokens</span></div>
+              <div style={barraWrap}><div style={barraFill(pctMeta, pctMeta >= 100 ? 'var(--green)' : 'var(--gold)')} /></div>
+              <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 8 }}>
+                {tokensNecesarios <= 0 ? 'Meta cumplida' : `Necesitas ${porDia.toLocaleString()} tokens por día`}
+              </div>
+            </>
+          ) : (
+            <div style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 8 }}>Sin meta asignada</div>
+          )}
         </div>
 
         {/* Días restantes */}
@@ -171,12 +234,13 @@ export default function Nomina({ nombreModelo }) {
 
         {/* Mi resumen */}
         <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '20px 18px', border: '1px solid var(--border2)' }}>
-          <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 14 }}>Mi resumen</div>
+          <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>Mi resumen</div>
+          <div style={{ color: 'var(--text-dim)', fontSize: 11, marginBottom: 14 }}>{diasLabQuincena} días laborales esta quincena (sin domingos ni días libres aprobados)</div>
 
           {[
-            { icon: '📅', label: 'Días trabajados', val: `${diasTrabajados} / ${quincena.dias} días`, pct: pctDias, color: 'var(--gold)' },
-            { icon: '⏰', label: 'Horas trabajadas', val: `${horasTrabajadas.toFixed(1)} / ${horasReqTotal.toFixed(1)} hrs`, pct: pctHoras, color: '#4CAF7D' },
-            { icon: '📋', label: 'Horas requeridas', val: `${horasRequeridas.toFixed(1)} / ${horasReqTotal.toFixed(1)} hrs`, pct: Math.min(100, Math.round((horasRequeridas / horasReqTotal) * 100)), color: '#6A8AAA' },
+            { icon: '📅', label: 'Días trabajados', val: `${diasTrabajados} / ${diasLabQuincena} días`, pct: pctDias, color: 'var(--gold)' },
+            { icon: '⏰', label: 'Horas trabajadas', val: `${horasTrabajadas.toFixed(1)} / ${horasReqTotal.toFixed(1)} hrs`, pct: pctHoras, color: 'var(--green)' },
+            { icon: '📋', label: 'Horas requeridas', val: `${horasRequeridas.toFixed(1)} / ${horasReqTotal.toFixed(1)} hrs`, pct: horasReqTotal > 0 ? Math.min(100, Math.round((horasRequeridas / horasReqTotal) * 100)) : 0, color: '#6A8AAA' },
             { icon: '🏆', label: 'Porcentaje de avance', val: `${porcentaje}%`, pct: porcentaje, color: 'var(--gold)' },
           ].map((item, i) => (
             <div key={i} style={{ marginBottom: 14 }}>
@@ -195,27 +259,31 @@ export default function Nomina({ nombreModelo }) {
         {/* Progreso de meta */}
         <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '20px 18px', border: '1px solid var(--border2)' }}>
           <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 14 }}>Progreso de tu meta</div>
-          {meta > 0 ? (
+          {metaTokens > 0 ? (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>Tokens acumulados</span>
+                <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>Tokens acumulados / meta en tokens</span>
                 <span style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 600 }}>{pctMeta}%</span>
               </div>
-              <div style={{ background: 'var(--bg3)', borderRadius: 12, height: 12, overflow: 'hidden', marginBottom: 16 }}>
-                <div style={{ height: '100%', width: `${pctMeta}%`, background: pctMeta >= 100 ? '#4CAF7D' : 'var(--gold)', borderRadius: 12, transition: 'width 0.4s' }} />
+              <div style={{ background: 'var(--bg3)', borderRadius: 12, height: 12, overflow: 'hidden', marginBottom: 10 }}>
+                <div style={{ height: '100%', width: `${pctMeta}%`, background: pctMeta >= 100 ? 'var(--green)' : 'var(--gold)', borderRadius: 12, transition: 'width 0.4s' }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>0</span>
-                <span style={{ color: 'var(--gold)', fontSize: 11, fontWeight: 600 }}>Meta: {meta.toLocaleString()} tokens</span>
+                <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>{totalTokens.toLocaleString()} tokens</span>
+                <span style={{ color: 'var(--gold)', fontSize: 11, fontWeight: 600 }}>Meta: ${metaUsd.toLocaleString()} USD ({metaTokens.toLocaleString()} tokens)</span>
               </div>
               <div style={{ background: 'rgba(201,146,74,0.08)', border: '1px solid var(--border2)', borderRadius: 12, padding: 14, marginTop: 12, textAlign: 'center' }}>
                 <div style={{ color: 'var(--text-sub)', fontSize: 11, marginBottom: 4 }}>Llevas acumulados</div>
                 <div style={{ color: 'var(--gold)', fontSize: 24, fontWeight: 700 }}>{totalTokens.toLocaleString()}</div>
                 <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 4 }}>tokens esta quincena</div>
               </div>
-              {pctMeta >= 100 && (
-                <div style={{ background: 'rgba(76,175,125,0.1)', border: '1px solid rgba(76,175,125,0.3)', borderRadius: 10, padding: 10, marginTop: 10, textAlign: 'center', color: '#4CAF7D', fontSize: 13 }}>
+              {totalTokens >= metaTokens ? (
+                <div style={{ background: 'rgba(76,175,125,0.1)', border: '1px solid rgba(76,175,125,0.3)', borderRadius: 10, padding: 10, marginTop: 10, textAlign: 'center', color: 'var(--green)', fontSize: 13 }}>
                   🎉 Meta cumplida!
+                </div>
+              ) : (
+                <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 10, textAlign: 'center' }}>
+                  Te faltan {(metaTokens - totalTokens).toLocaleString()} tokens para tu meta
                 </div>
               )}
             </>
@@ -229,7 +297,7 @@ export default function Nomina({ nombreModelo }) {
       {misPedidos.length > 0 && (
         <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '20px 18px', border: '1px solid var(--border2)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' }}>Mis pedidos esta quincena</div>
+            <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' }}>Mis pedidos {quincenaOffset === 0 ? '(pendientes y de esta quincena)' : '(pendientes y de la quincena seleccionada)'}</div>
             <div style={{ display: 'flex', gap: 20 }}>
               <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>Estado</span>
               <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>Monto</span>
@@ -242,11 +310,11 @@ export default function Nomina({ nombreModelo }) {
                 <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 500 }}>{p.producto}</div>
                 <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>{p.cuotas > 1 ? '2 cuotas' : 'Pago completo'} · {p.hora}</div>
               </div>
-              <span style={{ color: p.estado === 'cancelado' ? '#C0614A' : p.estado === 'entregado' ? '#4CAF7D' : 'var(--gold)', fontSize: 12, fontWeight: 500, minWidth: 80, textAlign: 'right' }}>
-                {p.estado === 'cancelado' ? 'Cancelado' : p.estado === 'entregado' ? 'Completado' : 'Pendiente'}
+              <span style={{ color: (p.estado === 'cancelado' || p.estado === 'rechazado') ? '#C0614A' : (p.estado === 'entregado' || p.estado === 'aprobado') ? 'var(--green)' : 'var(--gold)', fontSize: 12, fontWeight: 500, minWidth: 80, textAlign: 'right' }}>
+                {p.estado === 'cancelado' ? 'Cancelado' : p.estado === 'rechazado' ? 'Rechazado' : p.estado === 'entregado' ? 'Completado' : p.estado === 'aprobado' ? 'Aprobado' : 'Pendiente'}
               </span>
-              <span style={{ color: p.estado === 'cancelado' ? 'var(--text-dim)' : '#C0614A', fontSize: 13, fontWeight: 600, minWidth: 80, textAlign: 'right' }}>
-                {p.estado === 'cancelado' ? '$0' : `-$${p.precio?.toLocaleString()}`}
+              <span style={{ color: (p.estado === 'cancelado' || p.estado === 'rechazado') ? 'var(--text-dim)' : '#C0614A', fontSize: 13, fontWeight: 600, minWidth: 80, textAlign: 'right' }}>
+                {(p.estado === 'cancelado' || p.estado === 'rechazado') ? '$0' : `-$${p.precio?.toLocaleString()}`}
               </span>
             </div>
           ))}
