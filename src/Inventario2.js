@@ -8,11 +8,18 @@ const CATEGORIAS = ['Lubricantes', 'Juguetes', 'Limpiadores', 'Otros'];
 const STOCK_MINIMO = 5;
 const CATEGORIAS_ESTUDIO = ['Limpieza', 'Lencería', 'Higiene', 'Otros'];
 
+// Id de quincena en formato YYYY-MM-Q1/Q2, usado para rastrear cuotas de pedidos
+function quincenaIdActual() {
+  const hoy = new Date();
+  const anioMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+  return hoy.getDate() <= 15 ? `${anioMes}-Q1` : `${anioMes}-Q2`;
+}
+
 const s = {
   wrap: { display: 'block' },
   // Tarjetas resumen
   resumenGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 },
-  resumenCard: { background: 'var(--bg2)', borderRadius: 14, padding: 16, border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', gap: 14 },
+  resumenCard: { display: 'flex', alignItems: 'center', gap: 14 },
   resumenIcono: { width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 },
   resumenVal: { color: 'var(--text)', fontSize: 22, fontWeight: 700, lineHeight: 1.2 },
   resumenLabel: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 },
@@ -30,13 +37,13 @@ const s = {
   toggleBtn: { background: 'transparent', border: 'none', borderRadius: 6, color: 'var(--text-sub)', padding: '6px 10px', cursor: 'pointer', fontSize: 16 },
   toggleBtnActivo: { background: 'var(--bg3)', color: 'var(--gold)' },
   // Cards
-  card: { background: 'var(--bg2)', borderRadius: 14, padding: 16, boxShadow: 'var(--shadow-out)' },
+  card: {},
   cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   cardNombre: { color: 'var(--gold)', fontSize: 13, fontWeight: 600 },
   cardCategoria: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
   cardPrecio: { color: 'var(--gold)', fontSize: 14, fontWeight: 600 },
   // Lista
-  listaCard: { background: 'var(--bg2)', borderRadius: 12, padding: '12px 16px', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6 },
+  listaCard: { display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6 },
   // Barra de stock
   barraWrap: { background: 'var(--bg3)', borderRadius: 20, height: 6, marginTop: 8, overflow: 'hidden' },
   barraFill: { height: '100%', borderRadius: 20, transition: 'width 0.4s' },
@@ -51,7 +58,7 @@ const s = {
   btnConfirmar: { background: '#d85a3022', border: '1px solid #d85a30', borderRadius: 8, color: '#d85a30', padding: '6px 10px', fontSize: 11, cursor: 'pointer', fontWeight: 600 },
   // Form
   btnNuevo: { background: 'var(--gold)', border: 'none', borderRadius: 10, color: '#141414', padding: '10px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', fontWeight: 700 },
-  form: { background: 'var(--bg2)', borderRadius: 14, padding: 20, boxShadow: 'var(--shadow-out)', marginBottom: 12 },
+  form: { marginBottom: 12 },
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
   input: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14, boxSizing: 'border-box' },
   select: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14 },
@@ -79,7 +86,7 @@ const s = {
   badgeBajoStock: { background: 'rgba(216,90,48,0.15)', color: '#d85a30', fontSize: 10, padding: '3px 8px', borderRadius: 20, fontWeight: 600, whiteSpace: 'nowrap' },
   // Panel gráfico
   graficoOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  graficoPanel: { background: 'var(--bg2)', borderRadius: 16, border: '1px solid var(--border2)', width: '100%', maxWidth: 640, maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow-out)' },
+  graficoPanel: { width: '100%', maxWidth: 640, maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' },
   graficoHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border)' },
   graficoTitulo: { color: 'var(--gold)', fontSize: 15, fontWeight: 700 },
   graficoCerrar: { background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--text-sub)', width: 30, height: 30, cursor: 'pointer', fontSize: 14 },
@@ -169,6 +176,7 @@ export default function Inventario2({ rol, nombreModelo }) {
     await addDoc(collection(db, 'pedidos'), {
       producto: producto.nombre, productoId: producto.id, cantidad: 1,
       precio: producto.precio, cuotas,
+      cuotasTotales: cuotas, cuotasPagadas: 0, quincenaInicio: quincenaIdActual(),
       modelo: nombreModelo, estado: 'pendiente',
       fecha: new Date().toISOString(),
       hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
@@ -276,7 +284,7 @@ export default function Inventario2({ rol, nombreModelo }) {
               <div style={{ color: 'var(--gold)', fontSize: 18, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16, marginTop: 24, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>{cat}</div>
               <div className="nm-grid-cards">
                 {prods.map(p => (
-                  <div key={p.id} style={s.card}>
+                  <div key={p.id} style={s.card} className="nm-card-elevated">
                     {p.imagen && <img src={p.imagen} alt={p.nombre} style={s.imgTienda} />}
                     <div style={s.cardHeader}>
                       <div style={s.cardNombre}>{p.nombre}</div>
@@ -341,14 +349,14 @@ export default function Inventario2({ rol, nombreModelo }) {
 
       {/* Tarjetas resumen */}
       <div style={s.resumenGrid} className="nm-resumen-inventario">
-        <div style={s.resumenCard}>
+        <div style={s.resumenCard} className="nm-card-elevated">
           <div style={{ ...s.resumenIcono, background: 'rgba(201,146,74,0.15)' }}>📦</div>
           <div>
             <div style={s.resumenVal}>{totalProductos}</div>
             <div style={s.resumenLabel}>Productos activos</div>
           </div>
         </div>
-        <div style={s.resumenCard}>
+        <div style={s.resumenCard} className="nm-card-elevated">
           <div style={{ ...s.resumenIcono, background: 'rgba(216,90,48,0.15)' }}>⚠️</div>
           <div>
             <div style={{ ...s.resumenVal, color: stockBajoCount > 0 ? '#d85a30' : 'var(--text)' }}>{stockBajoCount}</div>
@@ -356,14 +364,14 @@ export default function Inventario2({ rol, nombreModelo }) {
             {stockBajoCount > 0 && <div style={{ color: '#d85a30', fontSize: 10 }}>Requieren compra</div>}
           </div>
         </div>
-        <div style={s.resumenCard}>
+        <div style={s.resumenCard} className="nm-card-elevated">
           <div style={{ ...s.resumenIcono, background: 'rgba(29,158,117,0.15)' }}>📊</div>
           <div>
             <div style={s.resumenVal}>{totalUnidades}</div>
             <div style={s.resumenLabel}>Unidades totales</div>
           </div>
         </div>
-        <div style={s.resumenCard}>
+        <div style={s.resumenCard} className="nm-card-elevated">
           <div style={{ ...s.resumenIcono, background: 'rgba(201,146,74,0.15)' }}>💰</div>
           <div>
             <div style={{ ...s.resumenVal, fontSize: 16 }}>${valorTotal.toLocaleString()}</div>
@@ -406,7 +414,7 @@ export default function Inventario2({ rol, nombreModelo }) {
 
       {/* Formulario nuevo producto */}
       {modo === 'nuevo' && (
-        <div style={s.form}>
+        <div style={s.form} className="nm-card-elevated">
           <label style={s.label}>Nombre del producto</label>
           <input style={s.input} placeholder="Ej: Lubricante X" value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} />
           <label style={s.label}>Categoria</label>
@@ -462,7 +470,7 @@ export default function Inventario2({ rol, nombreModelo }) {
     const pct = Math.min(100, (p.stock / Math.max((p.stockMinimo || STOCK_MINIMO) * 4, 20)) * 100);
     const color = getBarraColor(p.stock, p.stockMinimo || STOCK_MINIMO);
     return (
-      <div key={p.id} style={s.card}>
+      <div key={p.id} style={s.card} className="nm-card-elevated">
         {editando === p.id ? renderFormEdit(p) : (
           <>
             <div style={s.cardHeader}>
@@ -508,7 +516,7 @@ export default function Inventario2({ rol, nombreModelo }) {
     const pct = Math.min(100, (p.stock / Math.max((p.stockMinimo || STOCK_MINIMO) * 4, 20)) * 100);
     const color = getBarraColor(p.stock, p.stockMinimo || STOCK_MINIMO);
     return (
-      <div key={p.id} style={s.listaCard}>
+      <div key={p.id} style={s.listaCard} className="nm-card-elevated">
         {p.imagen && <img src={p.imagen} alt={p.nombre} style={{ ...s.imgInventario, width: 42, height: 42 }} />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -568,21 +576,21 @@ export default function Inventario2({ rol, nombreModelo }) {
     return (
       <div>
         <div style={s.resumenGrid} className="nm-resumen-inventario">
-          <div style={s.resumenCard}>
+          <div style={s.resumenCard} className="nm-card-elevated">
             <div style={{ ...s.resumenIcono, background: 'rgba(201,146,74,0.15)' }}>🧴</div>
             <div>
               <div style={s.resumenVal}>{totalItems}</div>
               <div style={s.resumenLabel}>Insumos registrados</div>
             </div>
           </div>
-          <div style={s.resumenCard}>
+          <div style={s.resumenCard} className="nm-card-elevated">
             <div style={{ ...s.resumenIcono, background: 'rgba(216,90,48,0.15)' }}>⚠️</div>
             <div>
               <div style={{ ...s.resumenVal, color: alertasEstudio.length > 0 ? '#d85a30' : 'var(--text)' }}>{alertasEstudio.length}</div>
               <div style={s.resumenLabel}>Stock bajo</div>
             </div>
           </div>
-          <div style={s.resumenCard}>
+          <div style={s.resumenCard} className="nm-card-elevated">
             <div style={{ ...s.resumenIcono, background: 'rgba(201,146,74,0.15)' }}>💰</div>
             <div>
               <div style={{ ...s.resumenVal, fontSize: 16 }}>${valorTotalEstudio.toLocaleString()}</div>
@@ -607,7 +615,7 @@ export default function Inventario2({ rol, nombreModelo }) {
         </div>
 
         {modoEstudio === 'nuevo' && (
-          <div style={s.form}>
+          <div style={s.form} className="nm-card-elevated">
             <label style={s.label}>Nombre del insumo</label>
             <input style={s.input} placeholder="Ej: Sábanas blancas" value={formEstudio.nombre} onChange={e => setFormEstudio(p => ({ ...p, nombre: e.target.value }))} />
             <label style={s.label}>Categoría</label>
@@ -652,7 +660,7 @@ export default function Inventario2({ rol, nombreModelo }) {
     const minimo = i.cantidadMinima || 0;
     const bajoMinimo = i.cantidad <= minimo;
     return (
-      <div key={i.id} style={{ ...s.card, border: bajoMinimo ? '1px solid #d85a30' : '1px solid transparent' }}>
+      <div key={i.id} className="nm-card-elevated" style={{ border: bajoMinimo ? '1px solid #d85a30' : '1px solid transparent' }}>
         {editandoEstudio === i.id ? renderFormEditEstudio(i) : (
           <>
             <div style={s.cardHeader}>
@@ -733,7 +741,7 @@ export default function Inventario2({ rol, nombreModelo }) {
 
       {graficoAbierto && (
         <div style={s.graficoOverlay} onClick={() => setGraficoAbierto(false)}>
-          <div style={s.graficoPanel} onClick={e => e.stopPropagation()}>
+          <div style={s.graficoPanel} className="nm-card-elevated" onClick={e => e.stopPropagation()}>
             <div style={s.graficoHeader}>
               <span style={s.graficoTitulo}>📊 Stock actual vs mínimo</span>
               <button style={s.graficoCerrar} onClick={() => setGraficoAbierto(false)}>✕</button>

@@ -7,7 +7,7 @@ const TOTAL_LOCKERS = 20;
 const s = {
   wrap: { display: 'block' },
   resumenGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 },
-  resumenCard: { background: 'var(--bg2)', borderRadius: 14, padding: 16, border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', gap: 14 },
+  resumenCard: { display: 'flex', alignItems: 'center', gap: 14 },
   resumenIcono: { width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, background: 'rgba(201,146,74,0.15)' },
   resumenVal: { color: 'var(--text)', fontSize: 22, fontWeight: 700, lineHeight: 1.2 },
   resumenLabel: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 },
@@ -20,7 +20,7 @@ const s = {
   nombreModelo: { color: 'var(--text)', fontSize: 11, fontWeight: 600, lineHeight: 1.3, wordBreak: 'break-word' },
   metaModelo: { color: 'var(--text-sub)', fontSize: 10, lineHeight: 1.3 },
   disponibleTxt: { color: 'var(--text-dim)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
-  sinLockerCard: { background: 'var(--bg2)', borderRadius: 14, border: '1px solid var(--border2)', overflow: 'hidden' },
+  sinLockerCard: { overflow: 'hidden' },
   sinLockerFila: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid var(--border)' },
   avatar: { width: 36, height: 36, borderRadius: 18, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 15, fontWeight: 600, flexShrink: 0 },
   vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 },
@@ -58,21 +58,21 @@ export default function Lockers() {
   return (
     <div style={s.wrap}>
       <div style={s.resumenGrid}>
-        <div style={s.resumenCard}>
+        <div style={s.resumenCard} className="nm-card-elevated">
           <div style={s.resumenIcono}>🔒</div>
           <div>
             <div style={s.resumenVal}>{lockers.length}</div>
             <div style={s.resumenLabel}>Lockers totales</div>
           </div>
         </div>
-        <div style={s.resumenCard}>
+        <div style={s.resumenCard} className="nm-card-elevated">
           <div style={s.resumenIcono}>👤</div>
           <div>
             <div style={s.resumenVal}>{ocupados}</div>
             <div style={s.resumenLabel}>Asignados</div>
           </div>
         </div>
-        <div style={s.resumenCard}>
+        <div style={s.resumenCard} className="nm-card-elevated">
           <div style={s.resumenIcono}>⬜</div>
           <div>
             <div style={s.resumenVal}>{lockers.length - ocupados}</div>
@@ -109,7 +109,7 @@ export default function Lockers() {
       {modelosSinLocker.length === 0 ? (
         <p style={s.vacio}>Todas las modelos activas tienen locker asignado</p>
       ) : (
-        <div style={s.sinLockerCard}>
+        <div style={s.sinLockerCard} className="nm-card-elevated">
           {modelosSinLocker.map((m, i) => (
             <div key={m.id} style={{ ...s.sinLockerFila, borderBottom: i < modelosSinLocker.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={s.avatar}>{inicial(m.nombreReal)}</div>

@@ -14,6 +14,13 @@ function getQuincena() {
   return { inicio: new Date(anio, mes, 16).toISOString().split('T')[0], fin: new Date(anio, mes, ultimoDia).toISOString().split('T')[0], dias: ultimoDia - 15 };
 }
 
+function obtenerMetaUsd(metaDoc) {
+  if (!metaDoc) return 0;
+  if (metaDoc.usd !== undefined) return Number(metaDoc.usd) || 0;
+  if (metaDoc.tokens !== undefined) return (Number(metaDoc.tokens) || 0) / 20;
+  return 0;
+}
+
 function tokensEnRango(cierres, nombreModelo, inicio, fin) {
   let total = 0;
   cierres.forEach(cierre => {
@@ -57,7 +64,7 @@ function calcularDiasLaborales(quincena, diasLibresList, nombreModelo) {
 }
 
 const s = {
-  card: { background: 'var(--bg2)', borderRadius: 14, padding: 18, border: '1px solid var(--border2)', marginBottom: 10 },
+  card: { marginBottom: 10 },
   secTit: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 12, marginBottom: 6 },
   fila: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 12 },
   filaLabel: { color: 'var(--text-sub)', fontSize: 12 },
@@ -189,7 +196,7 @@ export default function ModelasMonitor({ monitorData }) {
         const hayPlataformas = m.lovense || m.amazon || m.chaturbateUser || m.chaturbatePass || m.chaturbateLink || m.camsodaUser || m.camsodaPass || m.camsodaLink || m.stripchatUser || m.stripchatPass || m.stripchatLink || m.correoTrabajo || m.claveCorreoTrabajo || (m.paginas && m.paginas.length > 0);
 
         const totalTokens = tokensEnRango(cierres, m.nombreReal, quincena.inicio, quincena.fin);
-        const metaUsd = metas[m.nombreReal]?.usd || 0;
+        const metaUsd = obtenerMetaUsd(metas[m.nombreReal]);
         const metaTokens = metaUsd * 20;
         const pctMeta = metaTokens > 0 ? Math.min(100, Math.round((totalTokens / metaTokens) * 100)) : 0;
         const colorAvance = pctMeta >= 100 ? 'var(--green)' : 'var(--gold)';
@@ -200,7 +207,7 @@ export default function ModelasMonitor({ monitorData }) {
         ).length;
 
         return (
-          <div key={m.id} style={s.card}>
+          <div key={m.id} style={s.card} className="nm-card-elevated">
             {/* Header con avatar */}
             <div style={s.cabecera} onClick={() => toggleExpandir(m.id)}>
               <div style={{ position: 'relative', flexShrink: 0 }}>

@@ -30,7 +30,7 @@ const TURNO_ICONO = { 'Manana': '🌅', 'Tarde': '☀️', 'Noche': '🌙' };
 const s = {
   wrap: { display: 'block' },
   btnNuevo: { background: 'var(--gold)', border: 'none', borderRadius: 12, color: '#141414', padding: '12px 20px', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', marginBottom: 8, fontWeight: 700 },
-  form: { background: 'var(--bg2)', borderRadius: 14, padding: 20, boxShadow: 'var(--shadow-out)', marginBottom: 8 },
+  form: { marginBottom: 8 },
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
   input: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14, boxSizing: 'border-box' },
   select: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14, boxSizing: 'border-box' },
@@ -262,7 +262,8 @@ export default function GestionModelos() {
         lovense: form.lovense || '',
         amazon: form.amazon || '',
         paginas: paginas,
-        fotoURL: fotoURL
+        fotoURL: fotoURL,
+        claveVisible: form.clave || ''
       }
     });
 
@@ -324,7 +325,8 @@ export default function GestionModelos() {
         lovense: formEdit.lovense || '',
         amazon: formEdit.amazon || '',
         paginas: paginasEdit,
-        fotoURL: fotoURL
+        fotoURL: fotoURL,
+        claveVisible: formEdit.clave || ''
       }
     });
 
@@ -363,7 +365,7 @@ export default function GestionModelos() {
       cedula: modelo.cedula || '',
       monitor: modelo.monitor,
       turno: modelo.turno,
-      clave: modelo.clave || '',
+      clave: modelo.claveVisible || '',
       habitacion: modelo.habitacion || '',
       nacimiento: modelo.nacimiento || '',
       fechaInicio: modelo.fechaInicio || '',
@@ -434,7 +436,7 @@ export default function GestionModelos() {
       )}
 
       {modo === 'nuevo' && (
-        <div style={s.form} className="nm-form-inline">
+        <div style={s.form} className="nm-form-inline nm-card-elevated">
           <FormularioModelo
             values={form}
             setValues={setForm}
@@ -543,7 +545,7 @@ export default function GestionModelos() {
             <div className={vistaGrid ? 'nm-grid-cards' : ''} style={!vistaGrid ? { display: 'flex', flexDirection: 'column', gap: 10 } : {}}>
             {modelosTurno.map(m => (
               <div key={m.id}>
-                <div className={editando === m.id ? 'nm-form-inline' : ''} style={{ background: 'var(--bg2)', borderRadius: 14, padding: 16, border: '1px solid var(--border2)' }}>
+                <div className={`nm-card-elevated${editando === m.id ? ' nm-form-inline' : ''}`}>
                   {editando === m.id ? (
                     <FormularioModelo
                       values={formEdit}
@@ -575,6 +577,12 @@ export default function GestionModelos() {
                           <span style={{ display: 'inline-block', marginTop: 6, background: 'rgba(201,146,74,0.15)', color: 'var(--gold)', fontSize: 10, padding: '2px 10px', borderRadius: 20, fontWeight: 500 }}>{m.turno}</span>
                         </div>
                       </div>
+                      {m.claveVisible && (
+                        <div style={{ background: 'var(--bg)', borderRadius: 10, padding: '8px 12px', boxShadow: 'var(--shadow-in)', marginBottom: 12 }}>
+                          <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>Clave de acceso</div>
+                          <div style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 600 }}>{m.claveVisible}</div>
+                        </div>
+                      )}
                       <div style={{ display: 'flex', gap: 8, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
                         <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '7px 12px', fontSize: 12, cursor: 'pointer' }} onClick={() => editar(m)}>✎ Editar</button>
                         <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '7px 12px', fontSize: 12, cursor: 'pointer' }} onClick={() => setConfirmEliminar(m.id)}>Retirar</button>

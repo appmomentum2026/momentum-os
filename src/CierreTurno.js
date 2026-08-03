@@ -32,7 +32,7 @@ const s = {
   form: { background: 'var(--bg2)', borderRadius: 14, padding: 20, marginBottom: 14, border: '1px solid var(--border2)' },
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
   select: { width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--gold)', padding: '12px 14px', fontSize: 13, outline: 'none' },
-  modeloCard: { background: 'var(--bg2)', borderRadius: 12, padding: 16, marginBottom: 10, border: '1px solid var(--border2)' },
+  modeloCard: { marginBottom: 10 },
   modeloNombre: { color: 'var(--gold)', fontSize: 13, fontWeight: 500, marginBottom: 12 },
   seccion: { color: 'var(--text-dim)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, marginTop: 12 },
   fila: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 },
@@ -50,17 +50,17 @@ const s = {
   sheetCard: { background: 'var(--bg2)', borderRadius: 12, padding: '10px 14px', border: '1px solid var(--border2)', marginBottom: 14 },
   sheetTit: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 },
   sheetFila: { display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid var(--border)', fontSize: 12 },
-  fechaCard: { background: 'var(--bg2)', borderRadius: 14, padding: '14px 18px', marginBottom: 16, border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
+  fechaCard: { marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
   dateInput: { background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', colorScheme: 'dark' },
   avisoExistente: { background: 'rgba(201,146,74,0.15)', color: 'var(--gold)', fontSize: 11, padding: '6px 12px', borderRadius: 20 },
-  historial: { background: 'var(--bg2)', borderRadius: 14, padding: '16px 18px', marginTop: 16, border: '1px solid var(--border2)' },
+  historial: { marginTop: 16 },
   historialFila: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 12 },
   tabsJefe: { display: 'flex', gap: 4, marginBottom: 18, borderBottom: '1px solid var(--border)' },
   tabJefeBtn: { background: 'transparent', border: 'none', padding: '10px 18px', fontSize: 12, fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--text-sub)', cursor: 'pointer', borderBottom: '2px solid transparent', marginBottom: -1, transition: 'color 0.15s, border-color 0.15s' },
   tabJefeBtnActivo: { color: 'var(--gold)', borderBottom: '2px solid var(--gold)' },
   quincenaBtn: { background: 'transparent', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontSize: 16, padding: '0 4px' },
   turnoLabel: { color: 'var(--gold)', fontSize: 16, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center' },
-  reporteCard: { background: 'var(--bg2)', borderRadius: 12, padding: 16, border: '1px solid var(--border2)' },
+  reporteCard: {},
   reporteFila: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 12 },
   reporteLabel: { color: 'var(--text-sub)' },
   reporteValor: { color: 'var(--text)', fontWeight: 500 },
@@ -86,7 +86,7 @@ function FormModelo({ nombre, datos, onChange, fotoURL }) {
   const completada = totalTokens > 0;
 
   return (
-    <div style={s.modeloCard}>
+    <div style={s.modeloCard} className="nm-card-elevated">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         <div style={{ width: 38, height: 38, borderRadius: 19, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 16, flexShrink: 0 }}>
           {fotoURL ? <img src={fotoURL} alt={nombre} style={{ width: 38, height: 38, borderRadius: 19, objectFit: 'cover' }} /> : '👤'}
@@ -169,7 +169,7 @@ function VistaJefe({ cierres }) {
       {/* KPIs + selector fecha */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
         {/* Selector fecha */}
-        <div style={{ background: 'var(--bg2)', borderRadius: 14, padding: '16px 18px', border: '1px solid var(--border2)' }}>
+        <div className="nm-card-elevated">
           <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Ver cierre del día</div>
           <select style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none' }}
             value={fechaSel} onChange={e => setFechaSel(e.target.value)}>
@@ -179,7 +179,7 @@ function VistaJefe({ cierres }) {
         </div>
 
         {/* Total tokens */}
-        <div style={{ background: 'var(--bg2)', borderRadius: 14, padding: '16px 18px', border: '1px solid var(--border2)' }}>
+        <div className="nm-card-elevated">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <span style={{ fontSize: 18 }}>🪙</span>
             <span style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' }}>Total tokens</span>
@@ -189,7 +189,7 @@ function VistaJefe({ cierres }) {
         </div>
 
         {/* Total modelos */}
-        <div style={{ background: 'var(--bg2)', borderRadius: 14, padding: '16px 18px', border: '1px solid var(--border2)' }}>
+        <div className="nm-card-elevated">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <span style={{ fontSize: 18 }}>👥</span>
             <span style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' }}>Total modelos</span>
@@ -199,7 +199,7 @@ function VistaJefe({ cierres }) {
         </div>
 
         {/* Promedio por modelo */}
-        <div className="nm-hide-mobile" style={{ background: 'var(--bg2)', borderRadius: 14, padding: '16px 18px', border: '1px solid var(--border2)' }}>
+        <div className="nm-hide-mobile nm-card-elevated">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <span style={{ fontSize: 18 }}>📊</span>
             <span style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' }}>Promedio por modelo</span>
@@ -222,7 +222,7 @@ function VistaJefe({ cierres }) {
           const abierto = turnoDetalle === turno;
 
           return (
-            <div key={turno} style={{ background: 'var(--bg2)', borderRadius: 16, border: '1px solid var(--border2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div key={turno} className="nm-card-elevated" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}>
               {/* Header turno */}
               <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -471,7 +471,7 @@ function VistaReporteQuincenal({ cierres, rol, nombreMonitor }) {
                 const id = `${quincena.idQuincena}_${nombre}`;
                 const { horasTrabajadas, diasTrabajados, inasistencias } = calcularModelo(nombre);
                 return (
-                  <div key={m.id} style={s.reporteCard}>
+                  <div key={m.id} style={s.reporteCard} className="nm-card-elevated">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 18, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 16, flexShrink: 0, overflow: 'hidden' }}>
                         {m.fotoURL ? <img src={m.fotoURL} alt={nombre} style={{ width: 36, height: 36, objectFit: 'cover' }} /> : '👤'}
@@ -642,7 +642,7 @@ function VistaJefeTabs({ cierres }) {
         <VistaReporteQuincenal cierres={cierres} rol="monitor" nombreMonitor={nombreMonitor} />
       ) : (
         <>
-          <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '18px 20px', marginBottom: 16, position: 'relative', overflow: 'hidden', border: '1px solid var(--border2)', borderLeft: '4px solid var(--gold)', boxShadow: '0 4px 20px rgba(201,146,74,0.12)' }}>
+          <div className="nm-card-elevated" style={{ marginBottom: 16, position: 'relative', overflow: 'hidden', borderLeft: '4px solid var(--gold)' }}>
             <div style={{ color: 'var(--gold)', fontSize: 20, fontWeight: 700 }}>{nombreMonitor}</div>
             <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 3 }}>Turno {TURNOS[nombreMonitor] || ''} · {misModelos.length} modelos</div>
             {(() => {
@@ -658,7 +658,7 @@ function VistaJefeTabs({ cierres }) {
             })()}
           </div>
 
-          <div style={s.fechaCard}>
+          <div style={s.fechaCard} className="nm-card-elevated">
             <div>
               <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>Fecha del cierre</div>
               <input type="date" style={s.dateInput} value={fechaCierre} onChange={e => setFechaCierre(e.target.value)} />
@@ -679,7 +679,7 @@ function VistaJefeTabs({ cierres }) {
             {enviando ? 'Enviando...' : (cierreExistente ? 'Actualizar cierre' : 'Cerrar turno')}
           </button>
 
-          <div style={s.historial}>
+          <div style={s.historial} className="nm-card-elevated">
             <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Historial (últimos 7 días)</div>
             {(() => {
               const historial = cierres

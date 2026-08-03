@@ -14,7 +14,6 @@ const QUINCENA_ACTUAL = () => {
 
 const s = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
-  card: { background: 'var(--bg2)', borderRadius: 14, padding: 16, boxShadow: 'var(--shadow-out)' },
   titulo: { color: 'var(--gold)', fontSize: 14, fontWeight: 500, letterSpacing: 1, marginBottom: 12 },
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6, display: 'block' },
   input: { width: '100%', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-in)', color: 'var(--gold)', padding: '10px 12px', fontSize: 13, outline: 'none', marginBottom: 14 },
@@ -96,7 +95,7 @@ export function DiasLibresModelo({ nombreModelo }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {enviado && <div style={s.exito}>Solicitud enviada correctamente</div>}
 
-      <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)', ...(bloqueado ? s.cardAprobado : {}) }}>
+      <div className="nm-card-elevated" style={bloqueado ? s.cardAprobado : {}}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
           <i className={bloqueado ? 'ti ti-lock' : 'ti ti-calendar'} style={{ color: bloqueado ? 'var(--green)' : 'var(--gold)', fontSize: 18 }} />
           <span style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>Mis días de descanso</span>
@@ -129,7 +128,7 @@ export function DiasLibresModelo({ nombreModelo }) {
       </div>
 
       {historial.length > 0 && (
-        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 16, border: '1px solid var(--border2)' }}>
+        <div className="nm-card-elevated">
           <button style={s.historialToggle} onClick={() => setHistorialAbierto(v => !v)}>
             <span>Quincenas anteriores ({historial.length})</span>
             <span>{historialAbierto ? '↑' : '↓'}</span>
@@ -215,7 +214,7 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }} className="nm-dias-grid">
 
         {/* Mis dias libres */}
-        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)', ...(bloqueado ? s.cardAprobado : {}) }}>
+        <div className="nm-card-elevated" style={bloqueado ? s.cardAprobado : {}}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
             <i className={bloqueado ? 'ti ti-lock' : 'ti ti-calendar'} style={{ color: bloqueado ? 'var(--green)' : 'var(--gold)', fontSize: 18 }} />
             <span style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>Mis días libres</span>
@@ -268,7 +267,7 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
         </div>
 
         {/* Descansos de mis modelos */}
-        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)' }}>
+        <div className="nm-card-elevated">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
             <i className="ti ti-calendar" style={{ color: 'var(--gold)', fontSize: 18 }} />
             <span style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>Descansos de mis modelos</span>
@@ -401,7 +400,7 @@ export function DiasLibresJefe() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 16, alignItems: 'start' }} className="nm-dias-grid">
 
-        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)' }}>
+        <div className="nm-card-elevated">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <i className="ti ti-calendar" style={{ color: 'var(--gold)', fontSize: 18 }} />
             <span style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>Días libres de monitores</span>
@@ -410,7 +409,7 @@ export function DiasLibresJefe() {
           {monitores.map(renderMonitor)}
         </div>
 
-        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--border2)' }}>
+        <div className="nm-card-elevated">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
             <i className="ti ti-calendar" style={{ color: 'var(--gold)', fontSize: 18 }} />
             <span style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>Descansos de modelos</span>

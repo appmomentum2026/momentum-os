@@ -30,6 +30,15 @@ function getQuincena(offset = 0) {
   }
 }
 
+// La meta se guarda como { usd: N }. Si el doc es de antes del cambio a USD, trae { tokens: N } —
+// se reinterpreta como usd = tokens/20 para no perder metas ya asignadas.
+function obtenerMetaUsd(metaDoc) {
+  if (!metaDoc) return 0;
+  if (metaDoc.usd !== undefined) return Number(metaDoc.usd) || 0;
+  if (metaDoc.tokens !== undefined) return (Number(metaDoc.tokens) || 0) / 20;
+  return 0;
+}
+
 function calcularPorcentaje(tokens, horasCumplidas, horasRequeridas) {
   const cumpleHoras = horasCumplidas >= horasRequeridas;
   if (!cumpleHoras) return 50;
@@ -66,6 +75,28 @@ function calcularDiasLaborales(quincena, diasLibresList, nombreModelo) {
   const domingos = contarDomingos(quincena.inicio, quincena.fin);
   const libres = contarDiasLibresAprobados(diasLibresList, nombreModelo, quincena.inicio, quincena.fin);
   return Math.max(0, quincena.dias - domingos - libres);
+}
+
+// Id de quincena en formato YYYY-MM-Q1/Q2, usado para rastrear cuotas de pedidos
+function quincenaIdActual() {
+  const hoy = new Date();
+  const anioMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+  return hoy.getDate() <= 15 ? `${anioMes}-Q1` : `${anioMes}-Q2`;
+}
+function quincenaIdANumero(id) {
+  const [anio, mes, q] = id.split('-');
+  return parseInt(anio) * 24 + (parseInt(mes) - 1) * 2 + (q === 'Q1' ? 0 : 1);
+}
+// Cuantas cuotas van pagadas de un pedido segun cuantas quincenas pasaron desde que se hizo
+function estadoCuotas(pedido) {
+  const total = pedido.cuotasTotales || pedido.cuotas || 1;
+  if (!pedido.quincenaInicio) return { cuotaActual: total, total, pagado: false };
+  const quincenasTranscurridas = quincenaIdANumero(quincenaIdActual()) - quincenaIdANumero(pedido.quincenaInicio) + 1;
+  return {
+    cuotaActual: Math.min(total, Math.max(1, quincenasTranscurridas)),
+    total,
+    pagado: quincenasTranscurridas > total
+  };
 }
 
 export default function Nomina({ nombreModelo }) {
@@ -142,9 +173,10 @@ export default function Nomina({ nombreModelo }) {
   const usdBruto = totalTokens / 20;
   const usdNeto = usdBruto * (porcentaje / 100);
 
-  // Pedidos: solo los pendientes (cualquier fecha) o los de la quincena seleccionada
+  // Pedidos: nunca los ya pagados; de los demas, solo pendientes (cualquier fecha) o los de la quincena seleccionada
   const misPedidos = pedidos.filter(p => {
     if (p.modelo !== nombreModelo) return false;
+    if (estadoCuotas(p).pagado) return false;
     if (p.estado === 'pendiente') return true;
     const fechaPedido = p.fecha?.split('T')[0] || '';
     return fechaPedido >= quincena.inicio && fechaPedido <= quincena.fin;
@@ -155,7 +187,7 @@ export default function Nomina({ nombreModelo }) {
   const descuentoUSD = totalDescuentos / 4000;
   const usdNetoFinal = Math.max(0, usdNeto - descuentoUSD).toFixed(2);
 
-  const metaUsd = metas[nombreModelo]?.usd || 0;
+  const metaUsd = obtenerMetaUsd(metas[nombreModelo]);
   const metaTokens = metaUsd * 20;
   const hoy = new Date();
   const finQuincena = new Date(quincena.fin);
@@ -166,6 +198,8 @@ export default function Nomina({ nombreModelo }) {
   const pctDias = diasLabQuincena > 0 ? Math.min(100, Math.round((diasTrabajados / diasLabQuincena) * 100)) : 0;
   const horasReqTotal = diasLabQuincena * 6.5;
   const pctHoras = horasReqTotal > 0 ? Math.min(100, Math.round((horasTrabajadas / horasReqTotal) * 100)) : 0;
+  const horasRestantes = Math.max(0, horasReqTotal - horasTrabajadas);
+  const pctHorasRestantes = horasReqTotal > 0 ? Math.min(100, Math.round((horasRestantes / horasReqTotal) * 100)) : 0;
 
   const barraWrap = { background: 'var(--bg3)', borderRadius: 20, height: 6, marginTop: 6, overflow: 'hidden' };
   const barraFill = (pct, color) => ({ height: '100%', width: `${pct}%`, background: color || 'var(--gold)', borderRadius: 20, transition: 'width 0.4s' });
@@ -203,7 +237,7 @@ export default function Nomina({ nombreModelo }) {
         </div>
 
         {/* Meta quincenal */}
-        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '20px 18px', border: '1px solid var(--border2)' }}>
+        <div className="nm-card-elevated">
           <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Meta quincenal</div>
           {metaUsd > 0 ? (
             <>
@@ -221,7 +255,7 @@ export default function Nomina({ nombreModelo }) {
         </div>
 
         {/* Días restantes */}
-        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '20px 18px', border: '1px solid var(--border2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+        <div className="nm-card-elevated" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
           <div style={{ width: 52, height: 52, borderRadius: 26, background: 'rgba(201,146,74,0.15)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, marginBottom: 8 }}>📅</div>
           <div style={{ color: 'var(--gold)', fontSize: 28, fontWeight: 700 }}>{diasRestantes}</div>
           <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>días restantes</div>
@@ -233,14 +267,14 @@ export default function Nomina({ nombreModelo }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 12 }}>
 
         {/* Mi resumen */}
-        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '20px 18px', border: '1px solid var(--border2)' }}>
+        <div className="nm-card-elevated">
           <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>Mi resumen</div>
           <div style={{ color: 'var(--text-dim)', fontSize: 11, marginBottom: 14 }}>{diasLabQuincena} días laborales esta quincena (sin domingos ni días libres aprobados)</div>
 
           {[
             { icon: '📅', label: 'Días trabajados', val: `${diasTrabajados} / ${diasLabQuincena} días`, pct: pctDias, color: 'var(--gold)' },
-            { icon: '⏰', label: 'Horas trabajadas', val: `${horasTrabajadas.toFixed(1)} / ${horasReqTotal.toFixed(1)} hrs`, pct: pctHoras, color: 'var(--green)' },
-            { icon: '📋', label: 'Horas requeridas', val: `${horasRequeridas.toFixed(1)} / ${horasReqTotal.toFixed(1)} hrs`, pct: horasReqTotal > 0 ? Math.min(100, Math.round((horasRequeridas / horasReqTotal) * 100)) : 0, color: '#6A8AAA' },
+            { icon: '⏰', label: 'Horas trabajadas', val: `${horasTrabajadas.toFixed(1)} hrs`, pct: pctHoras, color: 'var(--green)' },
+            { icon: '⏳', label: 'Horas restantes', val: `${horasRestantes.toFixed(1)} hrs`, pct: pctHorasRestantes, color: '#6A8AAA' },
             { icon: '🏆', label: 'Porcentaje de avance', val: `${porcentaje}%`, pct: porcentaje, color: 'var(--gold)' },
           ].map((item, i) => (
             <div key={i} style={{ marginBottom: 14 }}>
@@ -257,7 +291,7 @@ export default function Nomina({ nombreModelo }) {
         </div>
 
         {/* Progreso de meta */}
-        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '20px 18px', border: '1px solid var(--border2)' }}>
+        <div className="nm-card-elevated">
           <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 14 }}>Progreso de tu meta</div>
           {metaTokens > 0 ? (
             <>
@@ -295,7 +329,7 @@ export default function Nomina({ nombreModelo }) {
 
       {/* Mis pedidos */}
       {misPedidos.length > 0 && (
-        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '20px 18px', border: '1px solid var(--border2)' }}>
+        <div className="nm-card-elevated">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' }}>Mis pedidos {quincenaOffset === 0 ? '(pendientes y de esta quincena)' : '(pendientes y de la quincena seleccionada)'}</div>
             <div style={{ display: 'flex', gap: 20 }}>
@@ -308,7 +342,9 @@ export default function Nomina({ nombreModelo }) {
               <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>🛍️</div>
               <div style={{ flex: 1 }}>
                 <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 500 }}>{p.producto}</div>
-                <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>{p.cuotas > 1 ? '2 cuotas' : 'Pago completo'} · {p.hora}</div>
+                <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>
+                  {(() => { const info = estadoCuotas(p); return info.total > 1 ? `Cuota ${info.cuotaActual}/${info.total}` : 'Pago completo'; })()} · {p.hora}
+                </div>
               </div>
               <span style={{ color: (p.estado === 'cancelado' || p.estado === 'rechazado') ? '#C0614A' : (p.estado === 'entregado' || p.estado === 'aprobado') ? 'var(--green)' : 'var(--gold)', fontSize: 12, fontWeight: 500, minWidth: 80, textAlign: 'right' }}>
                 {p.estado === 'cancelado' ? 'Cancelado' : p.estado === 'rechazado' ? 'Rechazado' : p.estado === 'entregado' ? 'Completado' : p.estado === 'aprobado' ? 'Aprobado' : 'Pendiente'}

@@ -12,13 +12,13 @@ const COLORES = {
 };
 
 const s = {
-  form: { background: 'var(--bg2)', borderRadius: 14, padding: 20, marginBottom: 24, border: '1px solid var(--border2)' },
+  form: { marginBottom: 24 },
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, display: 'block' },
   select: { width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--gold)', padding: '12px 14px', fontSize: 13, marginBottom: 16, outline: 'none' },
   textarea: { width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--text)', padding: '12px 14px', fontSize: 13, marginBottom: 16, minHeight: 80, resize: 'vertical', outline: 'none' },
   btnEnviar: { background: 'var(--gold)', border: 'none', borderRadius: 8, color: '#141414', padding: '12px 24px', fontSize: 13, fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', width: '100%' },
   lista: { display: 'flex', flexDirection: 'column', gap: 10 },
-  card: { borderRadius: 12, padding: 16, background: 'var(--bg3)', border: '1px solid var(--border2)', borderLeft: '3px solid', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' },
+  card: { borderLeft: '3px solid' },
   categoria: { fontSize: 11, fontWeight: 500, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
   texto: { color: 'var(--text)', fontSize: 14, marginBottom: 8, lineHeight: 1.5 },
   meta: { color: 'var(--text-dim)', fontSize: 11, letterSpacing: 1 },
@@ -73,7 +73,7 @@ export default function Novedades({ rol }) {
   return (
     <div>
       {rol === 'monitor' && (
-        <div style={s.form}>
+        <div style={s.form} className="nm-card-elevated">
           <label style={s.label}>Categoria</label>
           <select style={s.select} value={categoria} onChange={e => setCategoria(e.target.value)}>
             <option value="">Seleccionar</option>
@@ -101,7 +101,7 @@ export default function Novedades({ rol }) {
           <p style={s.vacia}>{vista === 'activas' ? 'No hay novedades activas' : 'No hay novedades resueltas'}</p>
         )}
         {novedadesFiltradas.map(n => (
-          <div key={n.id} style={{ ...s.card, borderLeftColor: COLORES[n.categoria] || 'var(--gold)', opacity: n.resuelta ? 0.6 : 1 }}>
+          <div key={n.id} className="nm-card-elevated" style={{ ...s.card, borderLeftColor: COLORES[n.categoria] || 'var(--gold)', opacity: n.resuelta ? 0.6 : 1 }}>
             <div style={{ ...s.categoria, color: COLORES[n.categoria] || 'var(--gold)' }}>{n.categoria}</div>
             <div style={s.texto}>{n.descripcion}</div>
             <div style={s.meta}>{n.dia} · {n.hora}</div>

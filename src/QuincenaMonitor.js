@@ -30,6 +30,13 @@ function tokensEnRango(cierres, nombreModelo, inicio, fin) {
   return total;
 }
 
+function obtenerMetaUsd(metaDoc) {
+  if (!metaDoc) return 0;
+  if (metaDoc.usd !== undefined) return Number(metaDoc.usd) || 0;
+  if (metaDoc.tokens !== undefined) return (Number(metaDoc.tokens) || 0) / 20;
+  return 0;
+}
+
 // Igual criterio que Metas.js: verde si va bien, rojo si va atrasada, dorado si va normal
 function colorProgreso(pct, quincena) {
   if (pct >= 100) return 'var(--green)';
@@ -43,10 +50,9 @@ function colorProgreso(pct, quincena) {
 }
 
 const s = {
-  card: { background: 'var(--bg2)', borderRadius: 16, padding: '18px 20px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-out)' },
   label: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 },
   kpiVal: { color: 'var(--text)', fontSize: 26, fontWeight: 700 },
-  modeloCard: { background: 'var(--bg2)', borderRadius: 12, padding: 14, border: '1px solid var(--border2)', display: 'flex', flexDirection: 'column', gap: 8 },
+  modeloCardLayout: { display: 'flex', flexDirection: 'column', gap: 8 },
   barraWrap: { background: 'var(--bg)', boxShadow: 'var(--shadow-in)', borderRadius: 20, height: 8, overflow: 'hidden' },
   barraFill: { height: '100%', borderRadius: 20, transition: 'width 0.4s' },
   vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 40, fontSize: 13 },
@@ -80,7 +86,7 @@ export default function QuincenaMonitor({ nombreMonitor, turno }) {
 
   const modelosConDatos = modelosDB.map(m => {
     const total = tokensEnRango(cierres, m.nombreReal, quincena.inicio, quincena.fin);
-    const metaUsd = metas[m.nombreReal]?.usd || 0;
+    const metaUsd = obtenerMetaUsd(metas[m.nombreReal]);
     const metaTokens = metaUsd * 20;
     const pct = metaTokens > 0 ? Math.min(100, Math.round((total / metaTokens) * 100)) : 0;
     return { ...m, total, metaUsd, metaTokens, pct };
@@ -99,17 +105,17 @@ export default function QuincenaMonitor({ nombreMonitor, turno }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      <div style={s.card}>
+      <div className="nm-card-elevated">
         <div style={{ color: 'var(--gold)', fontSize: 20, fontWeight: 700 }}>{nombreMonitor}</div>
         <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 3 }}>Turno {turno || '—'} · {quincena.label}</div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }} className="nm-grid-cards">
-        <div style={s.card}>
+        <div className="nm-card-elevated">
           <div style={s.label}>Modelos asignadas</div>
           <div style={s.kpiVal}>{modelosDB.length}</div>
         </div>
-        <div style={s.card}>
+        <div className="nm-card-elevated">
           <div style={s.label}>Tokens del turno</div>
           <div style={s.kpiVal}>{totalTokensTurno.toLocaleString()}</div>
           <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 2 }}>${(totalTokensTurno / 20).toFixed(2)} USD</div>
@@ -117,15 +123,15 @@ export default function QuincenaMonitor({ nombreMonitor, turno }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }} className="nm-grid-cards">
-        <div style={s.card}>
+        <div className="nm-card-elevated">
           <div style={s.label}>Cumplieron meta</div>
-          <div style={{ ...s.kpiVal, color: 'var(--green)' }}>{cumplieron}</div>
+          <div style={{ ...s.kpiVal, color: 'var(--green)' }}>{cumplieron}/{modelosDB.length}</div>
         </div>
-        <div style={s.card}>
+        <div className="nm-card-elevated">
           <div style={s.label}>En progreso</div>
           <div style={{ ...s.kpiVal, color: 'var(--gold)' }}>{enProgreso}</div>
         </div>
-        <div style={s.card}>
+        <div className="nm-card-elevated">
           <div style={s.label}>Atrasadas</div>
           <div style={{ ...s.kpiVal, color: 'var(--red)' }}>{atrasadas}</div>
         </div>
@@ -137,7 +143,7 @@ export default function QuincenaMonitor({ nombreMonitor, turno }) {
           {modelosConDatos.map(m => {
             const color = colorProgreso(m.pct, quincena);
             return (
-              <div key={m.id} style={s.modeloCard}>
+              <div key={m.id} className="nm-card-elevated" style={s.modeloCardLayout}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 16, flexShrink: 0, overflow: 'hidden' }}>
                     {m.fotoURL ? <img src={m.fotoURL} alt={m.nombreReal} style={{ width: 40, height: 40, objectFit: 'cover' }} /> : '👤'}

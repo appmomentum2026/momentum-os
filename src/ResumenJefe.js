@@ -155,7 +155,7 @@ export default function ResumenJefe() {
         </div>
 
         {/* Tokens generados */}
-        <div style={{ background: 'var(--bg2)', borderRadius: 16, padding: '24px 20px', border: '1px solid var(--border2)' }}>
+        <div className="nm-card-elevated">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ fontSize: 20 }}>🪙</span>
             <span style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' }}>Tokens generados</span>
@@ -165,7 +165,7 @@ export default function ResumenJefe() {
         </div>
 
         {/* Proyección */}
-        <div className="nm-hide-mobile" style={{ background: 'var(--bg2)', borderRadius: 16, padding: '24px 20px', border: '1px solid var(--border2)' }}>
+        <div className="nm-hide-mobile nm-card-elevated">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ fontSize: 20 }}>📈</span>
             <span style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' }}>Proyección quincena</span>
@@ -187,7 +187,7 @@ export default function ResumenJefe() {
 
       {/* Ranking */}
       {ranking.length > 0 && (
-        <div style={{ background: 'var(--bg2)', borderRadius: 14, padding: '16px 20px', border: '1px solid var(--border2)' }}>
+        <div className="nm-card-elevated">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 22 }}>🏆</span>
@@ -252,7 +252,7 @@ export default function ResumenJefe() {
               {modelosTurno.map(m => {
                 const badgeStyle = getBadgeStyle(m.porcentaje);
                 return (
-                  <div key={m.nombre} style={{ background: 'var(--bg2)', borderRadius: 12, padding: 16, border: '1px solid var(--border2)' }}>
+                  <div key={m.nombre} className="nm-card-elevated">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 18, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 16, flexShrink: 0 }}>👤</div>
                       <div style={{ flex: 1 }}>

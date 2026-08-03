@@ -7,13 +7,12 @@ import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 const s = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 12 },
   grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  card: { background: 'var(--bg2)', borderRadius: 12, padding: 14, border: '1px solid var(--border2)' },
   fila: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   nombre: { color: 'var(--text)', fontSize: 13, flex: 1 },
   input: { background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--gold)', padding: '8px 12px', fontSize: 13, width: 120, outline: 'none', textAlign: 'right' },
   btnGuardar: { background: 'var(--gold)', border: 'none', borderRadius: 8, color: '#141414', padding: '8px 14px', fontSize: 12, letterSpacing: 1, cursor: 'pointer', fontWeight: 500 },
   metaActual: { color: 'var(--text-dim)', fontSize: 12, marginTop: 6 },
-  bigCard: { background: 'var(--bg2)', borderRadius: 14, padding: 20, border: '1px solid var(--border2)' },
+  bigCard: {},
   label: { color: 'var(--text-sub)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
   bigVal: { color: 'var(--gold)', fontSize: 32, fontWeight: 500, marginBottom: 4 },
   titulo: { color: 'var(--gold)', fontSize: 14, fontWeight: 500, marginBottom: 14 },
@@ -86,6 +85,15 @@ function tokensEnRango(cierres, nombreModelo, inicio, fin) {
     porDia[fechaCierre] = (porDia[fechaCierre] || 0) + tokensDelDia;
   });
   return { total, porDia };
+}
+
+// La meta se guarda como { usd: N }. Si el doc es de antes del cambio a USD, trae { tokens: N } —
+// se reinterpreta como usd = tokens/20 para no perder metas ya asignadas.
+function obtenerMetaUsd(metaDoc) {
+  if (!metaDoc) return 0;
+  if (metaDoc.usd !== undefined) return Number(metaDoc.usd) || 0;
+  if (metaDoc.tokens !== undefined) return (Number(metaDoc.tokens) || 0) / 20;
+  return 0;
 }
 
 // Color de la barra de progreso segun avance vs. tiempo transcurrido de la quincena
@@ -173,7 +181,7 @@ function ProyeccionModelo({ nombreModelo, metaUsd }) {
     <div style={s.wrap}>
 
       <div style={s.grid2}>
-        <div style={s.bigCard}>
+        <div className="nm-card-elevated">
           <div style={s.label}>Meta esta quincena</div>
           <div style={s.bigVal}>{metaUsd > 0 ? `$${metaUsd.toLocaleString()} USD` : '—'}</div>
           {metaTokens > 0 && <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: -2, marginBottom: 6 }}>({metaTokens.toLocaleString()} tokens)</div>}
@@ -202,7 +210,7 @@ function ProyeccionModelo({ nombreModelo, metaUsd }) {
             </div>
           )}
 
-          <div style={s.bigCard}>
+          <div className="nm-card-elevated">
             <div style={s.titulo}>Mis estadisticas</div>
             <div style={s.statFila}><div style={s.statLabel}>Dias trabajados</div><div style={s.statVal}>{diasTrabajados} dias</div></div>
             <div style={s.statFila}><div style={s.statLabel}>Promedio diario</div><div style={s.statVal}>{promedioDiario.toLocaleString()} tokens</div></div>
@@ -219,7 +227,7 @@ function ProyeccionModelo({ nombreModelo, metaUsd }) {
       </div>
 
       <div style={s.grid2}>
-        <div style={s.bigCard}>
+        <div className="nm-card-elevated">
           <div style={s.titulo}>Comparación quincenas</div>
           <div style={s.compRow}>
             <div style={s.compBox}>
@@ -244,7 +252,7 @@ function ProyeccionModelo({ nombreModelo, metaUsd }) {
         </div>
 
         {diasOrdenados.length > 0 && (
-          <div style={s.bigCard}>
+          <div className="nm-card-elevated">
             <div style={s.titulo}>Tokens por dia</div>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 100, padding: '0 4px' }}>
               {diasOrdenados.map(([fecha, tokens]) => (
@@ -334,12 +342,12 @@ export default function Metas({ rol, nombreModelo }) {
     const renderModelo = (m) => {
       const modelo = m.nombreReal;
       const { total } = tokensEnRango(cierres, modelo, quincena.inicio, quincena.fin);
-      const metaUsd = metas[modelo]?.usd || 0;
+      const metaUsd = obtenerMetaUsd(metas[modelo]);
       const metaTokens = metaUsd * 20;
       const pct = metaTokens > 0 ? Math.min(100, Math.round((total / metaTokens) * 100)) : 0;
       const colorBarra = colorProgreso(pct, quincena);
       return (
-        <div key={modelo} style={{ background: 'var(--bg2)', borderRadius: 12, padding: '10px 14px', border: '1px solid var(--border2)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div key={modelo} className="nm-card-elevated" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 48, height: 48, borderRadius: 24, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 18, flexShrink: 0, overflow: 'hidden' }}>
               {m.fotoURL ? <img src={m.fotoURL} alt={modelo} style={{ width: 48, height: 48, objectFit: 'cover' }} /> : '👤'}
@@ -393,10 +401,10 @@ export default function Metas({ rol, nombreModelo }) {
             : modelosTurno;
           const info = TURNO_INFO[turno] || {};
           const totalTokensTurno = modelosFiltrados.reduce((acc, m) => acc + (tokensEnRango(cierres, m.nombreReal, quincena.inicio, quincena.fin).total), 0);
-          const totalMetaTurno = modelosFiltrados.reduce((acc, m) => acc + ((metas[m.nombreReal]?.usd || 0) * 20), 0);
+          const totalMetaTurno = modelosFiltrados.reduce((acc, m) => acc + (obtenerMetaUsd(metas[m.nombreReal]) * 20), 0);
           return (
             <div key={turno} style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, padding: '10px 16px', background: 'var(--bg2)', borderRadius: 12, border: '1px solid var(--border2)', flexWrap: 'wrap' }}>
+              <div className="nm-card-elevated" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 18 }}>{info.icono}</span>
                 <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Turno {turno}</div>
                 <div style={{ color: 'var(--text-sub)', fontSize: 11 }}>({info.hora})</div>
@@ -431,6 +439,6 @@ export default function Metas({ rol, nombreModelo }) {
     );
   }
 
-  const metaUsd = metas[nombreModelo]?.usd || 0;
+  const metaUsd = obtenerMetaUsd(metas[nombreModelo]);
   return <ProyeccionModelo nombreModelo={nombreModelo} metaUsd={metaUsd} />;
 }

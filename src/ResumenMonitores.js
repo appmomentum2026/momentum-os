@@ -22,7 +22,7 @@ const TURNO_EMOJI = { 'Manana': '🌅', 'Tarde': '☀️', 'Noche': '🌙' };
 
 const s = {
   wrap: { display: 'block' },
-  card: { background: 'var(--bg2)', borderRadius: 14, padding: 18, border: '1px solid var(--border2)' },
+  card: {},
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
   nombreRow: { display: 'flex', alignItems: 'center', gap: 10 },
   icono: { width: 38, height: 38, borderRadius: '50%', background: 'var(--gold-dim)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 18 },
@@ -157,7 +157,7 @@ export default function ResumenMonitores() {
               const datos = calcularMonitor(monitor);
               const turno = TURNOS[monitor];
               return (
-                <div key={monitor} style={s.card}>
+                <div key={monitor} style={s.card} className="nm-card-elevated">
                   {editando === monitor ? (
                     <div className="nm-form-inline">
                       <label style={s.label}>Nombre del monitor</label>

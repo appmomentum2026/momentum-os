@@ -14,9 +14,31 @@ function getQuincena() {
     return { inicio: new Date(anio, mes, 16).toISOString().split('T')[0], fin: new Date(anio, mes, ultimoDia).toISOString().split('T')[0] };
   }
 }
+
+// Id de quincena en formato YYYY-MM-Q1/Q2, usado para rastrear cuotas de pedidos
+function quincenaIdActual() {
+  const hoy = new Date();
+  const anioMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+  return hoy.getDate() <= 15 ? `${anioMes}-Q1` : `${anioMes}-Q2`;
+}
+function quincenaIdANumero(id) {
+  const [anio, mes, q] = id.split('-');
+  return parseInt(anio) * 24 + (parseInt(mes) - 1) * 2 + (q === 'Q1' ? 0 : 1);
+}
+// Cuantas cuotas van pagadas de un pedido segun cuantas quincenas pasaron desde que se hizo
+function estadoCuotas(pedido) {
+  const total = pedido.cuotasTotales || pedido.cuotas || 1;
+  if (!pedido.quincenaInicio) return { cuotaActual: total, total, pagado: false };
+  const quincenasTranscurridas = quincenaIdANumero(quincenaIdActual()) - quincenaIdANumero(pedido.quincenaInicio) + 1;
+  return {
+    cuotaActual: Math.min(total, Math.max(1, quincenasTranscurridas)),
+    total,
+    pagado: quincenasTranscurridas > total
+  };
+}
 const s = {
   wrap: { display: 'block' },
-  card: { background: 'var(--bg2)', borderRadius: 12, padding: 16, border: '1px solid var(--border2)' },
+  card: {},
   cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   producto: { color: 'var(--gold)', fontSize: 13, fontWeight: 500 },
   fila: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' },
@@ -122,16 +144,20 @@ export default function Pedidos({ rol, nombreModelo, nombreAprobador }) {
   };
 
   const renderCardPedido = (p, permitirAccion) => (
-    <div key={p.id} style={s.card}>
+    <div key={p.id} style={s.card} className="nm-card-elevated">
       <div style={s.cardHeader}>
         <div style={s.producto}>{p.producto}</div>
         {renderBadge(p)}
       </div>
       <div style={s.fila}><div style={s.filaLabel}>Modelo</div><div style={s.filaValor}>{p.modelo}</div></div>
       <div style={s.fila}><div style={s.filaLabel}>Precio</div><div style={s.filaValor}>${p.precio?.toLocaleString()}</div></div>
-      {p.cuotas > 1 && (
-        <div style={s.fila}><div style={s.filaLabel}>Pago en cuotas</div><div style={s.filaValor}>2 cuotas de ${Math.ceil(p.precio / 2).toLocaleString()}</div></div>
-      )}
+      {(() => {
+        const info = estadoCuotas(p);
+        if (info.total <= 1) return null;
+        return (
+          <div style={s.fila}><div style={s.filaLabel}>Pago en cuotas</div><div style={s.filaValor}>Cuota {info.cuotaActual}/{info.total} · ${Math.ceil(p.precio / info.total).toLocaleString()} c/u</div></div>
+        );
+      })()}
       <div style={{ ...s.fila, borderBottom: 'none' }}><div style={s.filaLabel}>Hora</div><div style={s.filaValor}>{p.hora}</div></div>
 
       {esRechazado(p.estado) && p.motivoRechazo && (
@@ -226,7 +252,14 @@ export default function Pedidos({ rol, nombreModelo, nombreAprobador }) {
   }
 
   // ── VISTA MODELO (tienda) ───────────────────────────────────────────────
-  const misPedidos = nombreModelo ? pedidosQuincena.filter(p => p.modelo === nombreModelo) : pedidosQuincena;
+  // Nunca los ya pagados; de los demas, solo pendientes (cualquier fecha) o los de esta quincena
+  const misPedidos = pedidos.filter(p => {
+    if (nombreModelo && p.modelo !== nombreModelo) return false;
+    if (estadoCuotas(p).pagado) return false;
+    if (p.estado === 'pendiente') return true;
+    const fechaPedido = p.fecha?.split('T')[0] || '';
+    return fechaPedido >= quincena.inicio && fechaPedido <= quincena.fin;
+  });
   return (
     <div style={s.wrap}>
       {misPedidos.length === 0 && <p style={s.vacio}>Aún no has hecho pedidos</p>}
