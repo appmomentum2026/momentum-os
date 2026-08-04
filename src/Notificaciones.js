@@ -20,8 +20,20 @@ const messaging = getMessaging(app);
 const VAPID_KEY = 'BEdcEdu2jzaH186-jxZ_Ta8vpCkAKjL0E5Mmesw9x1RXIlTafURivmw0xSxN6W762pQdTEJFRMiH34ag8pws8z4';
 
 export async function solicitarPermiso(usuario, id) {
+  if (!('Notification' in window)) {
+    console.warn('Este navegador no soporta la API de Notification; no se puede pedir permiso.');
+    return;
+  }
+
+  // Si el permiso ya fue decidido antes (granted o denied), el navegador NO vuelve a mostrar
+  // el popup — Notification.requestPermission() se resuelve al toque sin preguntar nada.
+  // Esto es la causa más común de "el popup no aparece": hay que resetear el permiso del sitio
+  // desde la configuración del navegador (candado en la barra de direcciones) para volver a verlo.
+  console.log('Permiso de notificación actual antes de pedir:', Notification.permission);
+
   try {
     const permiso = await Notification.requestPermission();
+    console.log('Resultado de Notification.requestPermission():', permiso);
     if (permiso !== 'granted') return;
     const token = await getToken(messaging, { vapidKey: VAPID_KEY });
     if (token) {
@@ -31,6 +43,7 @@ export async function solicitarPermiso(usuario, id) {
         id,
         actualizado: new Date().toISOString()
       });
+      console.log('Token FCM guardado para', usuario, id);
     }
   } catch (error) {
     console.error('Error solicitando permiso:', error);

@@ -548,7 +548,7 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
       {vista === 'novedades' && <Novedades rol="monitor" nombreMonitor={monitorData?.nombre || ''} />}
       {vista === 'cierre' && <CierreTurno rol="monitor" nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
       {vista === 'modelos' && <ModelasMonitor monitorData={monitorData} />}
-      {vista === 'pedidos' && <Pedidos rol="monitor" />}
+      {vista === 'pedidos' && <Pedidos rol="monitor" nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
       {vista === 'miquincena' && <QuincenaMonitor nombreMonitor={monitorData?.nombre || ''} turno={monitorData?.turno || ''} />}
       {vista === 'diaslibres' && <DiasLibresMonitor nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
     </NavLayout>
@@ -661,13 +661,16 @@ export default function App() {
     setUsuario(rol);
     if (rol === 'modelo' && data) {
       setModelaData(data);
+      console.log('Pidiendo permiso de notificaciones...');
       solicitarPermiso('modelo', data.nombreReal);
     }
     if (rol === 'monitor' && data) {
       setMonitorData(data);
+      console.log('Pidiendo permiso de notificaciones...');
       solicitarPermiso('monitor', data.nombre);
     }
     if (rol === 'jefe' || rol === 'operativo' || rol === 'administrativo') {
+      console.log('Pidiendo permiso de notificaciones...');
       solicitarPermiso('jefe', rol);
     }
   };
