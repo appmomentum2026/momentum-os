@@ -17,6 +17,8 @@ import Pedidos from './Pedidos';
 import Lockers from './Lockers';
 import { DiasLibresModelo, DiasLibresMonitor, DiasLibresJefe } from './DiasLibres';
 import { solicitarPermiso, escucharNotificaciones } from './Notificaciones';
+import Notificaciones, { useNotificaciones } from './Notificaciones';
+import Toast from './Toast';
 import GestionMonitores from './GestionMonitores';
 import ResumenMonitores from './ResumenMonitores';
 import ModelasMonitor from './ModelasMonitor';
@@ -215,7 +217,7 @@ function MapaHabitaciones({ rol }) {
 }
 
 
-function BottomBar({ principales, vista, setVista, masItems }) {
+function BottomBar({ principales, vista, setVista, masItems, notifState }) {
   const [masAbierto, setMasAbierto] = useState(false);
   const hayMas = masItems && masItems.length > 0;
 
@@ -254,21 +256,23 @@ function BottomBar({ principales, vista, setVista, masItems }) {
               <span>Más</span>
             </button>
           )}
+          {notifState && <Notificaciones notifState={notifState} variant="bottombar" />}
         </div>
       </div>
     </>
   );
 }
 
-function Sidebar({ items, vista, setVista, titulo, sub, icono, onLogout, temaOscuro, toggleTema }) {
+function Sidebar({ items, vista, setVista, titulo, sub, icono, onLogout, temaOscuro, toggleTema, notifState }) {
   return (
     <div className="nm-sidebar">
       <div className="nm-sidebar-header">
         <div className="nm-sidebar-icon"><i className={`ti ti-${icono}`} aria-hidden="true"></i></div>
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div className="nm-sidebar-title">{titulo}</div>
           <div className="nm-sidebar-sub">{sub}</div>
         </div>
+        {notifState && <Notificaciones notifState={notifState} variant="sidebar" />}
       </div>
       {items.map(item => (
         <button key={item.id}
@@ -294,7 +298,12 @@ function Sidebar({ items, vista, setVista, titulo, sub, icono, onLogout, temaOsc
   );
 }
 
-function NavLayout({ todos, principales, masItems, vista, setVista, titulo, sub, icono, seccionLabel, onLogout, temaOscuro, toggleTema, userId, children }) {
+function NavLayout({ todos, principales, masItems, vista, setVista, titulo, sub, icono, seccionLabel, onLogout, temaOscuro, toggleTema, userId, notifDestinatario, onNuevaNotificacion, children }) {
+  // Se llama una sola vez aquí (no dentro de Sidebar/BottomBar) para no duplicar el listener
+  // de Firestore ni disparar el sonido/toast dos veces cuando ambos layouts están montados.
+  const notifState = useNotificaciones(notifDestinatario, onNuevaNotificacion);
+  const notifStateActivo = notifDestinatario ? notifState : null;
+
   return (
     <>
       {/* ESCRITORIO: sidebar */}
@@ -302,7 +311,8 @@ function NavLayout({ todos, principales, masItems, vista, setVista, titulo, sub,
         <div className="nm-layout">
           <Sidebar items={todos} vista={vista} setVista={setVista}
             titulo={titulo} sub={sub} icono={icono}
-            onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema} />
+            onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema}
+            notifState={notifStateActivo} />
           <div className="nm-content">
             <div className="nm-section-label">{seccionLabel}</div>
             {children}
@@ -329,7 +339,8 @@ function NavLayout({ todos, principales, masItems, vista, setVista, titulo, sub,
           <div className="nm-section-label">{seccionLabel}</div>
           {children}
           <BottomBar vista={vista} setVista={setVista}
-            principales={principales} masItems={masItems} />
+            principales={principales} masItems={masItems}
+            notifState={notifStateActivo} />
         </div>
       </div>
     </>
@@ -426,6 +437,7 @@ function Login({ onLogin, temaOscuro, toggleTema }) {
 
 function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
   const [vista, setVista] = useState('mapa');
+  const [toastNotif, setToastNotif] = useState(null);
 
   const items = [
     { id: 'mapa', label: 'Mapa', icon: 'layout-grid' },
@@ -459,6 +471,7 @@ function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
     vista === 'diaslibres' ? 'Dias libres' : '';
 
   return (
+    <>
     <NavLayout
       todos={items}
       principales={items.slice(0, 3)}
@@ -468,6 +481,7 @@ function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
       seccionLabel={seccionLabel}
       onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema}
       userId={userId}
+      notifDestinatario="jefe" onNuevaNotificacion={setToastNotif}
     >
       {vista === 'mapa' && <MapaHabitaciones rol="jefe" />}
       {vista === 'novedades' && <Novedades rol="jefe" />}
@@ -484,11 +498,14 @@ function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
       {vista === 'lockers' && <Lockers />}
       {vista === 'diaslibres' && <DiasLibresJefe />}
     </NavLayout>
+    <Toast notificacion={toastNotif} onClose={() => setToastNotif(null)} />
+    </>
   );
 }
 
 function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
   const [vista, setVista] = useState('mapa');
+  const [toastNotif, setToastNotif] = useState(null);
 
 
   const items = [
@@ -514,6 +531,7 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
   const userId = `monitor_${monitorData?.nombre || 'monitor'}`;
 
   return (
+    <>
     <NavLayout
       todos={items}
       principales={items.slice(0, 3)}
@@ -523,16 +541,19 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
       seccionLabel={seccionLabel}
       onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema}
       userId={userId}
+      notifDestinatario={monitorData?.nombre || ''} onNuevaNotificacion={setToastNotif}
     >
       {vista === 'mapa' && <MapaHabitaciones rol="monitor" />}
       {vista === 'asistencia' && <Asistencia rol="monitor" nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
-      {vista === 'novedades' && <Novedades rol="monitor" />}
+      {vista === 'novedades' && <Novedades rol="monitor" nombreMonitor={monitorData?.nombre || ''} />}
       {vista === 'cierre' && <CierreTurno rol="monitor" nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
       {vista === 'modelos' && <ModelasMonitor monitorData={monitorData} />}
       {vista === 'pedidos' && <Pedidos rol="monitor" />}
       {vista === 'miquincena' && <QuincenaMonitor nombreMonitor={monitorData?.nombre || ''} turno={monitorData?.turno || ''} />}
       {vista === 'diaslibres' && <DiasLibresMonitor nombreMonitor={monitorData?.nombre || ''} modelasMonitor={monitorData?.modelas || []} />}
     </NavLayout>
+    <Toast notificacion={toastNotif} onClose={() => setToastNotif(null)} />
+    </>
   );
 }
 
@@ -592,7 +613,7 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
       {vista === 'mapa' && <MapaHabitaciones rol="modelo" />}
       {vista === 'nomina' && <Nomina nombreModelo={nombreModelo} />}
       {vista === 'metas' && <Metas rol="modelo" nombreModelo={nombreModelo} />}
-      {vista === 'tienda' && <Inventario2 rol="tienda" nombreModelo={nombreModelo} />}
+      {vista === 'tienda' && <Inventario2 rol="tienda" nombreModelo={nombreModelo} nombreMonitorModelo={modelaData?.monitor || ''} />}
       {vista === 'pedidos' && <Pedidos rol="tienda" nombreModelo={nombreModelo} />}
       {vista === 'descanso' && <DiasLibresModelo nombreModelo={nombreModelo} />}
     </NavLayout>

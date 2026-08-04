@@ -663,3 +663,41 @@ body.claro .nm-card-elevated {
   border: 1px solid rgba(139, 98, 48, 0.12);
   box-shadow: 6px 6px 16px rgba(0,0,0,0.15), -3px -3px 10px rgba(255,255,255,0.7), inset 0 1px 0 rgba(255,255,255,0.5);
 }
+
+/* ===== Toast de notificaciones ===== */
+.nm-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 500;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  background: var(--bg2);
+  border: 1px solid var(--gold);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+  animation: nm-toast-in 0.35s ease-out;
+}
+
+@keyframes nm-toast-in {
+  from { opacity: 0; transform: translateX(48px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.nm-toast-cerrar {
+  background: transparent;
+  border: none;
+  color: var(--text-sub);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .nm-toast { top: 10px; right: 10px; left: 10px; width: auto; }
+}

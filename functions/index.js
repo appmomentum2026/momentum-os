@@ -72,3 +72,55 @@ exports.guardarUsuario = functions.https.onCall(async (data, context) => {
   await db.collection(coleccion).doc(id).set(guardar, { merge: true });
   return { ok: true };
   });
+
+// TÍTULO de la push según el tipo de notificación interna
+const TITULOS_NOTIF = {
+  pedido: "Nuevo pedido",
+  novedad: "Nueva novedad",
+};
+
+// Se dispara cuando se crea un doc en "notificaciones" (ver src/Notificaciones.js -> crearNotificacion)
+// y envía la push por FCM a los tokens guardados en "tokens_notificacion".
+// Nota: "tokens_notificacion/{id}" guarda { token, usuario, id, actualizado }, donde "usuario" es
+// el rol genérico ('jefe' | 'monitor' | 'modelo') y "id" es el identificador específico (nombre del
+// monitor/modelo, o la variante de jefe). El campo "destinatario" de la notificación puede ser
+// 'jefe' (coincide con el campo "usuario" de las 3 variantes de jefe) o el nombre de un monitor
+// (coincide con el campo "id" de su token) — por eso se busca por ambos campos.
+exports.enviarNotificacion = functions.firestore
+  .document("notificaciones/{notifId}")
+  .onCreate(async (snap) => {
+    const notif = snap.data();
+    const destinatario = notif.destinatario;
+    if (!destinatario) return null;
+
+    const titulo = TITULOS_NOTIF[notif.tipo] || "Momentum Studio";
+    const body = notif.mensaje || "";
+
+    const [porUsuario, porId] = await Promise.all([
+      db.collection("tokens_notificacion").where("usuario", "==", destinatario).get(),
+      db.collection("tokens_notificacion").where("id", "==", destinatario).get(),
+    ]);
+
+    const tokenDocs = new Map();
+    porUsuario.forEach((d) => tokenDocs.set(d.id, d));
+    porId.forEach((d) => tokenDocs.set(d.id, d));
+    if (tokenDocs.size === 0) return null;
+
+    await Promise.all(Array.from(tokenDocs.values()).map(async (d) => {
+      const token = d.data().token;
+      if (!token) return;
+      try {
+        await admin.messaging().send({ token, notification: { title: titulo, body } });
+      } catch (err) {
+        // Token expirado o inválido: lo eliminamos para no reintentar en el futuro
+        if (
+          err.code === "messaging/registration-token-not-registered" ||
+          err.code === "messaging/invalid-registration-token"
+        ) {
+          await db.collection("tokens_notificacion").doc(d.id).delete();
+        }
+      }
+    }));
+
+    return null;
+  });

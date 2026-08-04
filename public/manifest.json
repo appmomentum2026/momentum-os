@@ -20,6 +20,7 @@
   ],
   "start_url": ".",
   "display": "standalone",
+  "gcm_sender_id": "103953800507",
   "theme_color": "#141414",
   "background_color": "#141414",
   "description": "Momentum Studio OS — Gestion interna del estudio"

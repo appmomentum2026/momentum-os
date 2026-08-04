@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
 import { collection, addDoc, doc, setDoc, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { crearNotificacion } from './Notificaciones';
 
 const CATEGORIAS = ['Daño', 'Reemplazo', 'Falta', 'Problema tecnico'];
 
@@ -30,7 +31,7 @@ const s = {
   tabActiva: { background: 'var(--gold)', borderColor: 'var(--gold)', color: '#141414', fontWeight: 500 }
 };
 
-export default function Novedades({ rol }) {
+export default function Novedades({ rol, nombreMonitor }) {
   const [novedades, setNovedades] = useState([]);
   const [categoria, setCategoria] = useState('');
   const [descripcion, setDescripcion] = useState('');
@@ -50,12 +51,19 @@ export default function Novedades({ rol }) {
   const enviar = async () => {
     if (!categoria || !descripcion.trim()) return;
     setEnviando(true);
+    const descripcionLimpia = descripcion.trim();
     await addDoc(collection(db, 'novedades'), {
-      categoria, descripcion: descripcion.trim(),
+      categoria, descripcion: descripcionLimpia,
       fecha: new Date().toISOString(),
       hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
       dia: new Date().toLocaleDateString('es-CO'),
       resuelta: false
+    });
+    const resumen = descripcionLimpia.length > 60 ? `${descripcionLimpia.slice(0, 60)}…` : descripcionLimpia;
+    await crearNotificacion({
+      tipo: 'novedad',
+      mensaje: `${nombreMonitor || 'Un monitor'} reportó: ${resumen}`,
+      destinatarios: ['jefe', nombreMonitor]
     });
     setCategoria('');
     setDescripcion('');

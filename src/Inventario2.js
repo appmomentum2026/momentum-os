@@ -3,6 +3,7 @@ import { db } from './firebase';
 import { collection, doc, setDoc, onSnapshot, addDoc, deleteDoc } from 'firebase/firestore';
 import { storage } from './firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { crearNotificacion } from './Notificaciones';
 
 const CATEGORIAS = ['Lubricantes', 'Juguetes', 'Limpiadores', 'Otros'];
 const STOCK_MINIMO = 5;
@@ -100,7 +101,7 @@ const s = {
   graficoMarcaMinimo: { position: 'absolute', top: 0, bottom: 0, width: 2, background: 'var(--text)', opacity: 0.5 },
 };
 
-export default function Inventario2({ rol, nombreModelo }) {
+export default function Inventario2({ rol, nombreModelo, nombreMonitorModelo }) {
   const [productos, setProductos] = useState([]);
   const [modo, setModo] = useState(null);
   const [form, setForm] = useState({ nombre: '', categoria: '', precio: '', stock: '', costo: '' });
@@ -173,7 +174,7 @@ export default function Inventario2({ rol, nombreModelo }) {
   };
 
   const hacerPedido = async (producto, cuotas) => {
-    await addDoc(collection(db, 'pedidos'), {
+    const pedidoRef = await addDoc(collection(db, 'pedidos'), {
       producto: producto.nombre, productoId: producto.id, cantidad: 1,
       precio: producto.precio, cuotas,
       cuotasTotales: cuotas, cuotasPagadas: 0, quincenaInicio: quincenaIdActual(),
@@ -182,6 +183,12 @@ export default function Inventario2({ rol, nombreModelo }) {
       hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
     });
     // El stock se descuenta cuando el jefe aprueba el pedido (ver Pedidos.js), no al pedirlo
+    await crearNotificacion({
+      tipo: 'pedido',
+      mensaje: `${nombreModelo} solicitó ${producto.nombre}`,
+      destinatarios: [nombreMonitorModelo, 'jefe'],
+      extra: { pedidoId: pedidoRef.id }
+    });
     setPedidoEnviado(producto.nombre);
     setSeleccionando(null);
     setTimeout(() => setPedidoEnviado(null), 3000);
