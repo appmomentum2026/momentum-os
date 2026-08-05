@@ -217,7 +217,7 @@ function MapaHabitaciones({ rol }) {
 }
 
 
-function BottomBar({ principales, vista, setVista, masItems, notifState }) {
+function BottomBar({ principales, vista, setVista, masItems }) {
   const [masAbierto, setMasAbierto] = useState(false);
   const hayMas = masItems && masItems.length > 0;
 
@@ -256,14 +256,13 @@ function BottomBar({ principales, vista, setVista, masItems, notifState }) {
               <span>Más</span>
             </button>
           )}
-          {notifState && <Notificaciones notifState={notifState} variant="bottombar" />}
         </div>
       </div>
     </>
   );
 }
 
-function Sidebar({ items, vista, setVista, titulo, sub, icono, onLogout, temaOscuro, toggleTema, notifState }) {
+function Sidebar({ items, vista, setVista, titulo, sub, icono, onLogout, temaOscuro, toggleTema }) {
   return (
     <div className="nm-sidebar">
       <div className="nm-sidebar-header">
@@ -272,7 +271,6 @@ function Sidebar({ items, vista, setVista, titulo, sub, icono, onLogout, temaOsc
           <div className="nm-sidebar-title">{titulo}</div>
           <div className="nm-sidebar-sub">{sub}</div>
         </div>
-        {notifState && <Notificaciones notifState={notifState} variant="sidebar" />}
       </div>
       {items.map(item => (
         <button key={item.id}
@@ -308,11 +306,15 @@ function NavLayout({ todos, principales, masItems, vista, setVista, titulo, sub,
     <>
       {/* ESCRITORIO: sidebar */}
       <div className="nm-layout-desktop">
+        {notifStateActivo && (
+          <div className="nm-notif-fixed nm-notif-fixed-desktop">
+            <Notificaciones notifState={notifStateActivo} variant="desktop" />
+          </div>
+        )}
         <div className="nm-layout">
           <Sidebar items={todos} vista={vista} setVista={setVista}
             titulo={titulo} sub={sub} icono={icono}
-            onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema}
-            notifState={notifStateActivo} />
+            onLogout={onLogout} temaOscuro={temaOscuro} toggleTema={toggleTema} />
           <div className="nm-content">
             <div className="nm-section-label">{seccionLabel}</div>
             {children}
@@ -323,6 +325,11 @@ function NavLayout({ todos, principales, masItems, vista, setVista, titulo, sub,
 
       {/* MOVIL: barra inferior */}
       <div className="nm-layout-mobile">
+        {notifStateActivo && (
+          <div className="nm-notif-fixed nm-notif-fixed-mobile">
+            <Notificaciones notifState={notifStateActivo} variant="mobile" />
+          </div>
+        )}
         <div className="nm-wrap">
           <div className="nm-header">
             <div>
@@ -339,8 +346,7 @@ function NavLayout({ todos, principales, masItems, vista, setVista, titulo, sub,
           <div className="nm-section-label">{seccionLabel}</div>
           {children}
           <BottomBar vista={vista} setVista={setVista}
-            principales={principales} masItems={masItems}
-            notifState={notifStateActivo} />
+            principales={principales} masItems={masItems} />
         </div>
       </div>
     </>

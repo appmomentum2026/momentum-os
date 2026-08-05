@@ -520,6 +520,10 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
   .nm-bottom-btn { gap: 4px; padding: 6px 2px; }
   .nm-bottom-btn i { font-size: 17px; }
   .nm-bottom-btn span { font-size: 10px; letter-spacing: 0; }
+
+  /* Reserva espacio a la derecha del header para que el tema/salir no choquen
+     con la campana de notificaciones fija (top:12/right:16, 36px de ancho). */
+  .nm-header { padding-right: 56px; }
 }
 
 @media (max-width: 400px) {
@@ -686,6 +690,31 @@ body.claro .nm-card-elevated {
 @keyframes nm-toast-in {
   from { opacity: 0; transform: translateX(48px); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+/* ===== Panel de notificaciones (flotante, esquina superior derecha) ===== */
+@keyframes nm-notif-panel-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+.nm-notif-panel {
+  transform-origin: top right;
+  animation: nm-notif-panel-in 0.18s ease-out;
+}
+
+/* Campana de notificaciones: fija en la esquina superior derecha de la pantalla,
+   fuera del sidebar/header, siempre visible sobre el contenido. */
+.nm-notif-fixed {
+  position: fixed;
+  z-index: 100000;
+}
+.nm-notif-fixed-desktop {
+  top: 16px;
+  right: 20px;
+}
+.nm-notif-fixed-mobile {
+  top: 12px;
+  right: 16px;
 }
 
 .nm-toast-cerrar {

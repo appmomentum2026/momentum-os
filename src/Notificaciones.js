@@ -142,16 +142,21 @@ export function useNotificaciones(destinatario, onNuevaNotificacion) {
 }
 
 const s = {
-  btnBell: { position: 'relative', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-out)', color: 'var(--text-sub)', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, cursor: 'pointer', flexShrink: 0 },
+  // Botón circular: fondo sólido var(--bg2) (no el degradé de nm-card-elevated) + la
+  // clase nm-card-elevated aporta el borde dorado sutil y la sombra elevada.
+  btnBell: { position: 'relative', background: 'var(--bg2)', borderRadius: '50%', color: 'var(--text-sub)', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, cursor: 'pointer', flexShrink: 0, padding: 0 },
+  btnBellMobile: { width: 36, height: 36, fontSize: 16 },
   badge: { position: 'absolute', top: -4, right: -4, background: '#d85a30', color: '#fff', fontSize: 10, fontWeight: 700, minWidth: 16, height: 16, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', border: '2px solid var(--bg2)', lineHeight: 1 },
   // Estructura base del panel (posición se decide aparte según variant, ver panelPos*)
-  panelBase: { display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', zIndex: 1000 },
-  // Desktop (sidebar): la campana vive en un sidebar angosto (210px) pegado al borde
-  // izquierdo — anclar el panel con "right: 0" lo hace crecer hacia la izquierda y se
-  // sale de la pantalla. Se ancla con "left: 0" para que crezca hacia el contenido.
-  panelPosSidebar: { position: 'absolute', top: 'calc(100% + 8px)', left: 0, width: 340, maxWidth: 'calc(100vw - 32px)', maxHeight: 400 },
-  // Mobile (bottombar): fijo y centrado en el viewport, no depende de dónde caiga el botón
-  panelPosBottombar: { position: 'fixed', top: 76, left: '50%', transform: 'translateX(-50%)', width: 'calc(100vw - 32px)', maxWidth: 420, maxHeight: '70vh' },
+  // background sólido (no el degradé semitransparente de nm-card-elevated) + sombra fuerte
+  // + borde dorado sutil, para que el panel quede claramente "flotando" sobre el contenido.
+  panelBase: { display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', zIndex: 99999, background: 'var(--bg2)', borderRadius: 16, border: '1px solid var(--gold-dim)', boxShadow: '0 12px 40px rgba(0,0,0,0.8)' },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99998, border: 'none', padding: 0, cursor: 'default' },
+  // Desktop: la campana está fija en top:16/right:20 (40px) — el panel arranca justo
+  // debajo con el mismo borde derecho, para quedar alineado con ella.
+  panelPosDesktop: { position: 'fixed', top: 64, right: 20, width: 360, maxHeight: 'calc(100vh - 100px)' },
+  // Mobile: campana en top:12/right:16 (36px) — panel debajo, alineado al mismo borde.
+  panelPosMobile: { position: 'fixed', top: 56, right: 16, left: 16, width: 'auto', maxHeight: 'calc(100vh - 120px)' },
   panelHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 },
   panelTitulo: { color: 'var(--text)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' },
   btnMarcarTodas: { background: 'transparent', border: 'none', color: 'var(--gold)', fontSize: 11, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' },
@@ -164,10 +169,14 @@ const s = {
   btnLeida: { background: 'transparent', border: 'none', color: 'var(--text-sub)', fontSize: 11, cursor: 'pointer', padding: 0, marginTop: 6, textDecoration: 'underline' },
 };
 
-export default function Notificaciones({ notifState, variant = 'sidebar' }) {
+export default function Notificaciones({ notifState, variant = 'desktop' }) {
   const [abierto, setAbierto] = useState(false);
+  const [verHistorial, setVerHistorial] = useState(false);
   const ref = useRef(null);
   const { notificaciones, noLeidas, marcarLeida, marcarTodasLeidas } = notifState || { notificaciones: [], noLeidas: 0, marcarLeida: () => {}, marcarTodasLeidas: () => {} };
+  // Por defecto solo se muestran las no leídas; al marcar una como leída desaparece
+  // de la lista automáticamente. "Ver historial" las vuelve a mostrar todas.
+  const notificacionesMostradas = verHistorial ? notificaciones : notificaciones.filter(n => !n.leida);
 
   useEffect(() => {
     if (!abierto) return;
@@ -178,35 +187,44 @@ export default function Notificaciones({ notifState, variant = 'sidebar' }) {
 
   if (!notifState) return null;
 
+  const esMobile = variant === 'mobile';
+
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {variant === 'bottombar' ? (
-        <button type="button" className={`nm-bottom-btn${abierto ? ' activo' : ''}`} onClick={() => setAbierto(v => !v)} style={{ position: 'relative' }}>
-          <i className="ti ti-bell" aria-hidden="true"></i>
-          <span>Avisos</span>
-          {noLeidas > 0 && <span style={s.badge}>{noLeidas > 9 ? '9+' : noLeidas}</span>}
-        </button>
-      ) : (
-        <button type="button" style={s.btnBell} onClick={() => setAbierto(v => !v)} aria-label="Notificaciones">
-          <i className="ti ti-bell" aria-hidden="true"></i>
-          {noLeidas > 0 && <span style={s.badge}>{noLeidas > 9 ? '9+' : noLeidas}</span>}
-        </button>
-      )}
+      <button
+        type="button"
+        className="nm-card-elevated"
+        style={{ ...s.btnBell, ...(esMobile ? s.btnBellMobile : {}) }}
+        onClick={() => setAbierto(v => !v)}
+        aria-label="Notificaciones"
+      >
+        <i className="ti ti-bell" aria-hidden="true"></i>
+        {noLeidas > 0 && <span style={s.badge}>{noLeidas > 9 ? '9+' : noLeidas}</span>}
+      </button>
 
       {abierto && (
-        <div
-          className="nm-card-elevated"
-          style={{ ...s.panelBase, ...(variant === 'bottombar' ? s.panelPosBottombar : s.panelPosSidebar) }}
-        >
+        <>
+          <button type="button" aria-label="Cerrar notificaciones" style={s.overlay} onClick={() => setAbierto(false)} />
+          <div
+            className="nm-card-elevated nm-notif-panel"
+            style={{ ...s.panelBase, ...(esMobile ? s.panelPosMobile : s.panelPosDesktop) }}
+          >
           <div style={s.panelHeader}>
             <span style={s.panelTitulo}>Notificaciones</span>
-            {noLeidas > 0 && <button type="button" style={s.btnMarcarTodas} onClick={marcarTodasLeidas}>Marcar todas como leídas</button>}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <button type="button" style={s.btnMarcarTodas} onClick={() => setVerHistorial(v => !v)}>
+                {verHistorial ? 'Ver solo nuevas' : 'Ver historial'}
+              </button>
+              {!verHistorial && noLeidas > 0 && (
+                <button type="button" style={s.btnMarcarTodas} onClick={marcarTodasLeidas}>Marcar todas como leídas</button>
+              )}
+            </div>
           </div>
           <div style={s.panelBody}>
-            {notificaciones.length === 0 ? (
-              <div style={s.vacio}>No tienes notificaciones</div>
+            {notificacionesMostradas.length === 0 ? (
+              <div style={s.vacio}>{verHistorial ? 'No tienes notificaciones' : 'No tienes notificaciones nuevas'}</div>
             ) : (
-              notificaciones.map(n => (
+              notificacionesMostradas.map(n => (
                 <div key={n.id} style={{ ...s.item, opacity: n.leida ? 0.55 : 1 }}>
                   <div style={s.itemIcono}><i className={`ti ti-${ICONOS_TIPO[n.tipo] || 'bell'}`} aria-hidden="true"></i></div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -218,7 +236,8 @@ export default function Notificaciones({ notifState, variant = 'sidebar' }) {
               ))
             )}
           </div>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
