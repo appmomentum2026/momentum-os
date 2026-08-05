@@ -144,14 +144,22 @@ export function useNotificaciones(destinatario, onNuevaNotificacion) {
 const s = {
   btnBell: { position: 'relative', background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-out)', color: 'var(--text-sub)', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, cursor: 'pointer', flexShrink: 0 },
   badge: { position: 'absolute', top: -4, right: -4, background: '#d85a30', color: '#fff', fontSize: 10, fontWeight: 700, minWidth: 16, height: 16, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', border: '2px solid var(--bg2)', lineHeight: 1 },
-  panel: { position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 320, maxWidth: '85vw', maxHeight: 420, overflowY: 'auto', background: 'var(--bg2)', border: '1px solid rgba(201,146,74,0.15)', borderRadius: 14, boxShadow: '8px 8px 20px rgba(0,0,0,0.5), -4px -4px 12px rgba(255,255,255,0.03)', zIndex: 300 },
-  panelHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid var(--border)' },
+  // Estructura base del panel (posición se decide aparte según variant, ver panelPos*)
+  panelBase: { display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', zIndex: 1000 },
+  // Desktop (sidebar): la campana vive en un sidebar angosto (210px) pegado al borde
+  // izquierdo — anclar el panel con "right: 0" lo hace crecer hacia la izquierda y se
+  // sale de la pantalla. Se ancla con "left: 0" para que crezca hacia el contenido.
+  panelPosSidebar: { position: 'absolute', top: 'calc(100% + 8px)', left: 0, width: 340, maxWidth: 'calc(100vw - 32px)', maxHeight: 400 },
+  // Mobile (bottombar): fijo y centrado en el viewport, no depende de dónde caiga el botón
+  panelPosBottombar: { position: 'fixed', top: 76, left: '50%', transform: 'translateX(-50%)', width: 'calc(100vw - 32px)', maxWidth: 420, maxHeight: '70vh' },
+  panelHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 },
   panelTitulo: { color: 'var(--text)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' },
   btnMarcarTodas: { background: 'transparent', border: 'none', color: 'var(--gold)', fontSize: 11, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' },
+  panelBody: { overflowY: 'auto', flex: 1 },
   vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 30, fontSize: 12 },
-  item: { display: 'flex', gap: 10, padding: '12px 14px', borderBottom: '1px solid var(--border)', alignItems: 'flex-start' },
+  item: { display: 'flex', gap: 10, padding: '14px', borderBottom: '1px solid var(--border)', alignItems: 'flex-start' },
   itemIcono: { width: 32, height: 32, borderRadius: 16, background: 'var(--bg3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 14, flexShrink: 0 },
-  itemMensaje: { color: 'var(--text)', fontSize: 12, lineHeight: 1.4 },
+  itemMensaje: { color: 'var(--text)', fontSize: 12, lineHeight: 1.4, whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word' },
   itemTiempo: { color: 'var(--text-dim)', fontSize: 10, marginTop: 4 },
   btnLeida: { background: 'transparent', border: 'none', color: 'var(--text-sub)', fontSize: 11, cursor: 'pointer', padding: 0, marginTop: 6, textDecoration: 'underline' },
 };
@@ -186,25 +194,30 @@ export default function Notificaciones({ notifState, variant = 'sidebar' }) {
       )}
 
       {abierto && (
-        <div style={{ ...s.panel, ...(variant === 'bottombar' ? { top: 'auto', bottom: 'calc(100% + 10px)' } : {}) }}>
+        <div
+          className="nm-card-elevated"
+          style={{ ...s.panelBase, ...(variant === 'bottombar' ? s.panelPosBottombar : s.panelPosSidebar) }}
+        >
           <div style={s.panelHeader}>
             <span style={s.panelTitulo}>Notificaciones</span>
             {noLeidas > 0 && <button type="button" style={s.btnMarcarTodas} onClick={marcarTodasLeidas}>Marcar todas como leídas</button>}
           </div>
-          {notificaciones.length === 0 ? (
-            <div style={s.vacio}>No tienes notificaciones</div>
-          ) : (
-            notificaciones.map(n => (
-              <div key={n.id} style={{ ...s.item, opacity: n.leida ? 0.55 : 1 }}>
-                <div style={s.itemIcono}><i className={`ti ti-${ICONOS_TIPO[n.tipo] || 'bell'}`} aria-hidden="true"></i></div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={s.itemMensaje}>{n.mensaje}</div>
-                  <div style={s.itemTiempo}>{tiempoRelativo(n.fecha)}</div>
-                  {!n.leida && <button type="button" style={s.btnLeida} onClick={() => marcarLeida(n.id)}>Marcar como leída</button>}
+          <div style={s.panelBody}>
+            {notificaciones.length === 0 ? (
+              <div style={s.vacio}>No tienes notificaciones</div>
+            ) : (
+              notificaciones.map(n => (
+                <div key={n.id} style={{ ...s.item, opacity: n.leida ? 0.55 : 1 }}>
+                  <div style={s.itemIcono}><i className={`ti ti-${ICONOS_TIPO[n.tipo] || 'bell'}`} aria-hidden="true"></i></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={s.itemMensaje}>{n.mensaje}</div>
+                    <div style={s.itemTiempo}>{tiempoRelativo(n.fecha)}</div>
+                    {!n.leida && <button type="button" style={s.btnLeida} onClick={() => marcarLeida(n.id)}>Marcar como leída</button>}
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>

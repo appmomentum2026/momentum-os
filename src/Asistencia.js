@@ -16,13 +16,17 @@ const s = {
   select: { background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--gold)', padding: '7px 10px', fontSize: 12 },
   badge: { padding: '4px 12px', borderRadius: 20, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
   hora: { color: 'var(--text-dim)', fontSize: 12 },
-  vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 32, fontSize: 13 }
+  vacio: { color: 'var(--text-dim)', textAlign: 'center', padding: 32, fontSize: 13 },
+  fechaCard: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 },
+  fechaTexto: { color: 'var(--gold)', fontSize: 14, fontWeight: 700, textTransform: 'capitalize' }
 };
 
 export default function Asistencia({ rol, nombreMonitor, modelasMonitor }) {
   const [asistencia, setAsistencia] = useState({});
   const [modelosDB, setModelosDB] = useState([]);
   const hoy = new Date().toISOString().split('T')[0];
+  const fechaLegible = new Date(`${hoy}T00:00:00`).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  console.log('Asistencia: fecha usada para leer/guardar (YYYY-MM-DD):', hoy);
 
   useEffect(() => {
     const unsub1 = onSnapshot(collection(db, 'asistencia'), snap => {
@@ -64,6 +68,11 @@ export default function Asistencia({ rol, nombreMonitor, modelasMonitor }) {
   }
 
   return (
+    <div>
+      <div style={s.fechaCard} className="nm-card-elevated">
+        <i className="ti ti-calendar" style={{ color: 'var(--gold)', fontSize: 18 }} aria-hidden="true"></i>
+        <span style={s.fechaTexto}>Asistencia del {fechaLegible}</span>
+      </div>
     <table style={s.tabla}>
       <thead>
         <tr>
@@ -115,5 +124,6 @@ export default function Asistencia({ rol, nombreMonitor, modelasMonitor }) {
         })}
       </tbody>
     </table>
+    </div>
   );
 }
