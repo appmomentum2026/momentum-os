@@ -283,9 +283,11 @@ function NavLayout({ todos, vista, setVista, titulo, sub, icono, seccionLabel, o
 
       {/* MOVIL: drawer deslizable + botón hamburguesa (reemplaza la barra inferior) */}
       <div className="nm-layout-mobile">
-        <button type="button" className="nm-hamburguesa" onClick={() => setDrawerAbierto(true)} aria-label="Abrir menú">
-          <i className="ti ti-menu-2" aria-hidden="true"></i>
-        </button>
+        {!drawerAbierto && (
+          <button type="button" className="nm-hamburguesa" onClick={() => setDrawerAbierto(true)} aria-label="Abrir menú">
+            <i className="ti ti-menu-2" aria-hidden="true"></i>
+          </button>
+        )}
 
         {notifStateActivo && (
           <div className="nm-notif-fixed nm-notif-fixed-mobile">
