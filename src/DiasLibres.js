@@ -44,8 +44,21 @@ const ESTADO_COLOR = {
   rechazado: { bg: '#d85a3022', color: '#d85a30' }
 };
 
+// Foto redonda de la modelo (objectFit cover); si no tiene fotoURL, cae a la inicial del nombre.
+function Avatar({ fotoURL, nombre, size = 36 }) {
+  if (fotoURL) {
+    return <img src={fotoURL} alt={nombre} style={{ width: size, height: size, borderRadius: size / 2, objectFit: 'cover', border: '1px solid var(--border2)', flexShrink: 0 }} />;
+  }
+  return (
+    <div style={{ width: size, height: size, borderRadius: size / 2, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: Math.round(size * 0.4), fontWeight: 600, flexShrink: 0 }}>
+      {(nombre || '?').charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
 export function DiasLibresModelo({ nombreModelo }) {
   const [solicitud, setSolicitud] = useState(null);
+  const [fotoURL, setFotoURL] = useState('');
   const [fecha1, setFecha1] = useState('');
   const [fecha2, setFecha2] = useState('');
   const [enviado, setEnviado] = useState(false);
@@ -62,6 +75,15 @@ export function DiasLibresModelo({ nombreModelo }) {
     });
     return unsub;
   }, [id]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'modelos'), snap => {
+      let encontrada = '';
+      snap.forEach(d => { if (d.data().nombreReal === nombreModelo) encontrada = d.data().fotoURL || ''; });
+      setFotoURL(encontrada);
+    });
+    return unsub;
+  }, [nombreModelo]);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'diasLibres'), snap => {
@@ -103,7 +125,7 @@ export function DiasLibresModelo({ nombreModelo }) {
 
         {bloqueado ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>👤</div>
+            <Avatar fotoURL={fotoURL} nombre={nombreModelo} size={40} />
             <div style={{ flex: 1 }}>
               <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>{nombreModelo}</div>
               <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 2 }}>{solicitud.fecha1}{solicitud.fecha2 ? ` — ${solicitud.fecha2}` : ''}</div>
@@ -158,9 +180,20 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
   const [fecha1, setFecha1] = useState('');
   const [fecha2, setFecha2] = useState('');
   const [enviado, setEnviado] = useState(false);
+  const [modelosDB, setModelosDB] = useState([]);
   const quincena = QUINCENA_ACTUAL();
   const idMonitor = `monitor_${nombreMonitor}_${quincena}`;
   const bloqueado = miSolicitud?.estado === 'aprobado';
+  const fotoDeModelo = (nombre) => modelosDB.find(m => m.nombreReal === nombre)?.fotoURL || '';
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'modelos'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setModelosDB(data);
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     const unsub1 = onSnapshot(doc(db, 'diasLibres', idMonitor), snap => {
@@ -278,7 +311,7 @@ export function DiasLibresMonitor({ nombreMonitor, modelasMonitor }) {
             const solBloqueada = sol.estado === 'aprobado';
             return (
               <div key={sol.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 6px', borderBottom: '1px solid var(--border)', ...(solBloqueada ? s.filaAprobada : {}) }}>
-                <div style={{ width: 36, height: 36, borderRadius: 18, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 14, flexShrink: 0 }}>👤</div>
+                <Avatar fotoURL={fotoDeModelo(sol.modelo)} nombre={sol.modelo} size={36} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ color: 'var(--text)', fontSize: 12, fontWeight: 500 }}>{sol.modelo}</div>
                   <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>{sol.fecha1}{sol.fecha2 ? ` — ${sol.fecha2}` : ''}</div>
@@ -342,6 +375,7 @@ export function DiasLibresJefe() {
     const m = modelosDB.find(m => m.nombreReal === nombre);
     return m?.turno || 'Sin turno';
   };
+  const fotoDeModelo = (nombre) => modelosDB.find(m => m.nombreReal === nombre)?.fotoURL || '';
 
   const cambiarEstado = async (sol, estado) => {
     await setDoc(doc(db, 'diasLibres', sol.id), { ...sol, estado });
@@ -378,7 +412,7 @@ export function DiasLibresJefe() {
     const ec = ESTADO_COLOR[sol.estado] || ESTADO_COLOR.pendiente;
     return (
       <div key={sol.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ width: 36, height: 36, borderRadius: 18, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 14, flexShrink: 0 }}>👤</div>
+        <Avatar fotoURL={fotoDeModelo(sol.modelo)} nombre={sol.modelo} size={36} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: 'var(--text)', fontSize: 12, fontWeight: 500 }}>{sol.modelo}</div>
           <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>{sol.fecha1}{sol.fecha2 ? ` — ${sol.fecha2}` : ''}</div>

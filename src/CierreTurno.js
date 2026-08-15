@@ -178,6 +178,17 @@ function VistaJefe({ cierres }) {
   const hoy = new Date().toLocaleDateString('es-CO');
   const [fechaSel, setFechaSel] = useState(fechasDisponibles.includes(hoy) ? hoy : (fechasDisponibles[0] || hoy));
   const [turnoDetalle, setTurnoDetalle] = useState(null);
+  const [modelosDB, setModelosDB] = useState([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'modelos'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setModelosDB(data);
+    });
+    return unsub;
+  }, []);
+  const fotoDeModelo = (nombre) => modelosDB.find(md => md.nombreReal === nombre)?.fotoURL || '';
 
   const cierresDia = cierres.filter(c => c.dia === fechaSel);
 
@@ -281,7 +292,10 @@ function VistaJefe({ cierres }) {
                   return (
                     <div key={m.nombre + i} style={{ padding: '10px 18px', borderBottom: i < modelos.length - 1 ? '1px solid var(--border)' : 'none' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: platsActivas.length > 0 ? 6 : 0 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 16, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>👤</div>
+                        {fotoDeModelo(m.nombre)
+                          ? <img src={fotoDeModelo(m.nombre)} alt={m.nombre} style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover', border: '1px solid var(--border2)', flexShrink: 0 }} />
+                          : <div style={{ width: 32, height: 32, borderRadius: 16, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>{(m.nombre || '?').charAt(0).toUpperCase()}</div>
+                        }
                         <div style={{ flex: 1 }}>
                           <div style={{ color: 'var(--text)', fontSize: 12, fontWeight: 500 }}>{m.nombre}</div>
                           {platsActivas.length > 0 && <div style={{ color: 'var(--text-sub)', fontSize: 10 }}>{platsActivas[0]}</div>}

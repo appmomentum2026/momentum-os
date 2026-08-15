@@ -69,6 +69,11 @@ const s = {
   credBox: { background: 'var(--bg)', borderRadius: 10, padding: '8px 12px', boxShadow: 'var(--shadow-in)', marginBottom: 12 },
   credTit: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
   credLinea: { color: 'var(--text)', fontSize: 12, marginTop: 2 },
+  cabecera: { display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' },
+  btnVerMas: { background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, padding: 4, marginLeft: 'auto' },
+  btnVerMasTxt: { fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--text-sub)' },
+  chevron: { color: 'var(--gold)', fontSize: 16, transition: 'transform 0.25s ease' },
+  panelExpand: { overflow: 'hidden', transition: 'max-height 0.35s ease' },
   guardadoOverlay: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', borderRadius: 16, zIndex: 10, pointerEvents: 'none' },
   guardadoBox: { display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid #4CAF7D', borderRadius: 12, padding: '10px 18px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', color: '#4CAF7D', fontSize: 14, fontWeight: 700 },
 };
@@ -257,6 +262,7 @@ export default function GestionModelos() {
   const [busqueda, setBusqueda] = useState('');
   const [filtroMonitor, setFiltroMonitor] = useState({});
   const [vistaRetiradas, setVistaRetiradas] = useState(false);
+  const [expandidas, setExpandidas] = useState(new Set());
   const [editando, setEditando] = useState(null);
   const [cerrandoEdicion, setCerrandoEdicion] = useState(null);
   const [guardadoOkId, setGuardadoOkId] = useState(null);
@@ -504,6 +510,14 @@ export default function GestionModelos() {
     }
   };
 
+  const toggleExpandir = (id) => {
+    setExpandidas(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const seleccionarMonitor = (nombre) => {
     const m = MONITORES_LISTA.find(m => m.nombre === nombre);
     setForm(prev => ({ ...prev, monitor: nombre, turno: m?.turno || '' }));
@@ -650,9 +664,11 @@ export default function GestionModelos() {
                       onGuardar={guardarEdicion}
                       onCancelar={() => { setEditando(null); setPaginasEdit([]); setFotoFileEdit(null); setFotoPreviewEdit(null); }}
                     />
-                  ) : (
+                  ) : (() => {
+                    const expandida = expandidas.has(m.id);
+                    return (
                     <>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+                      <div style={s.cabecera} onClick={() => toggleExpandir(m.id)}>
                         <div style={{ position: 'relative', flexShrink: 0 }}>
                           {m.fotoURL
                             ? <img src={m.fotoURL} alt={m.nombreReal} style={{ width: 48, height: 48, borderRadius: 24, objectFit: 'cover', border: '1px solid var(--border2)' }} />
@@ -665,42 +681,53 @@ export default function GestionModelos() {
                           <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>{m.nombreModelo ? `${m.nombreModelo} · ` : ''}{m.monitor}</div>
                           <span style={{ display: 'inline-block', marginTop: 6, background: 'rgba(201,146,74,0.15)', color: 'var(--gold)', fontSize: 10, padding: '2px 10px', borderRadius: 20, fontWeight: 500 }}>{m.turno}</span>
                         </div>
+                        <button type="button" style={s.btnVerMas} onClick={e => { e.stopPropagation(); toggleExpandir(m.id); }}>
+                          <span style={s.btnVerMasTxt}>{expandida ? 'Ver menos' : 'Ver más'}</span>
+                          <i className="ti ti-chevron-down" style={{ ...s.chevron, transform: expandida ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                        </button>
                       </div>
-                      <div style={{ background: 'var(--bg)', borderRadius: 10, padding: '8px 12px', boxShadow: 'var(--shadow-in)', marginBottom: 12 }}>
-                        <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>Clave de acceso</div>
-                        {m.claveVisible
-                          ? <div style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 600 }}>{m.claveVisible}</div>
-                          : <div style={{ color: 'var(--text-sub)', fontSize: 13, fontWeight: 600 }}>Sin asignar</div>
-                        }
+
+                      <div style={{ ...s.panelExpand, maxHeight: expandida ? 600 : 0 }}>
+                        <div style={{ paddingTop: 12 }}>
+                          <div style={{ background: 'var(--bg)', borderRadius: 10, padding: '8px 12px', boxShadow: 'var(--shadow-in)', marginBottom: 12 }}>
+                            <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>Clave de acceso</div>
+                            {m.claveVisible
+                              ? <div style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 600 }}>{m.claveVisible}</div>
+                              : <div style={{ color: 'var(--text-sub)', fontSize: 13, fontWeight: 600 }}>Sin asignar</div>
+                            }
+                          </div>
+                          {(m.lovenseCorreo || m.lovenseClave || m.lovense) && (
+                            <div style={s.credBox}>
+                              <div style={s.credTit}>Lovense</div>
+                              {(m.lovenseCorreo || m.lovenseClave) ? (
+                                <>
+                                  {m.lovenseCorreo && <div style={s.credLinea}>✉ {m.lovenseCorreo}</div>}
+                                  {m.lovenseClave && <div style={s.credLinea}>🔑 {m.lovenseClave}</div>}
+                                </>
+                              ) : <div style={s.credLinea}>{m.lovense}</div>}
+                            </div>
+                          )}
+                          {(m.amazonCorreo || m.amazonClave || m.amazon) && (
+                            <div style={s.credBox}>
+                              <div style={s.credTit}>Amazon</div>
+                              {(m.amazonCorreo || m.amazonClave) ? (
+                                <>
+                                  {m.amazonCorreo && <div style={s.credLinea}>✉ {m.amazonCorreo}</div>}
+                                  {m.amazonClave && <div style={s.credLinea}>🔑 {m.amazonClave}</div>}
+                                </>
+                              ) : <div style={s.credLinea}>{m.amazon}</div>}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      {(m.lovenseCorreo || m.lovenseClave || m.lovense) && (
-                        <div style={s.credBox}>
-                          <div style={s.credTit}>Lovense</div>
-                          {(m.lovenseCorreo || m.lovenseClave) ? (
-                            <>
-                              {m.lovenseCorreo && <div style={s.credLinea}>✉ {m.lovenseCorreo}</div>}
-                              {m.lovenseClave && <div style={s.credLinea}>🔑 {m.lovenseClave}</div>}
-                            </>
-                          ) : <div style={s.credLinea}>{m.lovense}</div>}
-                        </div>
-                      )}
-                      {(m.amazonCorreo || m.amazonClave || m.amazon) && (
-                        <div style={s.credBox}>
-                          <div style={s.credTit}>Amazon</div>
-                          {(m.amazonCorreo || m.amazonClave) ? (
-                            <>
-                              {m.amazonCorreo && <div style={s.credLinea}>✉ {m.amazonCorreo}</div>}
-                              {m.amazonClave && <div style={s.credLinea}>🔑 {m.amazonClave}</div>}
-                            </>
-                          ) : <div style={s.credLinea}>{m.amazon}</div>}
-                        </div>
-                      )}
+
                       <div style={{ display: 'flex', gap: 8, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
                         <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '7px 12px', fontSize: 12, cursor: 'pointer' }} onClick={() => editar(m)}>✎ Editar</button>
                         <button style={{ flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 8, boxShadow: 'var(--shadow-out)', color: '#d85a30', padding: '7px 12px', fontSize: 12, cursor: 'pointer' }} onClick={() => setConfirmEliminar(m.id)}>Retirar</button>
                       </div>
                     </>
-                  )}
+                    );
+                  })()}
                 </div>
                 {guardadoOkId === m.id && (
                   <div className="nm-guardado-badge" style={s.guardadoOverlay}>

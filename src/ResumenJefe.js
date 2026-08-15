@@ -254,7 +254,12 @@ export default function ResumenJefe() {
                 return (
                   <div key={m.nombre} className="nm-card-elevated">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 18, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 16, flexShrink: 0 }}>👤</div>
+                      {(() => {
+                        const fotoURL = modelosDB.find(md => md.nombreReal === m.nombre)?.fotoURL || '';
+                        return fotoURL
+                          ? <img src={fotoURL} alt={m.nombre} style={{ width: 36, height: 36, borderRadius: 18, objectFit: 'cover', border: '1px solid var(--border2)', flexShrink: 0 }} />
+                          : <div style={{ width: 36, height: 36, borderRadius: 18, background: 'var(--bg3)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 16, flexShrink: 0 }}>{(m.nombre || '?').charAt(0).toUpperCase()}</div>;
+                      })()}
                       <div style={{ flex: 1 }}>
                         <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>{m.nombre}</div>
                       </div>
