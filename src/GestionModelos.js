@@ -17,13 +17,21 @@ const MONITORES_LISTA = [
 const FORM_VACIO = {
   nombreReal: '', nombreModelo: '', cedula: '', monitor: '', turno: '', habitacion: '',
   nacimiento: '', fechaInicio: '', contacto: '', direccion: '', correo: '',
-  cuentaBancaria: '', entidadBancaria: '', locker: '', contrato: '', clave: '',
+  cuentaBancaria: '', entidadBancaria: '', lockers: [], contrato: '', clave: '',
   correoTrabajo: '', claveCorreoTrabajo: '',
   chaturbateUser: '', chaturbatePass: '', chaturbateLink: '',
   camsodaUser: '', camsodaPass: '', camsodaLink: '',
   stripchatUser: '', stripchatPass: '', stripchatLink: '',
-  lovense: '', amazon: ''
+  lovenseCorreo: '', lovenseClave: '', amazonCorreo: '', amazonClave: ''
 };
+
+// Compatibilidad: modelos viejas guardaban un solo "locker"; las nuevas guardan
+// "lockers" (array). Si existe el array se usa ese; si no, se envuelve el valor viejo.
+function lockersDeModelo(modelo) {
+  if (Array.isArray(modelo.lockers)) return modelo.lockers;
+  if (modelo.locker) return [modelo.locker];
+  return [];
+}
 
 const TURNO_ICONO = { 'Manana': '🌅', 'Tarde': '☀️', 'Noche': '🌙' };
 
@@ -54,15 +62,43 @@ const s = {
   fotoImg: { width: 96, height: 96, borderRadius: 48, objectFit: 'cover', border: '2px solid var(--gold)', boxShadow: 'var(--shadow-out)' },
   fotoPlaceholder: { width: 96, height: 96, borderRadius: 48, background: 'var(--bg3)', border: '2px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 32 },
   fotoBtn: { background: 'var(--bg)', boxShadow: 'var(--shadow-out)', borderRadius: 8, color: 'var(--gold)', padding: '6px 14px', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', display: 'inline-block' },
+  lockerRow: { display: 'flex', gap: 8, marginBottom: 8 },
+  btnAddLocker: { background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', width: 42, fontSize: 18, fontWeight: 700, cursor: 'pointer', flexShrink: 0 },
+  chip: { display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg)', boxShadow: 'var(--shadow-out)', borderRadius: 20, padding: '5px 8px 5px 12px', fontSize: 12, color: 'var(--gold)', fontWeight: 600 },
+  chipRemove: { background: 'transparent', border: 'none', color: 'var(--text-sub)', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 2 },
+  credBox: { background: 'var(--bg)', borderRadius: 10, padding: '8px 12px', boxShadow: 'var(--shadow-in)', marginBottom: 12 },
+  credTit: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
+  credLinea: { color: 'var(--text)', fontSize: 12, marginTop: 2 },
+  guardadoOverlay: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', borderRadius: 16, zIndex: 10, pointerEvents: 'none' },
+  guardadoBox: { display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid #4CAF7D', borderRadius: 12, padding: '10px 18px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', color: '#4CAF7D', fontSize: 14, fontWeight: 700 },
 };
 
 function FormularioModelo({ values, setValues, tab, setTab, fotoPreview, fotoURLActual, onFotoChange, paginas, setPaginas, onMonitorChange, onGuardar, onCancelar }) {
+  const [lockerInput, setLockerInput] = useState('');
+
   const campo = (label, key, extra = {}) => (
     <div>
       <label style={s.label}>{label}</label>
       <input style={s.input} value={values[key] || ''} onChange={e => setValues(prev => ({ ...prev, [key]: e.target.value }))} {...extra} />
     </div>
   );
+
+  const agregarLocker = () => {
+    const val = lockerInput.trim();
+    if (!val) return;
+    const num = Number(val);
+    const lockerVal = val !== '' && Number.isFinite(num) ? num : val;
+    setValues(prev => {
+      const actuales = prev.lockers || [];
+      if (actuales.some(l => String(l) === String(lockerVal))) return prev; // sin duplicados
+      return { ...prev, lockers: [...actuales, lockerVal] };
+    });
+    setLockerInput('');
+  };
+
+  const quitarLocker = (i) => {
+    setValues(prev => ({ ...prev, lockers: (prev.lockers || []).filter((_, idx) => idx !== i) }));
+  };
 
   return (
     <>
@@ -112,7 +148,28 @@ function FormularioModelo({ values, setValues, tab, setTab, fotoPreview, fotoURL
           {campo('Correo personal', 'correo', { type: 'email' })}
           {campo('Cuenta bancaria', 'cuentaBancaria')}
           {campo('Entidad bancaria', 'entidadBancaria')}
-          {campo('Número de locker', 'locker')}
+          <div>
+            <label style={s.label}>Lockers asignados</label>
+            <div style={s.lockerRow}>
+              <input
+                style={{ ...s.input, marginBottom: 0, flex: 1 }}
+                type="number"
+                placeholder="Número de locker"
+                value={lockerInput}
+                onChange={e => setLockerInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregarLocker(); } }}
+              />
+              <button type="button" style={s.btnAddLocker} onClick={agregarLocker}>+</button>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+              {(values.lockers || []).map((n, i) => (
+                <span key={i} style={s.chip}>
+                  {n}
+                  <button type="button" style={s.chipRemove} onClick={() => quitarLocker(i)}>✕</button>
+                </span>
+              ))}
+            </div>
+          </div>
           <div>
             <label style={s.label}>Contrato</label>
             <select style={s.select} value={values.contrato || ''} onChange={e => setValues(prev => ({ ...prev, contrato: e.target.value }))}>
@@ -153,10 +210,16 @@ function FormularioModelo({ values, setValues, tab, setTab, fotoPreview, fotoURL
           </div>
           {campo('Link', 'stripchatLink')}
 
-          <div style={s.secTit}>Otros accesos</div>
+          <div style={s.secTit}>Lovense</div>
           <div className="nm-form-grid2">
-            {campo('Accesos Lovense', 'lovense')}
-            {campo('Accesos Amazon', 'amazon')}
+            {campo('Correo', 'lovenseCorreo', { type: 'email' })}
+            {campo('Contraseña', 'lovenseClave')}
+          </div>
+
+          <div style={s.secTit}>Amazon</div>
+          <div className="nm-form-grid2">
+            {campo('Correo', 'amazonCorreo', { type: 'email' })}
+            {campo('Contraseña', 'amazonClave')}
           </div>
 
           <label style={s.label}>Otras plataformas</label>
@@ -195,6 +258,8 @@ export default function GestionModelos() {
   const [filtroMonitor, setFiltroMonitor] = useState({});
   const [vistaRetiradas, setVistaRetiradas] = useState(false);
   const [editando, setEditando] = useState(null);
+  const [cerrandoEdicion, setCerrandoEdicion] = useState(null);
+  const [guardadoOkId, setGuardadoOkId] = useState(null);
   const [formEdit, setFormEdit] = useState(FORM_VACIO);
   const [tabFormEdit, setTabFormEdit] = useState('personal');
   const [paginasEdit, setPaginasEdit] = useState([]);
@@ -246,7 +311,7 @@ export default function GestionModelos() {
         correo: form.correo || '',
         cuentaBancaria: form.cuentaBancaria || '',
         entidadBancaria: form.entidadBancaria || '',
-        locker: form.locker || '',
+        lockers: form.lockers || [],
         contrato: form.contrato || '',
         correoTrabajo: form.correoTrabajo || '',
         claveCorreoTrabajo: form.claveCorreoTrabajo || '',
@@ -259,8 +324,10 @@ export default function GestionModelos() {
         stripchatUser: form.stripchatUser || '',
         stripchatPass: form.stripchatPass || '',
         stripchatLink: form.stripchatLink || '',
-        lovense: form.lovense || '',
-        amazon: form.amazon || '',
+        lovenseCorreo: form.lovenseCorreo || '',
+        lovenseClave: form.lovenseClave || '',
+        amazonCorreo: form.amazonCorreo || '',
+        amazonClave: form.amazonClave || '',
         paginas: paginas,
         fotoURL: fotoURL,
         claveVisible: form.clave || ''
@@ -281,78 +348,98 @@ export default function GestionModelos() {
   const guardarEdicion = async () => {
     if (!formEdit.nombreReal || !formEdit.monitor) return;
     const id = editando;
-    let fotoURL = formEdit.fotoURL || '';
-    if (fotoFileEdit) {
+    // Se capturan en variables locales antes de cerrar el formulario: el cierre es
+    // inmediato (no espera al guardado async) y por lo tanto ya resetea formEdit/paginasEdit,
+    // así que el resto de esta función no puede seguir leyendo esos estados.
+    const datosForm = formEdit;
+    const paginasForm = paginasEdit;
+    const fotoFileForm = fotoFileEdit;
+    const modeloActual = modelos.find(m => m.id === editando);
+
+    // Cierre inmediato: el formulario se anima hacia afuera (fade-out/slide-up, ver
+    // .nm-form-cerrando en App.css) y la tarjeta vuelve a modo lectura ya mismo, sin
+    // esperar la respuesta de Firestore.
+    setCerrandoEdicion(id);
+    setTimeout(() => {
+      setEditando(null);
+      setFormEdit(FORM_VACIO);
+      setTabFormEdit('personal');
+      setPaginasEdit([]);
+      setFotoFileEdit(null);
+      setFotoPreviewEdit(null);
+      setCerrandoEdicion(null);
+    }, 200);
+
+    let fotoURL = datosForm.fotoURL || '';
+    if (fotoFileForm) {
       const storageRef = ref(storage, `fotos/${id}`);
-      await uploadBytes(storageRef, fotoFileEdit);
+      await uploadBytes(storageRef, fotoFileForm);
       fotoURL = await getDownloadURL(storageRef);
     }
-    const modeloActual = modelos.find(m => m.id === editando);
 
     const guardarUsuario = httpsCallable(functions, 'guardarUsuario');
     await guardarUsuario({
       coleccion: 'modelos',
       id: id,
-      clave: formEdit.clave || '',
+      clave: datosForm.clave || '',
       datos: {
-        nombreReal: formEdit.nombreReal,
-        nombreModelo: formEdit.nombreModelo,
-        cedula: formEdit.cedula || '',
-        monitor: formEdit.monitor,
-        turno: formEdit.turno,
+        nombreReal: datosForm.nombreReal,
+        nombreModelo: datosForm.nombreModelo,
+        cedula: datosForm.cedula || '',
+        monitor: datosForm.monitor,
+        turno: datosForm.turno,
         activa: true,
-        habitacion: formEdit.habitacion || '',
-        nacimiento: formEdit.nacimiento || '',
-        fechaInicio: formEdit.fechaInicio || '',
-        contacto: formEdit.contacto || '',
-        direccion: formEdit.direccion || '',
-        correo: formEdit.correo || '',
-        cuentaBancaria: formEdit.cuentaBancaria || '',
-        entidadBancaria: formEdit.entidadBancaria || '',
-        locker: formEdit.locker || '',
-        contrato: formEdit.contrato || '',
-        correoTrabajo: formEdit.correoTrabajo || '',
-        claveCorreoTrabajo: formEdit.claveCorreoTrabajo || '',
-        chaturbateUser: formEdit.chaturbateUser || '',
-        chaturbatePass: formEdit.chaturbatePass || '',
-        chaturbateLink: formEdit.chaturbateLink || '',
-        camsodaUser: formEdit.camsodaUser || '',
-        camsodaPass: formEdit.camsodaPass || '',
-        camsodaLink: formEdit.camsodaLink || '',
-        stripchatUser: formEdit.stripchatUser || '',
-        stripchatPass: formEdit.stripchatPass || '',
-        stripchatLink: formEdit.stripchatLink || '',
-        lovense: formEdit.lovense || '',
-        amazon: formEdit.amazon || '',
-        paginas: paginasEdit,
+        habitacion: datosForm.habitacion || '',
+        nacimiento: datosForm.nacimiento || '',
+        fechaInicio: datosForm.fechaInicio || '',
+        contacto: datosForm.contacto || '',
+        direccion: datosForm.direccion || '',
+        correo: datosForm.correo || '',
+        cuentaBancaria: datosForm.cuentaBancaria || '',
+        entidadBancaria: datosForm.entidadBancaria || '',
+        lockers: datosForm.lockers || [],
+        contrato: datosForm.contrato || '',
+        correoTrabajo: datosForm.correoTrabajo || '',
+        claveCorreoTrabajo: datosForm.claveCorreoTrabajo || '',
+        chaturbateUser: datosForm.chaturbateUser || '',
+        chaturbatePass: datosForm.chaturbatePass || '',
+        chaturbateLink: datosForm.chaturbateLink || '',
+        camsodaUser: datosForm.camsodaUser || '',
+        camsodaPass: datosForm.camsodaPass || '',
+        camsodaLink: datosForm.camsodaLink || '',
+        stripchatUser: datosForm.stripchatUser || '',
+        stripchatPass: datosForm.stripchatPass || '',
+        stripchatLink: datosForm.stripchatLink || '',
+        lovenseCorreo: datosForm.lovenseCorreo || '',
+        lovenseClave: datosForm.lovenseClave || '',
+        amazonCorreo: datosForm.amazonCorreo || '',
+        amazonClave: datosForm.amazonClave || '',
+        paginas: paginasForm,
         fotoURL: fotoURL,
-        claveVisible: formEdit.clave || ''
+        claveVisible: datosForm.clave || ''
       }
     });
-
-    setEditando(null);
-    setFormEdit(FORM_VACIO);
-    setTabFormEdit('personal');
-    setPaginasEdit([]);
-    setFotoFileEdit(null);
-    setFotoPreviewEdit(null);
 
     if (modeloActual) {
       const oldMonitor = modeloActual.monitor;
       const oldNombreReal = modeloActual.nombreReal;
-      if (oldMonitor !== formEdit.monitor) {
+      if (oldMonitor !== datosForm.monitor) {
         const oldMon = monitores.find(m => m.nombre === oldMonitor);
         if (oldMon) await updateDoc(doc(db, 'monitores', oldMon.id), { modelas: arrayRemove(oldNombreReal) });
-        const newMon = monitores.find(m => m.nombre === formEdit.monitor);
-        if (newMon) await updateDoc(doc(db, 'monitores', newMon.id), { modelas: arrayUnion(formEdit.nombreReal) });
-      } else if (oldNombreReal !== formEdit.nombreReal) {
-        const monDoc = monitores.find(m => m.nombre === formEdit.monitor);
+        const newMon = monitores.find(m => m.nombre === datosForm.monitor);
+        if (newMon) await updateDoc(doc(db, 'monitores', newMon.id), { modelas: arrayUnion(datosForm.nombreReal) });
+      } else if (oldNombreReal !== datosForm.nombreReal) {
+        const monDoc = monitores.find(m => m.nombre === datosForm.monitor);
         if (monDoc) {
           await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayRemove(oldNombreReal) });
-          await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayUnion(formEdit.nombreReal) });
+          await updateDoc(doc(db, 'monitores', monDoc.id), { modelas: arrayUnion(datosForm.nombreReal) });
         }
       }
     }
+
+    // Confirmación visual: check verde "Guardado ✓" sobre la tarjeta, se desvanece solo en 1.5s
+    setGuardadoOkId(id);
+    setTimeout(() => setGuardadoOkId(prev => (prev === id ? null : prev)), 1500);
   };
 
   const editar = (modelo) => {
@@ -374,7 +461,7 @@ export default function GestionModelos() {
       correo: modelo.correo || '',
       cuentaBancaria: modelo.cuentaBancaria || '',
       entidadBancaria: modelo.entidadBancaria || '',
-      locker: modelo.locker || '',
+      lockers: lockersDeModelo(modelo),
       contrato: modelo.contrato || '',
       correoTrabajo: modelo.correoTrabajo || '',
       claveCorreoTrabajo: modelo.claveCorreoTrabajo || '',
@@ -387,8 +474,10 @@ export default function GestionModelos() {
       stripchatUser: modelo.stripchatUser || '',
       stripchatPass: modelo.stripchatPass || '',
       stripchatLink: modelo.stripchatLink || '',
-      lovense: modelo.lovense || '',
-      amazon: modelo.amazon || '',
+      lovenseCorreo: modelo.lovenseCorreo || '',
+      lovenseClave: modelo.lovenseClave || '',
+      amazonCorreo: modelo.amazonCorreo || '',
+      amazonClave: modelo.amazonClave || '',
       fotoURL: modelo.fotoURL || ''
     });
     setFotoFileEdit(null);
@@ -544,8 +633,8 @@ export default function GestionModelos() {
             </div>
             <div className={vistaGrid ? 'nm-grid-cards' : ''} style={!vistaGrid ? { display: 'flex', flexDirection: 'column', gap: 10 } : {}}>
             {modelosTurno.map(m => (
-              <div key={m.id}>
-                <div className={`nm-card-elevated${editando === m.id ? ' nm-form-inline' : ''}`}>
+              <div key={m.id} style={{ position: 'relative' }}>
+                <div className={`nm-card-elevated${editando === m.id ? (cerrandoEdicion === m.id ? ' nm-form-cerrando' : ' nm-form-inline') : ''}`}>
                   {editando === m.id ? (
                     <FormularioModelo
                       values={formEdit}
@@ -577,10 +666,33 @@ export default function GestionModelos() {
                           <span style={{ display: 'inline-block', marginTop: 6, background: 'rgba(201,146,74,0.15)', color: 'var(--gold)', fontSize: 10, padding: '2px 10px', borderRadius: 20, fontWeight: 500 }}>{m.turno}</span>
                         </div>
                       </div>
-                      {m.claveVisible && (
-                        <div style={{ background: 'var(--bg)', borderRadius: 10, padding: '8px 12px', boxShadow: 'var(--shadow-in)', marginBottom: 12 }}>
-                          <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>Clave de acceso</div>
-                          <div style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 600 }}>{m.claveVisible}</div>
+                      <div style={{ background: 'var(--bg)', borderRadius: 10, padding: '8px 12px', boxShadow: 'var(--shadow-in)', marginBottom: 12 }}>
+                        <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>Clave de acceso</div>
+                        {m.claveVisible
+                          ? <div style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 600 }}>{m.claveVisible}</div>
+                          : <div style={{ color: 'var(--text-sub)', fontSize: 13, fontWeight: 600 }}>Sin asignar</div>
+                        }
+                      </div>
+                      {(m.lovenseCorreo || m.lovenseClave || m.lovense) && (
+                        <div style={s.credBox}>
+                          <div style={s.credTit}>Lovense</div>
+                          {(m.lovenseCorreo || m.lovenseClave) ? (
+                            <>
+                              {m.lovenseCorreo && <div style={s.credLinea}>✉ {m.lovenseCorreo}</div>}
+                              {m.lovenseClave && <div style={s.credLinea}>🔑 {m.lovenseClave}</div>}
+                            </>
+                          ) : <div style={s.credLinea}>{m.lovense}</div>}
+                        </div>
+                      )}
+                      {(m.amazonCorreo || m.amazonClave || m.amazon) && (
+                        <div style={s.credBox}>
+                          <div style={s.credTit}>Amazon</div>
+                          {(m.amazonCorreo || m.amazonClave) ? (
+                            <>
+                              {m.amazonCorreo && <div style={s.credLinea}>✉ {m.amazonCorreo}</div>}
+                              {m.amazonClave && <div style={s.credLinea}>🔑 {m.amazonClave}</div>}
+                            </>
+                          ) : <div style={s.credLinea}>{m.amazon}</div>}
                         </div>
                       )}
                       <div style={{ display: 'flex', gap: 8, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
@@ -590,6 +702,14 @@ export default function GestionModelos() {
                     </>
                   )}
                 </div>
+                {guardadoOkId === m.id && (
+                  <div className="nm-guardado-badge" style={s.guardadoOverlay}>
+                    <div style={s.guardadoBox}>
+                      <span style={{ fontSize: 18 }}>✓</span>
+                      <span>Guardado</span>
+                    </div>
+                  </div>
+                )}
                 {confirmEliminar === m.id && (
                   <div style={s.confirmBox}>
                     <div style={s.confirmText}>¿Retirar a {m.nombreReal}? Se puede restaurar después.</div>

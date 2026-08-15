@@ -4,13 +4,48 @@ import { collection, addDoc, doc, setDoc, updateDoc, onSnapshot, orderBy, query 
 
 const PLATAFORMAS = ['Stripchat', 'Camsoda', 'Chaturbate', 'Streamate'];
 
+// Logo real de cada plataforma via el servicio de favicons de DuckDuckGo
+// (https://icons.duckduckgo.com/ip3/<dominio>.ico). Si la imagen no carga, cae a un
+// circulo de color con la inicial (sin dependencia de red).
 const PLAT_DOMINIO = {
   'Stripchat': 'stripchat.com',
   'Camsoda': 'camsoda.com',
   'Chaturbate': 'chaturbate.com',
   'Streamate': 'streamate.com'
 };
-const favicon = (plat) => `https://www.google.com/s2/favicons?domain=${PLAT_DOMINIO[plat]}&sz=32`;
+const PLAT_ESTILO = {
+  'Stripchat': { color: '#FF5B00', inicial: 'S' },
+  'Camsoda': { color: '#00AEEF', inicial: 'C' },
+  'Chaturbate': { color: '#F5A623', inicial: 'C' },
+  'Streamate': { color: '#6B3FA0', inicial: 'S' }
+};
+
+function IconoPlataformaFallback({ plataforma }) {
+  const { color, inicial } = PLAT_ESTILO[plataforma] || { color: 'var(--text-dim)', inicial: '?' };
+  return (
+    <div style={{
+      width: 18, height: 18, borderRadius: '50%', background: color, color: '#fff',
+      fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0, lineHeight: 1
+    }}>
+      {inicial}
+    </div>
+  );
+}
+
+function IconoPlataforma({ plataforma }) {
+  const [logoFallo, setLogoFallo] = useState(false);
+  const dominio = PLAT_DOMINIO[plataforma];
+  if (logoFallo || !dominio) return <IconoPlataformaFallback plataforma={plataforma} />;
+  return (
+    <img
+      src={`https://icons.duckduckgo.com/ip3/${dominio}.ico`}
+      alt={plataforma}
+      style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, objectFit: 'cover' }}
+      onError={() => setLogoFallo(true)}
+    />
+  );
+}
 
 const TURNOS = { 'Daniela': 'Manana', 'Ramon': 'Manana', 'Santiago': 'Tarde', 'Monica': 'Tarde', 'Juan': 'Noche', 'Cesar': 'Noche' };
 
@@ -119,7 +154,7 @@ function FormModelo({ nombre, datos, onChange, fotoURL }) {
         return (
           <div key={plat} style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
-              <img src={favicon(plat)} alt={plat} style={{ width: 16, height: 16, borderRadius: 3, flexShrink: 0 }} />
+              <IconoPlataforma plataforma={plat} />
               <span style={{ color: 'var(--text)', fontSize: 12 }}>{plat}</span>
             </div>
             <div style={s.fila}>
@@ -339,9 +374,60 @@ function getQuincenaReporte(offset = 0) {
 const PORCENTAJES_OPCIONES = [50, 60, 65, 70];
 const TURNO_INFO_REPORTE = { Manana: { icono: '🌅', label: 'Turno Mañana' }, Tarde: { icono: '☀️', label: 'Turno Tarde' }, Noche: { icono: '🌙', label: 'Turno Noche' } };
 
+// ── Regla de porcentaje sugerido (misma lógica que src/Nomina.js, vista modelo) ──
+// Horas requeridas de la quincena = 6.5h × días laborales (días de la quincena
+// menos domingos menos días libres aprobados). Este porcentaje es solo una
+// sugerencia informativa: el select "Porcentaje asignado" lo sigue eligiendo el jefe a mano.
+function contarDomingosReporte(inicioISO, finISO) {
+  let count = 0;
+  let d = new Date(inicioISO + 'T00:00:00');
+  const fin = new Date(finISO + 'T00:00:00');
+  while (d <= fin) {
+    if (d.getDay() === 0) count++;
+    d.setDate(d.getDate() + 1);
+  }
+  return count;
+}
+
+function contarDiasLibresAprobadosReporte(diasLibresList, nombreModelo, inicioISO, finISO) {
+  let count = 0;
+  diasLibresList.forEach(d => {
+    if (d.tipo !== 'modelo' || d.modelo !== nombreModelo || d.estado !== 'aprobado') return;
+    if (d.fecha1 && d.fecha1 >= inicioISO && d.fecha1 <= finISO) count++;
+    if (d.fecha2 && d.fecha2 >= inicioISO && d.fecha2 <= finISO) count++;
+  });
+  return count;
+}
+
+function calcularDiasLaboralesReporte(quincena, diasLibresList, nombreModelo) {
+  const domingos = contarDomingosReporte(quincena.inicio, quincena.fin);
+  const libres = contarDiasLibresAprobadosReporte(diasLibresList, nombreModelo, quincena.inicio, quincena.fin);
+  return Math.max(0, quincena.dias - domingos - libres);
+}
+
+function calcularPorcentajeSugerido(tokens, horasCumplidas, horasRequeridas) {
+  const cumpleHoras = horasCumplidas >= horasRequeridas;
+  if (!cumpleHoras) return 50;
+  if (tokens >= 70000) return 70;
+  if (tokens >= 60000) return 65;
+  return 60;
+}
+
+function textoPorcentajeSugerido(tokens, horasCumplidas, horasRequeridas) {
+  const cumpleHoras = horasCumplidas >= horasRequeridas;
+  if (!cumpleHoras) {
+    const faltan = Math.max(0, horasRequeridas - horasCumplidas);
+    return `Faltan ${faltan.toFixed(1)} horas para el 60%`;
+  }
+  if (tokens >= 70000) return '+70k tokens (70%)';
+  if (tokens >= 60000) return '+60k tokens (65%)';
+  return 'Cumpliendo horas (60%)';
+}
+
 function VistaReporteQuincenal({ cierres, rol, nombreMonitor }) {
   const [modelosDB, setModelosDB] = useState([]);
   const [asistenciaDB, setAsistenciaDB] = useState({});
+  const [diasLibresDB, setDiasLibresDB] = useState([]);
   const [reportesDB, setReportesDB] = useState({});
   const [edits, setEdits] = useState({});
   const [guardando, setGuardando] = useState({});
@@ -363,6 +449,15 @@ function VistaReporteQuincenal({ cierres, rol, nombreMonitor }) {
       const data = {};
       snap.forEach(d => { data[d.id] = d.data(); });
       setAsistenciaDB(data);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'diasLibres'), snap => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setDiasLibresDB(data);
     });
     return unsub;
   }, []);
@@ -410,10 +505,15 @@ function VistaReporteQuincenal({ cierres, rol, nombreMonitor }) {
 
   const calcularModelo = (nombre) => {
     let horasTrabajadas = 0;
+    let totalTokens = 0;
     cierres.forEach(cierre => {
       if (cierre.fecha < quincena.inicio || cierre.fecha > quincena.fin + 'Z') return;
       const modeloData = (cierre.modelos || []).find(m => m.nombre === nombre);
-      if (!modeloData || !modeloData.inicio || !modeloData.fin) return;
+      if (!modeloData) return;
+      ['Stripchat', 'Camsoda', 'Chaturbate', 'Streamate'].forEach(p => {
+        totalTokens += Number(modeloData[p + '_tokens'] || 0);
+      });
+      if (!modeloData.inicio || !modeloData.fin) return;
       const fechaCierreISO = cierre.fecha.split('T')[0];
       const registroDia = asistenciaDB[`${fechaCierreISO}_${nombre}`];
       if (registroDia && registroDia.presente === false) return; // no asistió ese día: no cuenta horas
@@ -432,7 +532,15 @@ function VistaReporteQuincenal({ cierres, rol, nombreMonitor }) {
     const diasTrabajados = registrosAsistencia.filter(a => a.presente === true).length;
     const inasistencias = registrosAsistencia.filter(a => a.presente === false);
 
-    return { horasTrabajadas: horasTrabajadas.toFixed(1), diasTrabajados, inasistencias };
+    const diasLaborales = calcularDiasLaboralesReporte(quincena, diasLibresDB, nombre);
+    const horasRequeridas = diasLaborales * 6.5;
+    const porcentajeSugerido = calcularPorcentajeSugerido(totalTokens, horasTrabajadas, horasRequeridas);
+    const textoSugerido = textoPorcentajeSugerido(totalTokens, horasTrabajadas, horasRequeridas);
+
+    return {
+      horasTrabajadas: horasTrabajadas.toFixed(1), diasTrabajados, inasistencias,
+      totalTokens, diasLaborales, horasRequeridas, porcentajeSugerido, textoSugerido
+    };
   };
 
   const modelosPorTurno = { Manana: [], Tarde: [], Noche: [] };
@@ -469,7 +577,7 @@ function VistaReporteQuincenal({ cierres, rol, nombreMonitor }) {
               {modelos.map(m => {
                 const nombre = m.nombreReal;
                 const id = `${quincena.idQuincena}_${nombre}`;
-                const { horasTrabajadas, diasTrabajados, inasistencias } = calcularModelo(nombre);
+                const { horasTrabajadas, diasTrabajados, inasistencias, horasRequeridas, porcentajeSugerido, textoSugerido } = calcularModelo(nombre);
                 return (
                   <div key={m.id} style={s.reporteCard} className="nm-card-elevated">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -481,7 +589,7 @@ function VistaReporteQuincenal({ cierres, rol, nombreMonitor }) {
 
                     <div style={s.reporteFila}>
                       <span style={s.reporteLabel}>Horas trabajadas</span>
-                      <span style={s.reporteValor}>{horasTrabajadas} hrs</span>
+                      <span style={s.reporteValor}>{horasTrabajadas} / {horasRequeridas.toFixed(1)} hrs</span>
                     </div>
                     <div style={s.reporteFila}>
                       <span style={s.reporteLabel}>Días trabajados</span>
@@ -501,6 +609,9 @@ function VistaReporteQuincenal({ cierres, rol, nombreMonitor }) {
                       </div>
                     )}
 
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>Sugerido: <b style={{ color: 'var(--gold)' }}>{porcentajeSugerido}%</b> — {textoSugerido}</span>
+                    </div>
                     <div style={s.reporteSecTit}>Porcentaje asignado{rol !== 'jefe' ? ' (lo asigna el jefe)' : ''}</div>
                     <select style={{ ...s.select, ...(rol !== 'jefe' ? { opacity: 0.6, cursor: 'not-allowed' } : {}) }} value={valorCampo(id, 'porcentaje')} disabled={rol !== 'jefe'} onChange={e => actualizarCampo(id, 'porcentaje', e.target.value)}>
                       <option value="">Sin asignar</option>

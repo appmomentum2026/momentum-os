@@ -4,6 +4,14 @@ import { collection, onSnapshot } from 'firebase/firestore';
 
 const TOTAL_LOCKERS = 20;
 
+// Compatibilidad: modelos viejas guardaban un solo "locker"; las nuevas guardan
+// "lockers" (array), permitiendo que una modelo ocupe varios.
+function lockersDeModelo(modelo) {
+  if (Array.isArray(modelo.lockers)) return modelo.lockers;
+  if (modelo.locker) return [modelo.locker];
+  return [];
+}
+
 const s = {
   wrap: { display: 'block' },
   resumenGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 },
@@ -41,16 +49,16 @@ export default function Lockers() {
 
   const modeloPorLocker = {};
   modelosDB.forEach(m => {
-    if (m.locker) modeloPorLocker[String(m.locker)] = m;
+    lockersDeModelo(m).forEach(n => { modeloPorLocker[String(n)] = m; });
   });
 
   const numerosExistentes = modelosDB
-    .map(m => Number(m.locker))
+    .flatMap(m => lockersDeModelo(m).map(Number))
     .filter(n => Number.isFinite(n) && n > 0);
   const totalLockers = Math.max(TOTAL_LOCKERS, ...numerosExistentes, 0);
   const lockers = Array.from({ length: totalLockers }, (_, i) => i + 1);
 
-  const modelosSinLocker = modelosDB.filter(m => !m.locker);
+  const modelosSinLocker = modelosDB.filter(m => lockersDeModelo(m).length === 0);
   const ocupados = lockers.filter(n => modeloPorLocker[String(n)]).length;
 
   const inicial = (nombre) => (nombre || '?').charAt(0).toUpperCase();

@@ -63,6 +63,30 @@ function calcularDiasLaborales(quincena, diasLibresList, nombreModelo) {
   return Math.max(0, quincena.dias - domingos - libres);
 }
 
+// Días trabajados = días únicos del rango donde la modelo tiene un cierre con inicio/fin
+// válidos (misma fuente que las horas) — igual que src/Nomina.js, no la asistencia marcada
+// por el monitor, para que ambas vistas siempre muestren el mismo número.
+function diasTrabajadosEnRango(cierres, nombreModelo, inicio, fin) {
+  const dias = new Set();
+  cierres.forEach(cierre => {
+    const fechaCierre = cierre.fecha?.split('T')[0] || '';
+    if (fechaCierre < inicio || fechaCierre > fin) return;
+    if (!cierre.modelos) return;
+    const modelaData = cierre.modelos.find(m => m.nombre === nombreModelo);
+    if (!modelaData) return;
+    if (modelaData.inicio && modelaData.fin) dias.add(fechaCierre);
+  });
+  return dias.size;
+}
+
+// Compatibilidad: modelos viejas guardaban un solo "locker"; las nuevas guardan
+// "lockers" (array), permitiendo que una modelo ocupe varios.
+function lockersDeModelo(modelo) {
+  if (Array.isArray(modelo.lockers)) return modelo.lockers;
+  if (modelo.locker) return [modelo.locker];
+  return [];
+}
+
 const s = {
   card: { marginBottom: 10 },
   secTit: { color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 12, marginBottom: 6 },
@@ -98,7 +122,6 @@ export default function ModelasMonitor({ monitorData }) {
   const [cierres, setCierres] = useState([]);
   const [metas, setMetas] = useState({});
   const [diasLibres, setDiasLibres] = useState([]);
-  const [asistencia, setAsistencia] = useState({});
   const [vistaGrid, setVistaGrid] = useState(true);
   const [expandidas, setExpandidas] = useState(new Set());
   const [tabCard, setTabCard] = useState({});
@@ -149,15 +172,6 @@ export default function ModelasMonitor({ monitorData }) {
     return unsub;
   }, []);
 
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'asistencia'), snap => {
-      const data = {};
-      snap.forEach(d => { data[d.id] = d.data(); });
-      setAsistencia(data);
-    });
-    return unsub;
-  }, []);
-
   const misModelos = modelos
     .filter(m => m.activa !== false && m.monitor === monitorData?.nombre)
     .sort((a, b) => (parseInt(a.habitacion) || 99) - (parseInt(b.habitacion) || 99));
@@ -192,8 +206,9 @@ export default function ModelasMonitor({ monitorData }) {
             </React.Fragment>
           );
         };
-        const hayDatosPersonales = m.nacimiento || m.correo || m.cedula || m.contacto || m.direccion || m.fechaInicio || m.cuentaBancaria || m.entidadBancaria || m.locker || m.contrato;
-        const hayPlataformas = m.lovense || m.amazon || m.chaturbateUser || m.chaturbatePass || m.chaturbateLink || m.camsodaUser || m.camsodaPass || m.camsodaLink || m.stripchatUser || m.stripchatPass || m.stripchatLink || m.correoTrabajo || m.claveCorreoTrabajo || (m.paginas && m.paginas.length > 0);
+        const lockersModelo = lockersDeModelo(m);
+        const hayDatosPersonales = m.nacimiento || m.correo || m.cedula || m.contacto || m.direccion || m.fechaInicio || m.cuentaBancaria || m.entidadBancaria || lockersModelo.length > 0 || m.contrato;
+        const hayPlataformas = m.lovenseCorreo || m.lovenseClave || m.lovense || m.amazonCorreo || m.amazonClave || m.amazon || m.chaturbateUser || m.chaturbatePass || m.chaturbateLink || m.camsodaUser || m.camsodaPass || m.camsodaLink || m.stripchatUser || m.stripchatPass || m.stripchatLink || m.correoTrabajo || m.claveCorreoTrabajo || (m.paginas && m.paginas.length > 0);
 
         const totalTokens = tokensEnRango(cierres, m.nombreReal, quincena.inicio, quincena.fin);
         const metaUsd = obtenerMetaUsd(metas[m.nombreReal]);
@@ -201,10 +216,7 @@ export default function ModelasMonitor({ monitorData }) {
         const pctMeta = metaTokens > 0 ? Math.min(100, Math.round((totalTokens / metaTokens) * 100)) : 0;
         const colorAvance = pctMeta >= 100 ? 'var(--green)' : 'var(--gold)';
         const diasLabQuincena = calcularDiasLaborales(quincena, diasLibres, m.nombreReal);
-        const diasTrabajados = Object.values(asistencia).filter(a =>
-          a.modelo === m.nombreReal && a.presente === true &&
-          a.fecha >= quincena.inicio && a.fecha <= quincena.fin
-        ).length;
+        const diasTrabajados = diasTrabajadosEnRango(cierres, m.nombreReal, quincena.inicio, quincena.fin);
 
         return (
           <div key={m.id} style={s.card} className="nm-card-elevated">
@@ -275,7 +287,7 @@ export default function ModelasMonitor({ monitorData }) {
                       {m.direccion && <div style={s.fila}><span style={s.filaLabel}>Dirección</span><span style={s.filaValor}>{m.direccion}</span></div>}
                       {m.cuentaBancaria && <div style={s.fila}><span style={s.filaLabel}>Cuenta bancaria</span><span style={s.filaValor}>{m.cuentaBancaria}</span></div>}
                       {m.entidadBancaria && <div style={s.fila}><span style={s.filaLabel}>Entidad bancaria</span><span style={s.filaValor}>{m.entidadBancaria}</span></div>}
-                      {m.locker && <div style={s.fila}><span style={s.filaLabel}>Locker</span><span style={s.filaValor}>{m.locker}</span></div>}
+                      {lockersModelo.length > 0 && <div style={s.fila}><span style={s.filaLabel}>{lockersModelo.length > 1 ? 'Lockers' : 'Locker'}</span><span style={s.filaValor}>{lockersModelo.join(', ')}</span></div>}
                       {m.contrato && <div style={{ ...s.fila, borderBottom: 'none' }}><span style={s.filaLabel}>Contrato</span><span style={s.filaValor}>{m.contrato}</span></div>}
                     </>
                   ) : <div style={s.vacioSeccion}>Sin datos registrados</div>
@@ -284,16 +296,30 @@ export default function ModelasMonitor({ monitorData }) {
                 {tab === 'plataformas' && (
                   hayPlataformas ? (
                     <>
-                      {m.lovense && (
+                      {(m.lovenseCorreo || m.lovenseClave || m.lovense) && (
                         <>
                           <div style={s.secTit}>Lovense</div>
-                          <div style={{ ...s.credBox, marginBottom: 6 }}><div style={s.credTexto}>{m.lovense}</div></div>
+                          <div style={{ ...s.credBox, marginBottom: 6 }}>
+                            {(m.lovenseCorreo || m.lovenseClave) ? (
+                              <>
+                                {m.lovenseCorreo && <div style={s.pagRow}><span style={s.pagLabel}>Correo</span><span style={s.pagValor}>{m.lovenseCorreo}</span></div>}
+                                {m.lovenseClave && <div style={s.pagRow}><span style={s.pagLabel}>Clave</span><span style={s.pagValor}>{m.lovenseClave}</span></div>}
+                              </>
+                            ) : <div style={s.credTexto}>{m.lovense}</div>}
+                          </div>
                         </>
                       )}
-                      {m.amazon && (
+                      {(m.amazonCorreo || m.amazonClave || m.amazon) && (
                         <>
                           <div style={s.secTit}>Amazon</div>
-                          <div style={{ ...s.credBox, marginBottom: 6 }}><div style={s.credTexto}>{m.amazon}</div></div>
+                          <div style={{ ...s.credBox, marginBottom: 6 }}>
+                            {(m.amazonCorreo || m.amazonClave) ? (
+                              <>
+                                {m.amazonCorreo && <div style={s.pagRow}><span style={s.pagLabel}>Correo</span><span style={s.pagValor}>{m.amazonCorreo}</span></div>}
+                                {m.amazonClave && <div style={s.pagRow}><span style={s.pagLabel}>Clave</span><span style={s.pagValor}>{m.amazonClave}</span></div>}
+                              </>
+                            ) : <div style={s.credTexto}>{m.amazon}</div>}
+                          </div>
                         </>
                       )}
                       {(m.correoTrabajo || m.claveCorreoTrabajo) && (

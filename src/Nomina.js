@@ -47,6 +47,28 @@ function calcularPorcentaje(tokens, horasCumplidas, horasRequeridas) {
   return 60;
 }
 
+// Texto explicativo de por qué corresponde ese porcentaje — misma regla que calcularPorcentaje,
+// para mostrarle a la modelo (o al jefe en el reporte quincenal) el motivo del número.
+function textoPorcentaje(tokens, horasCumplidas, horasRequeridas) {
+  const cumpleHoras = horasCumplidas >= horasRequeridas;
+  if (!cumpleHoras) {
+    const faltan = Math.max(0, horasRequeridas - horasCumplidas);
+    return `Faltan ${faltan.toFixed(1)} horas para el 60%`;
+  }
+  if (tokens >= 70000) return '+70k tokens (70%)';
+  if (tokens >= 60000) return '+60k tokens (65%)';
+  return 'Cumpliendo horas (60%)';
+}
+
+// Mensaje motivador de la tarjeta de estado, según qué tan cerca está de la meta
+function mensajeMotivador(pctMeta, cumplida, tieneMeta) {
+  if (!tieneMeta) return { texto: '¡Sigue así, cada token cuenta! 💪', color: 'var(--gold)' };
+  if (cumplida) return { texto: '¡Eres una campeona! 🏆', color: 'var(--green)' };
+  if (pctMeta >= 90) return { texto: '¡Casi lo logras! 💪', color: 'var(--gold)' };
+  if (pctMeta >= 50) return { texto: '¡Vas muy bien! 🔥', color: 'var(--gold)' };
+  return { texto: '¡Tú puedes lograrlo! ⭐', color: 'var(--gold)' };
+}
+
 // Domingos dentro del rango de la quincena (fechas ISO 'YYYY-MM-DD')
 function contarDomingos(inicioISO, finISO) {
   let count = 0;
@@ -101,7 +123,6 @@ function estadoCuotas(pedido) {
 
 export default function Nomina({ nombreModelo }) {
   const [cierres, setCierres] = useState([]);
-  const [asistencia, setAsistencia] = useState({});
   const [metas, setMetas] = useState({});
   const [pedidos, setPedidos] = useState([]);
   const [diasLibres, setDiasLibres] = useState([]);
@@ -113,11 +134,6 @@ export default function Nomina({ nombreModelo }) {
       const data = [];
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
       setCierres(data);
-    });
-    const unsub2 = onSnapshot(collection(db, 'asistencia'), snap => {
-      const data = {};
-      snap.forEach(d => { data[d.id] = d.data(); });
-      setAsistencia(data);
     });
     const unsub3 = onSnapshot(collection(db, 'metas'), snap => {
       const data = {};
@@ -134,17 +150,16 @@ export default function Nomina({ nombreModelo }) {
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
       setDiasLibres(data);
     });
-    return () => { unsub1(); unsub2(); unsub3(); unsub4(); unsub5(); };
+    return () => { unsub1(); unsub3(); unsub4(); unsub5(); };
   }, []);
 
   // Calcular totales
   let totalTokens = 0;
   let horasTrabajadas = 0;
-  const fechasAsistencia = Object.values(asistencia).filter(a =>
-    a.modelo === nombreModelo && a.presente === true &&
-    a.fecha >= quincena.inicio && a.fecha <= quincena.fin
-  );
-  const diasTrabajados = fechasAsistencia.length;
+  // Días trabajados = días únicos de la quincena donde la modelo tiene un cierre con
+  // inicio/fin válidos (misma fuente que las horas), no la asistencia marcada por el
+  // monitor — así "días trabajados" y "horas" siempre cuadran entre sí.
+  const diasTrabajadosSet = new Set();
   const diasLabQuincena = calcularDiasLaborales(quincena, diasLibres, nombreModelo);
 
   cierres.forEach(cierre => {
@@ -156,6 +171,7 @@ export default function Nomina({ nombreModelo }) {
       totalTokens += Number(modelaData[p + '_tokens'] || 0);
     });
     if (modelaData.inicio && modelaData.fin) {
+      diasTrabajadosSet.add((cierre.fecha || '').split('T')[0]);
       const [hi, mi] = modelaData.inicio.split(':').map(Number);
       const [hf, mf] = modelaData.fin.split(':').map(Number);
       let mins = (hf * 60 + mf) - (hi * 60 + mi);
@@ -168,8 +184,12 @@ export default function Nomina({ nombreModelo }) {
     }
   });
 
-  const horasRequeridas = diasTrabajados * 6.5;
+  const diasTrabajados = diasTrabajadosSet.size;
+  // Horas requeridas de la quincena = 6.5h × días laborales de la quincena (no días
+  // trabajados) — así el % no queda artificialmente al 100% solo por trabajar pocos días.
+  const horasRequeridas = diasLabQuincena * 6.5;
   const porcentaje = calcularPorcentaje(totalTokens, horasTrabajadas, horasRequeridas);
+  const textoPct = textoPorcentaje(totalTokens, horasTrabajadas, horasRequeridas);
   const usdBruto = totalTokens / 20;
   const usdNeto = usdBruto * (porcentaje / 100);
 
@@ -196,13 +216,32 @@ export default function Nomina({ nombreModelo }) {
   const porDia = diasRestantes > 0 ? Math.ceil(tokensNecesarios / diasRestantes) : 0;
   const pctMeta = metaTokens > 0 ? Math.min(100, Math.round((totalTokens / metaTokens) * 100)) : 0;
   const pctDias = diasLabQuincena > 0 ? Math.min(100, Math.round((diasTrabajados / diasLabQuincena) * 100)) : 0;
-  const horasReqTotal = diasLabQuincena * 6.5;
-  const pctHoras = horasReqTotal > 0 ? Math.min(100, Math.round((horasTrabajadas / horasReqTotal) * 100)) : 0;
-  const horasRestantes = Math.max(0, horasReqTotal - horasTrabajadas);
-  const pctHorasRestantes = horasReqTotal > 0 ? Math.min(100, Math.round((horasRestantes / horasReqTotal) * 100)) : 0;
+  const pctHoras = horasRequeridas > 0 ? Math.min(100, Math.round((horasTrabajadas / horasRequeridas) * 100)) : 0;
+  const horasRestantes = Math.max(0, horasRequeridas - horasTrabajadas);
+  const pctHorasRestantes = horasRequeridas > 0 ? Math.min(100, Math.round((horasRestantes / horasRequeridas) * 100)) : 0;
+
+  // Estado de la meta: cumplida, mensaje motivador y proyección de cierre a partir del
+  // ritmo diario actual (tokens acumulados / días transcurridos de la quincena).
+  const metaCumplida = metaTokens > 0 && totalTokens >= metaTokens;
+  const mensaje = mensajeMotivador(pctMeta, metaCumplida, metaTokens > 0);
+  const inicioQDate = new Date(quincena.inicio + 'T00:00:00');
+  const finQDate = new Date(quincena.fin + 'T00:00:00');
+  const hoyClamped = hoy < inicioQDate ? inicioQDate : (hoy > finQDate ? finQDate : hoy);
+  const diasTranscurridosQuincena = Math.max(1, Math.floor((hoyClamped - inicioQDate) / 86400000) + 1);
+  const ritmoDiario = totalTokens / diasTranscurridosQuincena;
+  const proyeccionCierre = Math.round(ritmoDiario * quincena.dias);
+
+  // Mini-hitos: badges que se van desbloqueando según avanza la quincena
+  const hitos = [];
+  if (horasRequeridas > 0 && horasTrabajadas >= horasRequeridas) hitos.push({ icon: '✓', texto: 'Cumplió horas' });
+  if (totalTokens >= 50000) hitos.push({ icon: '⭐', texto: 'Superó 50k tokens' });
+  if (totalTokens >= 60000) hitos.push({ icon: '🌟', texto: 'Superó 60k tokens' });
+  if (totalTokens >= 70000) hitos.push({ icon: '💎', texto: 'Superó 70k tokens' });
+  if (metaCumplida) hitos.push({ icon: '🏆', texto: 'Meta cumplida' });
 
   const barraWrap = { background: 'var(--bg3)', borderRadius: 20, height: 6, marginTop: 6, overflow: 'hidden' };
   const barraFill = (pct, color) => ({ height: '100%', width: `${pct}%`, background: color || 'var(--gold)', borderRadius: 20, transition: 'width 0.4s' });
+  const chipHito = { display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg)', boxShadow: 'var(--shadow-out)', borderRadius: 20, padding: '6px 14px', fontSize: 12, color: 'var(--gold)', fontWeight: 700 };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -220,6 +259,19 @@ export default function Nomina({ nombreModelo }) {
             <button style={{ background: 'transparent', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }} onClick={() => setQuincenaOffset(o => o - 1)}>‹</button>
             {quincenaOffset < 0 && <button style={{ background: 'transparent', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }} onClick={() => setQuincenaOffset(o => o + 1)}>›</button>}
           </div>
+        </div>
+      </div>
+
+      {/* Tarjeta de estado motivadora */}
+      <div
+        className="nm-card-elevated"
+        style={{
+          textAlign: 'center', padding: '18px 20px',
+          border: metaCumplida ? '1px solid rgba(76,175,125,0.4)' : '1px solid var(--gold-dim)'
+        }}
+      >
+        <div className="nm-mensaje-motivador" style={{ fontSize: 19, fontWeight: 800, color: mensaje.color }}>
+          {mensaje.texto}
         </div>
       </div>
 
@@ -242,11 +294,9 @@ export default function Nomina({ nombreModelo }) {
           {metaUsd > 0 ? (
             <>
               <div style={{ color: 'var(--gold)', fontSize: 16, fontWeight: 700 }}>${metaUsd.toLocaleString()} USD</div>
-              <div style={{ color: 'var(--text-dim)', fontSize: 11, marginBottom: 6 }}>({metaTokens.toLocaleString()} tokens)</div>
-              <div style={{ color: 'var(--text)', fontSize: 15, fontWeight: 600 }}>{totalTokens.toLocaleString()} <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>/ {metaTokens.toLocaleString()} tokens</span></div>
-              <div style={barraWrap}><div style={barraFill(pctMeta, pctMeta >= 100 ? 'var(--green)' : 'var(--gold)')} /></div>
-              <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 8 }}>
-                {tokensNecesarios <= 0 ? 'Meta cumplida' : `Necesitas ${porDia.toLocaleString()} tokens por día`}
+              <div style={{ color: 'var(--text-dim)', fontSize: 11, marginBottom: 10 }}>({metaTokens.toLocaleString()} tokens)</div>
+              <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>
+                {tokensNecesarios <= 0 ? '¡Meta cumplida! 🎉' : `Necesitas ${porDia.toLocaleString()} tokens por día`}
               </div>
             </>
           ) : (
@@ -263,19 +313,79 @@ export default function Nomina({ nombreModelo }) {
         </div>
       </div>
 
-      {/* Mi resumen + Progreso meta */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 12 }}>
+      {/* Progreso de meta — la pieza central, grande y motivadora */}
+      <div
+        className="nm-card-elevated"
+        style={{ position: 'relative', overflow: 'hidden', border: metaCumplida ? '1px solid rgba(76,175,125,0.4)' : undefined }}
+      >
+        <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 14 }}>Progreso de tu meta</div>
 
-        {/* Mi resumen */}
-        <div className="nm-card-elevated">
-          <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>Mi resumen</div>
-          <div style={{ color: 'var(--text-dim)', fontSize: 11, marginBottom: 14 }}>{diasLabQuincena} días laborales esta quincena (sin domingos ni días libres aprobados)</div>
+        {metaTokens > 0 ? (
+          <>
+            {metaCumplida && (
+              <div className="nm-meta-celebracion" style={{ textAlign: 'center', marginBottom: 16, position: 'relative' }}>
+                {['🎉', '⭐', '✨', '🎊', '⭐', '🎉'].map((e, i) => (
+                  <span key={i} className="nm-confeti-item" style={{ left: `${8 + i * 16}%`, animationDelay: `${i * 0.18}s`, fontSize: 16 }}>{e}</span>
+                ))}
+                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--green)' }}>¡META CUMPLIDA! 🎉</div>
+              </div>
+            )}
 
+            <div className="nm-barra-meta-track">
+              <div className={`nm-barra-meta-fill ${metaCumplida ? 'cumplida' : 'en-progreso'}`} style={{ width: `${Math.min(100, Math.max(pctMeta, 6))}%` }} />
+              <div className="nm-meta-porcentaje">{pctMeta}%</div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
+              <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>{totalTokens.toLocaleString()} tokens</span>
+              <span style={{ color: 'var(--gold)', fontSize: 11, fontWeight: 600 }}>Meta: ${metaUsd.toLocaleString()} USD ({metaTokens.toLocaleString()} tokens)</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 16 }}>
+              <div style={{ background: 'rgba(201,146,74,0.08)', border: '1px solid var(--border2)', borderRadius: 12, padding: 14, textAlign: 'center' }}>
+                <div style={{ color: 'var(--text-sub)', fontSize: 11, marginBottom: 4 }}>Llevas acumulados</div>
+                <div style={{ color: 'var(--gold)', fontSize: 26, fontWeight: 800 }}>{totalTokens.toLocaleString()}</div>
+                <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>tokens</div>
+              </div>
+              <div style={{ background: metaCumplida ? 'rgba(76,175,125,0.1)' : 'rgba(201,146,74,0.08)', border: '1px solid var(--border2)', borderRadius: 12, padding: 14, textAlign: 'center' }}>
+                <div style={{ color: 'var(--text-sub)', fontSize: 11, marginBottom: 4 }}>{metaCumplida ? 'Superaste tu meta por' : 'Te faltan'}</div>
+                <div style={{ color: metaCumplida ? 'var(--green)' : 'var(--text)', fontSize: 26, fontWeight: 800 }}>{Math.abs(metaTokens - totalTokens).toLocaleString()}</div>
+                <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>tokens</div>
+              </div>
+            </div>
+
+            {quincenaOffset === 0 && !metaCumplida && (
+              <div style={{ textAlign: 'center', color: 'var(--text-sub)', fontSize: 12, marginTop: 14 }}>
+                Si sigues así, cerrarás con <b style={{ color: 'var(--gold)' }}>{proyeccionCierre.toLocaleString()}</b> tokens
+              </div>
+            )}
+
+            {hitos.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16, justifyContent: 'center' }}>
+                {hitos.map((h, i) => (
+                  <span key={i} className="nm-hito-chip" style={{ ...chipHito, animationDelay: `${i * 0.08}s` }}>
+                    {h.icon} {h.texto}
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ color: 'var(--text-dim)', textAlign: 'center', padding: 30, fontSize: 13 }}>Sin meta asignada para esta quincena</div>
+        )}
+      </div>
+
+      {/* Mi resumen */}
+      <div className="nm-card-elevated">
+        <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>Mi resumen</div>
+        <div style={{ color: 'var(--text-dim)', fontSize: 11, marginBottom: 14 }}>{diasLabQuincena} días laborales esta quincena (sin domingos ni días libres aprobados)</div>
+
+        <div className="nm-form-grid2">
           {[
             { icon: '📅', label: 'Días trabajados', val: `${diasTrabajados} / ${diasLabQuincena} días`, pct: pctDias, color: 'var(--gold)' },
-            { icon: '⏰', label: 'Horas trabajadas', val: `${horasTrabajadas.toFixed(1)} hrs`, pct: pctHoras, color: 'var(--green)' },
+            { icon: '⏰', label: 'Horas trabajadas', val: `${horasTrabajadas.toFixed(1)} / ${horasRequeridas.toFixed(1)} hrs`, pct: pctHoras, color: 'var(--green)' },
             { icon: '⏳', label: 'Horas restantes', val: `${horasRestantes.toFixed(1)} hrs`, pct: pctHorasRestantes, color: '#6A8AAA' },
-            { icon: '🏆', label: 'Porcentaje de avance', val: `${porcentaje}%`, pct: porcentaje, color: 'var(--gold)' },
+            { icon: '🏆', label: 'Porcentaje de avance', val: `${porcentaje}%`, pct: porcentaje, color: 'var(--gold)', sub: textoPct },
           ].map((item, i) => (
             <div key={i} style={{ marginBottom: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -286,44 +396,9 @@ export default function Nomina({ nombreModelo }) {
                 <span style={{ color: item.color, fontSize: 13, fontWeight: 600 }}>{item.val}</span>
               </div>
               <div style={barraWrap}><div style={barraFill(item.pct, item.color)} /></div>
+              {item.sub && <div style={{ color: 'var(--text-dim)', fontSize: 11, marginTop: 4 }}>{item.sub}</div>}
             </div>
           ))}
-        </div>
-
-        {/* Progreso de meta */}
-        <div className="nm-card-elevated">
-          <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 14 }}>Progreso de tu meta</div>
-          {metaTokens > 0 ? (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>Tokens acumulados / meta en tokens</span>
-                <span style={{ color: 'var(--gold)', fontSize: 13, fontWeight: 600 }}>{pctMeta}%</span>
-              </div>
-              <div style={{ background: 'var(--bg3)', borderRadius: 12, height: 12, overflow: 'hidden', marginBottom: 10 }}>
-                <div style={{ height: '100%', width: `${pctMeta}%`, background: pctMeta >= 100 ? 'var(--green)' : 'var(--gold)', borderRadius: 12, transition: 'width 0.4s' }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>{totalTokens.toLocaleString()} tokens</span>
-                <span style={{ color: 'var(--gold)', fontSize: 11, fontWeight: 600 }}>Meta: ${metaUsd.toLocaleString()} USD ({metaTokens.toLocaleString()} tokens)</span>
-              </div>
-              <div style={{ background: 'rgba(201,146,74,0.08)', border: '1px solid var(--border2)', borderRadius: 12, padding: 14, marginTop: 12, textAlign: 'center' }}>
-                <div style={{ color: 'var(--text-sub)', fontSize: 11, marginBottom: 4 }}>Llevas acumulados</div>
-                <div style={{ color: 'var(--gold)', fontSize: 24, fontWeight: 700 }}>{totalTokens.toLocaleString()}</div>
-                <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 4 }}>tokens esta quincena</div>
-              </div>
-              {totalTokens >= metaTokens ? (
-                <div style={{ background: 'rgba(76,175,125,0.1)', border: '1px solid rgba(76,175,125,0.3)', borderRadius: 10, padding: 10, marginTop: 10, textAlign: 'center', color: 'var(--green)', fontSize: 13 }}>
-                  🎉 Meta cumplida!
-                </div>
-              ) : (
-                <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 10, textAlign: 'center' }}>
-                  Te faltan {(metaTokens - totalTokens).toLocaleString()} tokens para tu meta
-                </div>
-              )}
-            </>
-          ) : (
-            <div style={{ color: 'var(--text-dim)', textAlign: 'center', padding: 30, fontSize: 13 }}>Sin meta asignada para esta quincena</div>
-          )}
         </div>
       </div>
 
