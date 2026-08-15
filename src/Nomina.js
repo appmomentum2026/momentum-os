@@ -62,12 +62,16 @@ function textoPorcentaje(tokens, horasCumplidas, horasRequeridas) {
 
 // Mensaje motivador de la tarjeta de estado, según qué tan cerca está de la meta
 function mensajeMotivador(pctMeta, cumplida, tieneMeta) {
-  if (!tieneMeta) return { texto: '¡Sigue así, cada token cuenta! 💪', color: 'var(--gold)' };
-  if (cumplida) return { texto: '¡Eres una campeona! 🏆', color: 'var(--green)' };
-  if (pctMeta >= 90) return { texto: '¡Casi lo logras! 💪', color: 'var(--gold)' };
-  if (pctMeta >= 50) return { texto: '¡Vas muy bien! 🔥', color: 'var(--gold)' };
-  return { texto: '¡Tú puedes lograrlo! ⭐', color: 'var(--gold)' };
+  if (!tieneMeta) return { texto: '🚀 ¡Sigue así, cada token cuenta!', color: 'var(--gold)', nivel: 'normal' };
+  if (cumplida) return { texto: '🏆 ¡ERES UNA CAMPEONA!', color: 'var(--green)', nivel: 'campeona' };
+  if (pctMeta >= 90) return { texto: '🔥 ¡Casi lo logras! Falta poquito', color: 'var(--gold)', nivel: 'alto' };
+  if (pctMeta >= 70) return { texto: '💪 ¡Vas increíble, sigue así!', color: 'var(--gold)', nivel: 'alto' };
+  if (pctMeta >= 40) return { texto: '⭐ ¡Buen ritmo, tú puedes!', color: 'var(--gold)', nivel: 'medio' };
+  return { texto: '🚀 ¡Vamos con toda, aún hay tiempo!', color: 'var(--gold)', nivel: 'bajo' };
 }
+
+// Colores de las piezas de confeti (se repiten en ciclo, ver CONFETI_COLORES.length)
+const CONFETI_COLORES = ['var(--gold)', 'var(--green)', '#ffffff', '#C9924A', '#4CAF7D', '#E8C77E'];
 
 // Domingos dentro del rango de la quincena (fechas ISO 'YYYY-MM-DD')
 function contarDomingos(inicioISO, finISO) {
@@ -231,20 +235,28 @@ export default function Nomina({ nombreModelo }) {
   const ritmoDiario = totalTokens / diasTranscurridosQuincena;
   const proyeccionCierre = Math.round(ritmoDiario * quincena.dias);
 
-  // Mini-hitos: badges que se van desbloqueando según avanza la quincena
-  const hitos = [];
-  if (horasRequeridas > 0 && horasTrabajadas >= horasRequeridas) hitos.push({ icon: '✓', texto: 'Cumplió horas' });
-  if (totalTokens >= 50000) hitos.push({ icon: '⭐', texto: 'Superó 50k tokens' });
-  if (totalTokens >= 60000) hitos.push({ icon: '🌟', texto: 'Superó 60k tokens' });
-  if (totalTokens >= 70000) hitos.push({ icon: '💎', texto: 'Superó 70k tokens' });
-  if (metaCumplida) hitos.push({ icon: '🏆', texto: 'Meta cumplida' });
+  // Chips de logros: siempre se muestran los 4, encendidos (dorado/verde) al alcanzarse,
+  // apagados (gris) si no — así se ve claro qué falta por desbloquear.
+  const chips = [
+    { icon: '✓', texto: 'Cumplió horas', lograda: horasRequeridas > 0 && horasTrabajadas >= horasRequeridas, colorLogrado: 'var(--green)' },
+    { icon: '⭐', texto: '+50k tokens', lograda: totalTokens >= 50000, colorLogrado: 'var(--gold)' },
+    { icon: '💎', texto: '+60k tokens', lograda: totalTokens >= 60000, colorLogrado: 'var(--gold)' },
+    { icon: '👑', texto: '+70k tokens', lograda: totalTokens >= 70000, colorLogrado: 'var(--gold)' },
+  ];
 
   const barraWrap = { background: 'var(--bg3)', borderRadius: 20, height: 6, marginTop: 6, overflow: 'hidden' };
   const barraFill = (pct, color) => ({ height: '100%', width: `${pct}%`, background: color || 'var(--gold)', borderRadius: 20, transition: 'width 0.4s' });
-  const chipHito = { display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg)', boxShadow: 'var(--shadow-out)', borderRadius: 20, padding: '6px 14px', fontSize: 12, color: 'var(--gold)', fontWeight: 700 };
+  const estiloChip = (c) => ({
+    display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 20, padding: '7px 14px', fontSize: 12, fontWeight: 700,
+    background: c.lograda ? (c.colorLogrado === 'var(--green)' ? 'rgba(76,175,125,0.12)' : 'rgba(201,146,74,0.15)') : 'var(--bg)',
+    color: c.lograda ? c.colorLogrado : 'var(--text-dim)',
+    border: c.lograda ? `1px solid ${c.colorLogrado === 'var(--green)' ? 'rgba(76,175,125,0.35)' : 'var(--gold-dim)'}` : '1px solid var(--border2)',
+    boxShadow: c.lograda ? 'var(--shadow-out)' : 'none',
+    opacity: c.lograda ? 1 : 0.55,
+  });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="nm-nomina-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
@@ -262,15 +274,16 @@ export default function Nomina({ nombreModelo }) {
         </div>
       </div>
 
-      {/* Tarjeta de estado motivadora */}
+      {/* Banner de estado motivador */}
       <div
-        className="nm-card-elevated"
+        className={`nm-card-elevated nm-mensaje-motivador${mensaje.nivel === 'campeona' ? ' nm-banner-campeona' : ''}`}
         style={{
-          textAlign: 'center', padding: '18px 20px',
-          border: metaCumplida ? '1px solid rgba(76,175,125,0.4)' : '1px solid var(--gold-dim)'
+          textAlign: 'center', padding: '22px 20px',
+          border: metaCumplida ? '1px solid rgba(76,175,125,0.5)' : '1px solid var(--gold-dim)',
+          background: metaCumplida ? undefined : 'linear-gradient(135deg, rgba(201,146,74,0.08), transparent)'
         }}
       >
-        <div className="nm-mensaje-motivador" style={{ fontSize: 19, fontWeight: 800, color: mensaje.color }}>
+        <div style={{ fontSize: metaCumplida ? 25 : 20, fontWeight: 800, color: mensaje.color, letterSpacing: 0.3 }}>
           {mensaje.texto}
         </div>
       </div>
@@ -316,24 +329,41 @@ export default function Nomina({ nombreModelo }) {
       {/* Progreso de meta — la pieza central, grande y motivadora */}
       <div
         className="nm-card-elevated"
-        style={{ position: 'relative', overflow: 'hidden', border: metaCumplida ? '1px solid rgba(76,175,125,0.4)' : undefined }}
+        style={{ position: 'relative', overflow: 'hidden', border: metaCumplida ? '1px solid rgba(76,175,125,0.5)' : undefined }}
       >
-        <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 14 }}>Progreso de tu meta</div>
+        {metaCumplida && (
+          <div className="nm-confeti-burst" aria-hidden="true">
+            {Array.from({ length: 16 }).map((_, i) => (
+              <span
+                key={i}
+                className="nm-confeti-pieza"
+                style={{
+                  left: `${(i * 6.7) % 100}%`,
+                  background: CONFETI_COLORES[i % CONFETI_COLORES.length],
+                  animationDelay: `${(i % 8) * 0.1}s`
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+          <div style={{ color: 'var(--text-sub)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' }}>Progreso de tu meta</div>
+          {metaTokens > 0 && (
+            <div style={{ fontSize: 26, fontWeight: 800, color: metaCumplida ? 'var(--green)' : 'var(--gold)' }}>{pctMeta}%</div>
+          )}
+        </div>
 
         {metaTokens > 0 ? (
           <>
             {metaCumplida && (
-              <div className="nm-meta-celebracion" style={{ textAlign: 'center', marginBottom: 16, position: 'relative' }}>
-                {['🎉', '⭐', '✨', '🎊', '⭐', '🎉'].map((e, i) => (
-                  <span key={i} className="nm-confeti-item" style={{ left: `${8 + i * 16}%`, animationDelay: `${i * 0.18}s`, fontSize: 16 }}>{e}</span>
-                ))}
+              <div className="nm-meta-celebracion" style={{ textAlign: 'center', marginBottom: 16 }}>
                 <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--green)' }}>¡META CUMPLIDA! 🎉</div>
               </div>
             )}
 
             <div className="nm-barra-meta-track">
               <div className={`nm-barra-meta-fill ${metaCumplida ? 'cumplida' : 'en-progreso'}`} style={{ width: `${Math.min(100, Math.max(pctMeta, 6))}%` }} />
-              <div className="nm-meta-porcentaje">{pctMeta}%</div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
@@ -343,36 +373,35 @@ export default function Nomina({ nombreModelo }) {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 16 }}>
               <div style={{ background: 'rgba(201,146,74,0.08)', border: '1px solid var(--border2)', borderRadius: 12, padding: 14, textAlign: 'center' }}>
-                <div style={{ color: 'var(--text-sub)', fontSize: 11, marginBottom: 4 }}>Llevas acumulados</div>
-                <div style={{ color: 'var(--gold)', fontSize: 26, fontWeight: 800 }}>{totalTokens.toLocaleString()}</div>
+                <div style={{ color: 'var(--text-sub)', fontSize: 11, marginBottom: 4 }}>Tokens acumulados</div>
+                <div style={{ color: 'var(--gold)', fontSize: 28, fontWeight: 800 }}>{totalTokens.toLocaleString()}</div>
                 <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>tokens</div>
               </div>
               <div style={{ background: metaCumplida ? 'rgba(76,175,125,0.1)' : 'rgba(201,146,74,0.08)', border: '1px solid var(--border2)', borderRadius: 12, padding: 14, textAlign: 'center' }}>
-                <div style={{ color: 'var(--text-sub)', fontSize: 11, marginBottom: 4 }}>{metaCumplida ? 'Superaste tu meta por' : 'Te faltan'}</div>
-                <div style={{ color: metaCumplida ? 'var(--green)' : 'var(--text)', fontSize: 26, fontWeight: 800 }}>{Math.abs(metaTokens - totalTokens).toLocaleString()}</div>
+                <div style={{ color: 'var(--text-sub)', fontSize: 11, marginBottom: 4 }}>{metaCumplida ? '¡Meta superada por!' : 'Te faltan'}</div>
+                <div style={{ color: metaCumplida ? 'var(--green)' : 'var(--text)', fontSize: 28, fontWeight: 800 }}>{Math.abs(metaTokens - totalTokens).toLocaleString()}</div>
                 <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>tokens</div>
               </div>
             </div>
 
             {quincenaOffset === 0 && !metaCumplida && (
               <div style={{ textAlign: 'center', color: 'var(--text-sub)', fontSize: 12, marginTop: 14 }}>
-                Si sigues así, cerrarás con <b style={{ color: 'var(--gold)' }}>{proyeccionCierre.toLocaleString()}</b> tokens
-              </div>
-            )}
-
-            {hitos.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16, justifyContent: 'center' }}>
-                {hitos.map((h, i) => (
-                  <span key={i} className="nm-hito-chip" style={{ ...chipHito, animationDelay: `${i * 0.08}s` }}>
-                    {h.icon} {h.texto}
-                  </span>
-                ))}
+                Al ritmo actual, cerrarás en <b style={{ color: 'var(--gold)' }}>~{proyeccionCierre.toLocaleString()}</b> tokens
               </div>
             )}
           </>
         ) : (
           <div style={{ color: 'var(--text-dim)', textAlign: 'center', padding: 30, fontSize: 13 }}>Sin meta asignada para esta quincena</div>
         )}
+
+        {/* Chips de logros: siempre visibles, encendidos al lograrse */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: metaTokens > 0 ? 18 : 6, justifyContent: 'center' }}>
+          {chips.map((c, i) => (
+            <span key={i} className={c.lograda ? 'nm-hito-chip' : ''} style={{ ...estiloChip(c), animationDelay: `${i * 0.08}s` }}>
+              {c.icon} {c.texto}
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* Mi resumen */}

@@ -217,51 +217,6 @@ function MapaHabitaciones({ rol }) {
 }
 
 
-function BottomBar({ principales, vista, setVista, masItems }) {
-  const [masAbierto, setMasAbierto] = useState(false);
-  const hayMas = masItems && masItems.length > 0;
-
-  return (
-    <>
-      {masAbierto && <div className="nm-mas-overlay" onClick={() => setMasAbierto(false)}></div>}
-      <div className="nm-bottombar">
-        {masAbierto && hayMas && (
-          <div className="nm-mas-tray">
-            <div className="nm-mas-tray-label">Más opciones</div>
-            <div className="nm-mas-grid">
-              {masItems.map(item => (
-                <button key={item.id}
-                  className={`nm-mas-item${vista === item.id ? ' activo' : ''}`}
-                  onClick={() => { setVista(item.id); setMasAbierto(false); }}>
-                  <i className={`ti ti-${item.icon}`} aria-hidden="true"></i>
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        <div className="nm-bottombar-row">
-          {principales.map(item => (
-            <button key={item.id}
-              className={`nm-bottom-btn${vista === item.id ? ' activo' : ''}`}
-              onClick={() => { setVista(item.id); setMasAbierto(false); }}>
-              <i className={`ti ti-${item.icon}`} aria-hidden="true"></i>
-              <span>{item.label}</span>
-            </button>
-          ))}
-          {hayMas && (
-            <button className={`nm-bottom-btn${masAbierto ? ' activo' : ''}`}
-              onClick={() => setMasAbierto(prev => !prev)}>
-              <i className="ti ti-dots" aria-hidden="true"></i>
-              <span>Más</span>
-            </button>
-          )}
-        </div>
-      </div>
-    </>
-  );
-}
-
 function Sidebar({ items, vista, setVista, titulo, sub, icono, onLogout, temaOscuro, toggleTema }) {
   return (
     <div className="nm-sidebar">
@@ -296,11 +251,14 @@ function Sidebar({ items, vista, setVista, titulo, sub, icono, onLogout, temaOsc
   );
 }
 
-function NavLayout({ todos, principales, masItems, vista, setVista, titulo, sub, icono, seccionLabel, onLogout, temaOscuro, toggleTema, userId, notifDestinatario, onNuevaNotificacion, children }) {
-  // Se llama una sola vez aquí (no dentro de Sidebar/BottomBar) para no duplicar el listener
+function NavLayout({ todos, vista, setVista, titulo, sub, icono, seccionLabel, onLogout, temaOscuro, toggleTema, userId, notifDestinatario, onNuevaNotificacion, children }) {
+  // Se llama una sola vez aquí (no dentro de Sidebar/drawer) para no duplicar el listener
   // de Firestore ni disparar el sonido/toast dos veces cuando ambos layouts están montados.
   const notifState = useNotificaciones(notifDestinatario, onNuevaNotificacion);
   const notifStateActivo = notifDestinatario ? notifState : null;
+  const [drawerAbierto, setDrawerAbierto] = useState(false);
+
+  const irA = (id) => { setVista(id); setDrawerAbierto(false); };
 
   return (
     <>
@@ -323,30 +281,60 @@ function NavLayout({ todos, principales, masItems, vista, setVista, titulo, sub,
         </div>
       </div>
 
-      {/* MOVIL: barra inferior */}
+      {/* MOVIL: drawer deslizable + botón hamburguesa (reemplaza la barra inferior) */}
       <div className="nm-layout-mobile">
+        <button type="button" className="nm-hamburguesa" onClick={() => setDrawerAbierto(true)} aria-label="Abrir menú">
+          <i className="ti ti-menu-2" aria-hidden="true"></i>
+        </button>
+
         {notifStateActivo && (
           <div className="nm-notif-fixed nm-notif-fixed-mobile">
             <Notificaciones notifState={notifStateActivo} variant="mobile" />
           </div>
         )}
+
+        {drawerAbierto && <button type="button" className="nm-drawer-overlay" aria-label="Cerrar menú" onClick={() => setDrawerAbierto(false)} />}
+
+        <div className={`nm-drawer${drawerAbierto ? ' abierto' : ''}`}>
+          <div className="nm-drawer-header">
+            <div className="nm-drawer-icon"><i className={`ti ti-${icono}`} aria-hidden="true"></i></div>
+            <div style={{ minWidth: 0 }}>
+              <div className="nm-drawer-titulo">{titulo}</div>
+              <div className="nm-drawer-sub">{sub}</div>
+            </div>
+          </div>
+          <div className="nm-drawer-items">
+            {todos.map(item => (
+              <button key={item.id}
+                className={`nm-drawer-item${vista === item.id ? ' activo' : ''}`}
+                onClick={() => irA(item.id)}>
+                <i className={`ti ti-${item.icon}`} aria-hidden="true"></i>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="nm-drawer-footer">
+            <div className="nm-tema-toggle" onClick={toggleTema}>
+              <div className={`nm-tema-switch${temaOscuro ? '' : ' on'}`}>
+                <div className="nm-tema-switch-bola">{temaOscuro ? '🌙' : '☀️'}</div>
+              </div>
+              <span className="nm-tema-toggle-label">{temaOscuro ? 'Modo oscuro' : 'Modo claro'}</span>
+            </div>
+            <button className="nm-drawer-salir" onClick={onLogout}>
+              <i className="ti ti-logout" aria-hidden="true"></i> Salir
+            </button>
+          </div>
+        </div>
+
         <div className="nm-wrap">
           <div className="nm-header">
             <div>
               <div className="nm-header-title">{titulo}</div>
               <div className="nm-header-sub">{sub}</div>
             </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button className="nm-tema-btn" onClick={toggleTema}>{temaOscuro ? '☀️' : '🌙'}</button>
-              <button className="nm-exit-btn" onClick={onLogout}>
-                <i className="ti ti-logout" aria-hidden="true"></i> Salir
-              </button>
-            </div>
           </div>
           <div className="nm-section-label">{seccionLabel}</div>
           {children}
-          <BottomBar vista={vista} setVista={setVista}
-            principales={principales} masItems={masItems} />
         </div>
       </div>
     </>
@@ -480,8 +468,6 @@ function AppJefe({ onLogout, temaOscuro, toggleTema, userId }) {
     <>
     <NavLayout
       todos={items}
-      principales={items.slice(0, 3)}
-      masItems={items.slice(3)}
       vista={vista} setVista={setVista}
       titulo="Jefe" sub="Panel de control" icono="crown"
       seccionLabel={seccionLabel}
@@ -540,8 +526,6 @@ function AppMonitor({ onLogout, temaOscuro, toggleTema, monitorData }) {
     <>
     <NavLayout
       todos={items}
-      principales={items.slice(0, 3)}
-      masItems={items.slice(3)}
       vista={vista} setVista={setVista}
       titulo="Monitor" sub={`${monitorData?.nombre || 'Monitor'} — ${monitorData?.turno || ''}`} icono="device-desktop"
       seccionLabel={seccionLabel}
@@ -605,8 +589,6 @@ function AppModelo({ onLogout, temaOscuro, toggleTema, modelaData }) {
   return (
     <NavLayout
       todos={items}
-      principales={items.slice(0, 3)}
-      masItems={items.slice(3)}
       vista={vista} setVista={setVista}
       titulo={<span style={{ fontSize: 22, fontWeight: 700 }}>Mi panel</span>}
       sub={<span style={{ fontSize: 16 }}>{modelaData?.nombreReal || 'Momentum Studio'}</span>}
