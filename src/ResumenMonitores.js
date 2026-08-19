@@ -40,7 +40,19 @@ const s = {
   btnRow: { display: 'flex', gap: 10 },
   btnGuardar: { flex: 1, background: 'var(--bg)', border: 'none', borderRadius: 10, boxShadow: 'var(--shadow-out)', color: 'var(--gold)', padding: '10px', fontSize: 13, letterSpacing: 1, cursor: 'pointer' },
   btnCancelar: { background: 'transparent', border: 'none', color: 'var(--text-sub)', padding: '10px', fontSize: 13, cursor: 'pointer' },
+  rankingTit: { color: 'var(--gold)', fontSize: 15, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 },
+  rankingRow: { display: 'flex', alignItems: 'center', gap: 14, padding: '13px 14px', borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border2)', marginBottom: 8 },
+  rankingRowTop: { background: 'rgba(201,146,74,0.12)', border: '1px solid var(--gold)' },
+  rankingPos: { width: 30, fontSize: 19, textAlign: 'center', flexShrink: 0, fontWeight: 700, color: 'var(--text-sub)' },
+  rankingNombre: { color: 'var(--text)', fontSize: 14, fontWeight: 700 },
+  rankingSub: { color: 'var(--text-sub)', fontSize: 11, marginTop: 2, letterSpacing: 0.5 },
+  rankingStats: { display: 'flex', gap: 18, marginLeft: 'auto', flexShrink: 0 },
+  rankingStatCol: { textAlign: 'right' },
+  rankingStatVal: { color: 'var(--gold)', fontSize: 14, fontWeight: 700 },
+  rankingStatLabel: { color: 'var(--text-sub)', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 },
 };
+
+const medalla = (i) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}°`);
 
 function getQuincena() {
   const hoy = new Date();
@@ -141,8 +153,73 @@ export default function ResumenMonitores() {
     return { numModelos: susModelos.length, totalTokens, totalUsd };
   };
 
+  // Ranking pro: monitores individuales y turnos completos, ordenados por facturación
+  // (tokens totales de sus modelos) de mayor a menor.
+  const monitoresRanking = Object.keys(MONITORES)
+    .map(monitor => ({ monitor, turno: TURNOS[monitor], ...calcularMonitor(monitor) }))
+    .sort((a, b) => b.totalTokens - a.totalTokens);
+
+  const turnosRanking = TURNOS_LISTA
+    .map(turno => {
+      const monitoresTurno = monitoresRanking.filter(m => m.turno === turno);
+      const totalTokens = monitoresTurno.reduce((acc, m) => acc + m.totalTokens, 0);
+      const numModelos = monitoresTurno.reduce((acc, m) => acc + m.numModelos, 0);
+      return { turno, totalTokens, totalUsd: (totalTokens / 20).toFixed(2), numModelos, numMonitores: monitoresTurno.length };
+    })
+    .filter(t => t.numMonitores > 0)
+    .sort((a, b) => b.totalTokens - a.totalTokens);
+
   return (
     <div style={s.wrap}>
+      {/* Ranking Pro */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 16, marginBottom: 32, alignItems: 'start' }} className="nm-dias-grid">
+        <div className="nm-card-elevated">
+          <div style={s.rankingTit}><span style={{ fontSize: 18 }}>🏆</span> Ranking de turnos</div>
+          {turnosRanking.map((t, i) => (
+            <div key={t.turno} style={{ ...s.rankingRow, ...(i === 0 ? s.rankingRowTop : {}) }}>
+              <div style={s.rankingPos}>{medalla(i)}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={s.rankingNombre}>{TURNO_EMOJI[t.turno]} Turno {t.turno}</div>
+                <div style={s.rankingSub}>{t.numMonitores} monitor{t.numMonitores !== 1 ? 'es' : ''} · {t.numModelos} modelos</div>
+              </div>
+              <div style={s.rankingStats}>
+                <div style={s.rankingStatCol}>
+                  <div style={s.rankingStatVal}>{t.totalTokens.toLocaleString()}</div>
+                  <div style={s.rankingStatLabel}>Tokens</div>
+                </div>
+                <div style={s.rankingStatCol}>
+                  <div style={{ ...s.rankingStatVal, color: 'var(--green)' }}>${t.totalUsd}</div>
+                  <div style={s.rankingStatLabel}>USD</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="nm-card-elevated">
+          <div style={s.rankingTit}><span style={{ fontSize: 18 }}>🏆</span> Ranking de monitores</div>
+          {monitoresRanking.map((m, i) => (
+            <div key={m.monitor} style={{ ...s.rankingRow, ...(i === 0 ? s.rankingRowTop : {}) }}>
+              <div style={s.rankingPos}>{medalla(i)}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={s.rankingNombre}>{m.monitor}</div>
+                <div style={s.rankingSub}>{TURNO_EMOJI[m.turno]} Turno {m.turno} · {m.numModelos} modelos</div>
+              </div>
+              <div style={s.rankingStats}>
+                <div style={s.rankingStatCol}>
+                  <div style={s.rankingStatVal}>{m.totalTokens.toLocaleString()}</div>
+                  <div style={s.rankingStatLabel}>Tokens</div>
+                </div>
+                <div style={s.rankingStatCol}>
+                  <div style={{ ...s.rankingStatVal, color: 'var(--green)' }}>${m.totalUsd}</div>
+                  <div style={s.rankingStatLabel}>USD</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {TURNOS_LISTA.map(turnoActual => {
         const monitoresTurno = Object.keys(MONITORES).filter(m => TURNOS[m] === turnoActual);
         if (monitoresTurno.length === 0) return null;

@@ -214,7 +214,10 @@ export default function Nomina({ nombreModelo }) {
   const metaUsd = obtenerMetaUsd(metas[nombreModelo]);
   const metaTokens = metaUsd * 20;
   const hoy = new Date();
-  const finQuincena = new Date(quincena.fin);
+  // Misma fórmula que QuincenaMonitor.js: días de calendario que faltan hasta el fin de
+  // la quincena inclusive (T23:59:59), para que "días restantes" no dé números distintos
+  // entre la vista de la modelo y la del monitor.
+  const finQuincena = new Date(quincena.fin + 'T23:59:59');
   const diasRestantes = Math.max(0, Math.ceil((finQuincena - hoy) / (1000 * 60 * 60 * 24)));
   const tokensNecesarios = Math.max(0, metaTokens - totalTokens);
   const porDia = diasRestantes > 0 ? Math.ceil(tokensNecesarios / diasRestantes) : 0;
@@ -332,15 +335,19 @@ export default function Nomina({ nombreModelo }) {
         style={{ position: 'relative', overflow: 'hidden', border: metaCumplida ? '1px solid rgba(76,175,125,0.5)' : undefined }}
       >
         {metaCumplida && (
+          // Confeti en loop continuo (animation-iteration-count: infinite en CSS) mientras
+          // la meta siga cumplida — cada pieza con su propia duración/delay para que no
+          // caigan todas sincronizadas.
           <div className="nm-confeti-burst" aria-hidden="true">
-            {Array.from({ length: 16 }).map((_, i) => (
+            {Array.from({ length: 18 }).map((_, i) => (
               <span
                 key={i}
                 className="nm-confeti-pieza"
                 style={{
-                  left: `${(i * 6.7) % 100}%`,
+                  left: `${(i * 5.9) % 100}%`,
                   background: CONFETI_COLORES[i % CONFETI_COLORES.length],
-                  animationDelay: `${(i % 8) * 0.1}s`
+                  animationDuration: `${1.6 + (i % 5) * 0.3}s`,
+                  animationDelay: `${(i % 9) * 0.22}s`
                 }}
               />
             ))}

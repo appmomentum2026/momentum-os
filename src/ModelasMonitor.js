@@ -302,8 +302,8 @@ export default function ModelasMonitor({ monitorData }) {
                           <div style={{ ...s.credBox, marginBottom: 6 }}>
                             {(m.lovenseCorreo || m.lovenseClave) ? (
                               <>
-                                {m.lovenseCorreo && <div style={s.pagRow}><span style={s.pagLabel}>Correo</span><span style={s.pagValor}>{m.lovenseCorreo}</span></div>}
-                                {m.lovenseClave && <div style={s.pagRow}><span style={s.pagLabel}>Clave</span><span style={s.pagValor}>{m.lovenseClave}</span></div>}
+                                {m.lovenseCorreo && <div style={s.pagRow}><span style={s.pagLabel}>Lovense - Correo</span><span style={s.pagValor}>{m.lovenseCorreo}</span></div>}
+                                {m.lovenseClave && <div style={s.pagRow}><span style={s.pagLabel}>Lovense - Clave</span><span style={s.pagValor}>{m.lovenseClave}</span></div>}
                               </>
                             ) : <div style={s.credTexto}>{m.lovense}</div>}
                           </div>
@@ -315,8 +315,8 @@ export default function ModelasMonitor({ monitorData }) {
                           <div style={{ ...s.credBox, marginBottom: 6 }}>
                             {(m.amazonCorreo || m.amazonClave) ? (
                               <>
-                                {m.amazonCorreo && <div style={s.pagRow}><span style={s.pagLabel}>Correo</span><span style={s.pagValor}>{m.amazonCorreo}</span></div>}
-                                {m.amazonClave && <div style={s.pagRow}><span style={s.pagLabel}>Clave</span><span style={s.pagValor}>{m.amazonClave}</span></div>}
+                                {m.amazonCorreo && <div style={s.pagRow}><span style={s.pagLabel}>Amazon - Correo</span><span style={s.pagValor}>{m.amazonCorreo}</span></div>}
+                                {m.amazonClave && <div style={s.pagRow}><span style={s.pagLabel}>Amazon - Clave</span><span style={s.pagValor}>{m.amazonClave}</span></div>}
                               </>
                             ) : <div style={s.credTexto}>{m.amazon}</div>}
                           </div>

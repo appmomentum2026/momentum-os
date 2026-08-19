@@ -520,6 +520,11 @@ function VistaReporteQuincenal({ cierres, rol, nombreMonitor }) {
   const calcularModelo = (nombre) => {
     let horasTrabajadas = 0;
     let totalTokens = 0;
+    // Días trabajados = días únicos con cierre de HORAS válidas (inicio y fin), no por
+    // tokens ni por asistencia — un tip offline puede dejar tokens sin horas registradas.
+    // Misma fuente que Nomina.js/ModelasMonitor.js, para que el número siempre coincida
+    // entre la vista de la modelo, la del monitor y este reporte del jefe.
+    const diasTrabajadosSet = new Set();
     cierres.forEach(cierre => {
       if (cierre.fecha < quincena.inicio || cierre.fecha > quincena.fin + 'Z') return;
       const modeloData = (cierre.modelos || []).find(m => m.nombre === nombre);
@@ -528,6 +533,7 @@ function VistaReporteQuincenal({ cierres, rol, nombreMonitor }) {
         totalTokens += Number(modeloData[p + '_tokens'] || 0);
       });
       if (!modeloData.inicio || !modeloData.fin) return;
+      diasTrabajadosSet.add(cierre.fecha.split('T')[0]);
       const fechaCierreISO = cierre.fecha.split('T')[0];
       const registroDia = asistenciaDB[`${fechaCierreISO}_${nombre}`];
       if (registroDia && registroDia.presente === false) return; // no asistió ese día: no cuenta horas
@@ -542,8 +548,8 @@ function VistaReporteQuincenal({ cierres, rol, nombreMonitor }) {
       horasTrabajadas += Math.max(0, mins / 60);
     });
 
+    const diasTrabajados = diasTrabajadosSet.size;
     const registrosAsistencia = Object.values(asistenciaDB).filter(a => a.modelo === nombre && a.fecha >= quincena.inicio && a.fecha <= quincena.fin);
-    const diasTrabajados = registrosAsistencia.filter(a => a.presente === true).length;
     const inasistencias = registrosAsistencia.filter(a => a.presente === false);
 
     const diasLaborales = calcularDiasLaboralesReporte(quincena, diasLibresDB, nombre);

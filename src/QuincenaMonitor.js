@@ -119,18 +119,28 @@ export default function QuincenaMonitor({ nombreMonitor, turno }) {
 
   // Bono del turno: facturación = tokens de TODAS las modelos del monitor / 20
   const facturacionUsd = totalTokensTurno / 20;
-  const escalonesAlcanzados = TABLA_BONOS.filter(t => facturacionUsd >= t.facturacion);
+
+  // Compensación por modelos faltantes: cada monitor "debería" tener 8 modelos. La
+  // primera modelo faltante no cuenta (es tolerancia normal); desde la segunda en
+  // adelante, cada una suma 600 USD (16,000 tokens) a la facturación efectiva para el
+  // cálculo del bono — así un monitor con menos modelos no queda en desventaja injusta.
+  const modelosFaltantes = Math.max(0, 8 - modelosDB.length);
+  const compensacionUsd = Math.max(0, modelosFaltantes - 1) * 600;
+  const facturacionEfectiva = facturacionUsd + compensacionUsd;
+
+  const escalonesAlcanzados = TABLA_BONOS.filter(t => facturacionEfectiva >= t.facturacion);
   const escalonActual = escalonesAlcanzados.length > 0 ? escalonesAlcanzados[escalonesAlcanzados.length - 1] : null;
-  const siguienteEscalon = TABLA_BONOS.find(t => facturacionUsd < t.facturacion) || null;
-  const usdParaSiguiente = siguienteEscalon ? siguienteEscalon.facturacion - facturacionUsd : 0;
+  const siguienteEscalon = TABLA_BONOS.find(t => facturacionEfectiva < t.facturacion) || null;
+  const usdParaSiguiente = siguienteEscalon ? siguienteEscalon.facturacion - facturacionEfectiva : 0;
   const gananciaExtra = siguienteEscalon ? siguienteEscalon.bono - (escalonActual?.bono || 0) : 0;
   const baseSegmento = escalonActual ? escalonActual.facturacion : 0;
   const topeSegmento = siguienteEscalon ? siguienteEscalon.facturacion : baseSegmento;
   const pctSegmento = topeSegmento > baseSegmento
-    ? Math.min(100, Math.max(0, Math.round(((facturacionUsd - baseSegmento) / (topeSegmento - baseSegmento)) * 100)))
+    ? Math.min(100, Math.max(0, Math.round(((facturacionEfectiva - baseSegmento) / (topeSegmento - baseSegmento)) * 100)))
     : 100;
 
-  // Días restantes de la quincena (para la calculadora de meta)
+  // Días restantes de la quincena (para la calculadora de meta). Misma fórmula que
+  // Nomina.js: días de calendario hasta el fin de la quincena inclusive (T23:59:59).
   const finQuincena = new Date(quincena.fin + 'T23:59:59');
   const diasRestantes = Math.max(0, Math.ceil((finQuincena - new Date()) / (1000 * 60 * 60 * 24)));
   const diasParaCalculo = Math.max(1, diasRestantes);
@@ -139,8 +149,8 @@ export default function QuincenaMonitor({ nombreMonitor, turno }) {
   const idxDefaultCalc = siguienteEscalon ? TABLA_BONOS.indexOf(siguienteEscalon) : TABLA_BONOS.length - 1;
   const metaCalcIdx = metaCalcIdxManual !== null ? metaCalcIdxManual : idxDefaultCalc;
   const metaCalc = TABLA_BONOS[metaCalcIdx];
-  const metaCalcAlcanzada = facturacionUsd >= metaCalc.facturacion;
-  const usdFaltanteCalc = Math.max(0, metaCalc.facturacion - facturacionUsd);
+  const metaCalcAlcanzada = facturacionEfectiva >= metaCalc.facturacion;
+  const usdFaltanteCalc = Math.max(0, metaCalc.facturacion - facturacionEfectiva);
   const tokensFaltantesCalc = Math.round(usdFaltanteCalc * 20);
   const tokensDiariosCalc = Math.ceil(tokensFaltantesCalc / diasParaCalculo);
 
@@ -177,6 +187,12 @@ export default function QuincenaMonitor({ nombreMonitor, turno }) {
           </div>
         </div>
 
+        {compensacionUsd > 0 && (
+          <div style={{ background: 'rgba(201,146,74,0.08)', border: '1px solid var(--gold-dim)', borderRadius: 10, padding: '10px 14px', marginBottom: 14, color: 'var(--text-sub)', fontSize: 12 }}>
+            Compensación por modelos faltantes: <b style={{ color: 'var(--gold)' }}>+${compensacionUsd.toLocaleString()} USD</b> ({modelosFaltantes} modelos faltantes)
+          </div>
+        )}
+
         {siguienteEscalon ? (
           <>
             <div style={s.barraWrap}>
@@ -209,26 +225,19 @@ export default function QuincenaMonitor({ nombreMonitor, turno }) {
         {metaCalcAlcanzada ? (
           <div style={{ textAlign: 'center', color: 'var(--green)', fontSize: 16, fontWeight: 700, padding: '14px 0' }}>¡Ya alcanzaste esta meta! 🎉</div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }} className="nm-form-grid2">
-            <div style={{ background: 'rgba(201,146,74,0.08)', border: '1px solid var(--border2)', borderRadius: 12, padding: 14, textAlign: 'center' }}>
-              <div style={{ color: 'var(--text-sub)', fontSize: 11, marginBottom: 4 }}>Te falta</div>
-              <div style={{ color: 'var(--gold)', fontSize: 20, fontWeight: 800 }}>${usdFaltanteCalc.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-              <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>USD</div>
-            </div>
-            <div style={{ background: 'rgba(201,146,74,0.08)', border: '1px solid var(--border2)', borderRadius: 12, padding: 14, textAlign: 'center' }}>
-              <div style={{ color: 'var(--text-sub)', fontSize: 11, marginBottom: 4 }}>En tokens</div>
-              <div style={{ color: 'var(--gold)', fontSize: 20, fontWeight: 800 }}>{tokensFaltantesCalc.toLocaleString()}</div>
-              <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>tokens</div>
-            </div>
-            <div style={{ background: 'rgba(201,146,74,0.08)', border: '1px solid var(--border2)', borderRadius: 12, padding: 14, textAlign: 'center' }}>
-              <div style={{ color: 'var(--text-sub)', fontSize: 11, marginBottom: 4 }}>Por día (todo el turno)</div>
-              <div style={{ color: 'var(--gold)', fontSize: 20, fontWeight: 800 }}>{tokensDiariosCalc.toLocaleString()}</div>
-              <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>tokens/día</div>
-            </div>
-            <div style={{ background: 'rgba(201,146,74,0.08)', border: '1px solid var(--border2)', borderRadius: 12, padding: 14, textAlign: 'center' }}>
-              <div style={{ color: 'var(--text)', fontSize: 20, fontWeight: 800 }}>{diasRestantes}</div>
-              <div style={{ color: 'var(--text-sub)', fontSize: 11, marginTop: 2 }}>días restantes de la quincena</div>
-            </div>
+          <div className="nm-calc-grid">
+            {[
+              { icon: 'target', val: `$${usdFaltanteCalc.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, label: 'Te falta en USD', color: 'var(--gold)' },
+              { icon: 'coin', val: tokensFaltantesCalc.toLocaleString(), label: 'En tokens', color: 'var(--gold)' },
+              { icon: 'clock', val: tokensDiariosCalc.toLocaleString(), label: 'Tokens/día (todo el turno)', color: 'var(--gold)' },
+              { icon: 'calendar', val: diasRestantes, label: 'Días restantes', color: 'var(--green)' },
+            ].map((item, i) => (
+              <div key={i} className="nm-card-elevated" style={{ textAlign: 'center', padding: '18px 12px' }}>
+                <i className={`ti ti-${item.icon}`} style={{ fontSize: 22, color: item.color, display: 'block', marginBottom: 8 }} aria-hidden="true"></i>
+                <div style={{ color: item.color, fontSize: 28, fontWeight: 800, lineHeight: 1.1 }}>{item.val}</div>
+                <div style={{ color: 'var(--text-sub)', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 6 }}>{item.label}</div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -238,7 +247,7 @@ export default function QuincenaMonitor({ nombreMonitor, turno }) {
         <div style={s.label}>Tabla de bonos del turno</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {TABLA_BONOS.map((t, i) => {
-            const alcanzado = facturacionUsd >= t.facturacion;
+            const alcanzado = facturacionEfectiva >= t.facturacion;
             const esActual = escalonActual === t;
             return (
               <div key={i} style={{
@@ -259,15 +268,18 @@ export default function QuincenaMonitor({ nombreMonitor, turno }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }} className="nm-grid-cards">
-        <div className="nm-card-elevated">
-          <div style={s.label}>Modelos asignadas</div>
-          <div style={s.kpiVal}>{modelosDB.length}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 12 }} className="nm-grid-cards">
+        {/* Tokens del turno: la más llamativa, degradé dorado como las tarjetas de ganancias */}
+        <div style={{ background: 'linear-gradient(135deg, #C9924A 0%, #8B6230 100%)', borderRadius: 16, padding: '22px 24px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', right: -12, top: -12, fontSize: 90, opacity: 0.15 }}>🪙</div>
+          <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Tokens del turno</div>
+          <div style={{ color: '#fff', fontSize: 36, fontWeight: 800, lineHeight: 1.1 }}>{totalTokensTurno.toLocaleString()}</div>
+          <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, marginTop: 6, fontWeight: 600 }}>${(totalTokensTurno / 20).toFixed(2)} USD</div>
         </div>
-        <div className="nm-card-elevated">
-          <div style={s.label}>Tokens del turno</div>
-          <div style={s.kpiVal}>{totalTokensTurno.toLocaleString()}</div>
-          <div style={{ color: 'var(--text-sub)', fontSize: 12, marginTop: 2 }}>${(totalTokensTurno / 20).toFixed(2)} USD</div>
+        <div className="nm-card-elevated" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+          <i className="ti ti-users" style={{ fontSize: 24, color: 'var(--gold)', marginBottom: 8 }} aria-hidden="true"></i>
+          <div style={{ color: 'var(--text)', fontSize: 34, fontWeight: 800 }}>{modelosDB.length}</div>
+          <div style={s.label}>Modelos asignadas</div>
         </div>
       </div>
 

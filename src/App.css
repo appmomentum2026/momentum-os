@@ -102,24 +102,31 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
 }
 
 .nm-role-btn {
-  padding: 14px 18px; border-radius: 12px;
-  border: 1px solid var(--border2);
+  padding: 18px 20px; border-radius: 16px;
+  border: 1px solid var(--gold-dim);
   background: var(--bg2);
-  color: var(--text-sub);
-  font-size: 13px; font-weight: 500; letter-spacing: 1px;
-  cursor: pointer; display: flex; align-items: center; gap: 14px;
+  box-shadow: var(--shadow-out);
+  color: var(--text);
+  font-size: 14px; font-weight: 600; letter-spacing: 1.5px;
+  cursor: pointer; display: flex; align-items: center; gap: 16px;
   text-transform: uppercase; width: 100%;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 
-.nm-role-btn:hover { color: var(--gold); border-color: var(--gold); }
+.nm-role-btn:hover {
+  color: var(--gold);
+  border-color: var(--gold);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-out), 0 10px 26px rgba(201,146,74,0.28);
+}
+.nm-role-btn:active { transform: translateY(0) scale(0.98); }
 
 .nm-role-icon {
-  width: 34px; height: 34px; border-radius: 8px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
+  width: 44px; height: 44px; border-radius: 12px;
+  background: rgba(201,146,74,0.15);
+  border: 1px solid var(--gold-dim);
   display: flex; align-items: center; justify-content: center;
-  font-size: 15px; color: var(--gold); flex-shrink: 0;
+  font-size: 20px; color: var(--gold); flex-shrink: 0;
 }
 
 .nm-input {
@@ -145,9 +152,15 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
 .nm-btn-entrar:active { transform: scale(0.97); }
 
 .nm-btn-volver {
-  background: transparent; border: none;
-  color: var(--text-sub); cursor: pointer; font-size: 13px; letter-spacing: 1px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 10px 20px;
+  color: var(--text-sub); cursor: pointer; font-size: 13px; font-weight: 600; letter-spacing: 1px;
+  transition: color 0.15s, border-color 0.15s;
 }
+
+.nm-btn-volver:hover { color: var(--gold); border-color: var(--gold); }
+.nm-btn-volver i { font-size: 15px; }
 
 .nm-divider {
   width: 40px; height: 1px;
@@ -547,6 +560,17 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
   .nm-grid-cards { grid-template-columns: 1fr; }
 }
 
+/* Paneles de resultado de la calculadora de meta (QuincenaMonitor): 4 columnas en
+   escritorio, 2x2 en móvil — más ancho de sobra que .nm-grid-cards para 4 tarjetas chicas. */
+.nm-calc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 600px) {
+  .nm-calc-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* ===== PANEL LATERAL DE WIDGETS ===== */
 .nm-panel-widgets {
   position: fixed;
@@ -692,7 +716,7 @@ html, body {
   animation: nm-bounce-in 0.5s ease-out;
 }
 
-/* Confeti: piezas de colores cayendo una sola vez al montar (no en loop) */
+/* Confeti: piezas de colores cayendo en loop continuo mientras la meta esté cumplida */
 .nm-confeti-burst {
   position: absolute;
   inset: 0;
@@ -706,7 +730,10 @@ html, body {
   height: 12px;
   border-radius: 2px;
   opacity: 0.95;
-  animation: nm-confeti-caer-pieza 1.9s cubic-bezier(0.4, 0, 0.6, 1) 1 forwards;
+  animation-name: nm-confeti-caer-pieza;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  animation-iteration-count: infinite;
+  /* duración/delay por pieza vienen inline desde Nomina.js para que no caigan todas juntas */
 }
 @keyframes nm-confeti-caer-pieza {
   0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }

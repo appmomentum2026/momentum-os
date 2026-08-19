@@ -404,7 +404,9 @@ function Login({ onLogin, temaOscuro, toggleTema }) {
                 <div className="nm-role-icon"><i className="ti ti-calculator" aria-hidden="true"></i></div>
                 Jefe Administrativo
               </button>
-              <button className="nm-btn-volver" onClick={() => setMostrarJefes(false)}>← Volver</button>
+              <button className="nm-btn-volver" onClick={() => setMostrarJefes(false)}>
+                <i className="ti ti-arrow-left" aria-hidden="true"></i> Volver
+              </button>
             </>
           )}
           <div className="nm-tema-toggle" onClick={toggleTema} style={{ alignSelf: 'center', marginTop: 8 }}>
@@ -422,7 +424,9 @@ function Login({ onLogin, temaOscuro, toggleTema }) {
             onKeyDown={e => e.key === 'Enter' && handleLogin()} />
           {error && <div style={{ color: '#C0614A', fontSize: 13 }}>{error}</div>}
           <button className="nm-btn-entrar" onClick={handleLogin}>Entrar</button>
-          <button className="nm-btn-volver" onClick={() => { setRol(null); setClave(''); setError(''); }}>Volver</button>
+          <button className="nm-btn-volver" onClick={() => { setRol(null); setClave(''); setError(''); }}>
+            <i className="ti ti-arrow-left" aria-hidden="true"></i> Volver
+          </button>
         </div>
       )}
       <div className="nm-divider"></div>
