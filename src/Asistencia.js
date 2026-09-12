@@ -73,6 +73,7 @@ export default function Asistencia({ rol, nombreMonitor, modelasMonitor }) {
         <i className="ti ti-calendar" style={{ color: 'var(--gold)', fontSize: 18 }} aria-hidden="true"></i>
         <span style={s.fechaTexto}>Asistencia del {fechaLegible}</span>
       </div>
+    <div style={{ overflowX: 'auto' }}>
     <table style={s.tabla}>
       <thead>
         <tr>
@@ -124,6 +125,7 @@ export default function Asistencia({ rol, nombreMonitor, modelasMonitor }) {
         })}
       </tbody>
     </table>
+    </div>
     </div>
   );
 }

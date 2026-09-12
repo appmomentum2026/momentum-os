@@ -625,6 +625,9 @@ body.claro input[type="date"]::-webkit-calendar-picker-indicator { filter: inver
 }
 button:active { transform: scale(0.97); transition: transform 0.1s; }
 html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
   overflow-x: hidden;
   max-width: 100vw;
 }
